@@ -20,13 +20,13 @@ Aqui estão algumas das telas principais da aplicação:
 ![Tela Principal](image/tela1.png)
 
 **2. Análise de Controladores (Resposta Temporal):** Comparativo visual entre o sistema original e o sistema com controlador PI, PD ou PID aplicado.
-![Análise de Controladores - Resposta Temporal](image/tela4.png)
+![Análise de Controladores - Resposta Temporal](image/tela4-nova.png)
 
 **3. Análise de Estabilidade (Routh-Hurwitz):** Módulo para inserir a equação característica e obter a análise de estabilidade via critério de Routh-Hurwitz.
 ![Análise de Estabilidade](image/tela2.png)
 
 **4. Análise de Sistema de 2ª Ordem:** Ferramenta para extrair parâmetros ($\omega_n$, $\zeta$, K) e métricas de desempenho diretamente da função de transferência.
-![Análise de Sistema 2ª Ordem](image/tela3.png)
+![Análise de Sistema 2ª Ordem](image/tela3-nova.png)
 
 *(Adicione mais screenshots se desejar, como LGR e Polos/Zeros)*
 ## 🧠 Conceitos Teóricos Abordados
