@@ -13,6 +13,7 @@ matplotlib.use('TkAgg')
 class AnalisadorSegundaOrdem:
     """
     Classe para análise completa de sistemas de segunda ordem
+    Centraliza TODA a lógica de análise, cálculos e plotagem
     """
     
     def __init__(self):
@@ -27,6 +28,14 @@ class AnalisadorSegundaOrdem:
     def extrair_parametros_de_funcao(self, numerador, denominador, tipo_malha='fechada'):
         """
         Extrai os parâmetros ωn, ζ e K a partir dos coeficientes da função de transferência
+        
+        Args:
+            numerador: Lista de coeficientes do numerador
+            denominador: Lista de coeficientes do denominador (deve ter 3 elementos)
+            tipo_malha: 'fechada' ou 'aberta'
+            
+        Returns:
+            tuple: (wn, zeta, ganho)
         """
         if len(denominador) != 3:
             raise ValueError(f"Sistema não é de segunda ordem! Denominador tem grau {len(denominador)-1}")
@@ -65,6 +74,15 @@ class AnalisadorSegundaOrdem:
     def analisar_de_funcao_transferencia(self, numerador, denominador, tipo_malha='fechada', tipo_entrada='degrau'):
         """
         Analisa sistema de segunda ordem a partir da função de transferência
+        
+        Args:
+            numerador: Lista de coeficientes do numerador
+            denominador: Lista de coeficientes do denominador
+            tipo_malha: 'fechada' ou 'aberta'
+            tipo_entrada: 'degrau' ou 'rampa'
+            
+        Returns:
+            str: Relatório completo da análise
         """
         try:
             wn, zeta, ganho = self.extrair_parametros_de_funcao(numerador, denominador, tipo_malha)
@@ -72,6 +90,10 @@ class AnalisadorSegundaOrdem:
             self.numerador = numerador
             self.denominador = denominador
             self.tipo_entrada = tipo_entrada
+            self.tipo_malha = tipo_malha
+            self.wn = wn
+            self.zeta = zeta
+            self.ganho = ganho
             
             return self.analisar_sistema_completo(wn, zeta, ganho, tipo_malha, tipo_entrada)
             
@@ -81,6 +103,16 @@ class AnalisadorSegundaOrdem:
     def analisar_sistema_completo(self, wn, zeta, ganho=1.0, tipo_malha='fechada', tipo_entrada='degrau'):
         """
         Realiza análise completa do sistema de segunda ordem
+        
+        Args:
+            wn: Frequência natural (rad/s)
+            zeta: Coeficiente de amortecimento
+            ganho: Ganho do sistema
+            tipo_malha: 'fechada' ou 'aberta'
+            tipo_entrada: 'degrau' ou 'rampa'
+            
+        Returns:
+            str: Relatório formatado com toda a análise
         """
         self.wn = wn
         self.zeta = zeta
@@ -208,7 +240,7 @@ class AnalisadorSegundaOrdem:
                     resultado.append(f"      └─ e_ss (Entrada Rampa): Infinito (malha aberta)")
             resultado.append("")
         
-        resultado.append("⏱️  CARACTERÍSTICAS TEMPORAIS ADICIONAIS:")
+        resultado.append("⏱️ CARACTERÍSTICAS TEMPORAIS ADICIONAIS:")
         resultado.append("-" * 80)
         caracteristicas = self.calcular_caracteristicas_temporais()
         resultado.extend(caracteristicas)
@@ -240,7 +272,7 @@ class AnalisadorSegundaOrdem:
         return "\n".join(resultado)
     
     def gerar_resumo(self):
-        """Gera resumo com os parâmetros principais"""
+        """Gera resumo executivo com os parâmetros principais"""
         resultado = []
         
         resultado.append(f"   Sistema: {self.tipo_malha.upper()} | Entrada: {self.tipo_entrada.upper()}")
@@ -286,7 +318,7 @@ class AnalisadorSegundaOrdem:
     def classificar_sistema(self):
         """Classifica o sistema quanto ao amortecimento"""
         if self.zeta < 0:
-            return "⚠️  SISTEMA INSTÁVEL (ζ < 0)"
+            return "⚠️ SISTEMA INSTÁVEL (ζ < 0)"
         elif self.zeta == 0:
             return "🔄 SISTEMA NÃO AMORTECIDO (ζ = 0) - Oscilação contínua"
         elif 0 < self.zeta < 1:
@@ -335,11 +367,11 @@ class AnalisadorSegundaOrdem:
         resultado = []
         
         if self.zeta < 0:
-            resultado.append("   ⚠️  Sistema instável - características temporais não aplicáveis")
+            resultado.append("   ⚠️ Sistema instável - características temporais não aplicáveis")
             return resultado
         
         if self.zeta == 0:
-            resultado.append("   ⚠️  Sistema não amortecido - oscilação contínua")
+            resultado.append("   ⚠️ Sistema não amortecido - oscilação contínua")
             resultado.append(f"   Período de Oscilação (T): {2*math.pi/self.wn:.4f} s")
             resultado.append(f"   Frequência de Oscilação (f): {self.wn/(2*math.pi):.4f} Hz")
             return resultado
@@ -372,7 +404,7 @@ class AnalisadorSegundaOrdem:
             resultado.append("   Razão: Coeficiente de amortecimento negativo (ζ < 0)")
             resultado.append("   Consequência: Resposta divergente no tempo")
         elif self.zeta == 0:
-            resultado.append("   ⚠️  SISTEMA MARGINALMENTE ESTÁVEL")
+            resultado.append("   ⚠️ SISTEMA MARGINALMENTE ESTÁVEL")
             resultado.append("   Razão: Amortecimento nulo (ζ = 0)")
             resultado.append("   Consequência: Oscilação permanente sem convergência")
         else:
@@ -404,35 +436,47 @@ class AnalisadorSegundaOrdem:
             resultado.append("")
         
         if self.zeta < 0:
-            resultado.append("   ⚠️  ATENÇÃO: Sistema instável!")
+            resultado.append("   ⚠️ ATENÇÃO: Sistema instável!")
             resultado.append("   • Revisar o projeto do sistema")
         elif self.zeta == 0:
-            resultado.append("   ⚠️  Sistema oscilatório:")
+            resultado.append("   ⚠️ Sistema oscilatório:")
             resultado.append("   • Adicionar amortecimento ao sistema")
         elif 0 < self.zeta < 0.4:
             mp = 100 * math.exp(-math.pi * self.zeta / math.sqrt(1 - self.zeta**2))
             resultado.append("   📊 Sistema subamortecido com alto overshoot:")
             resultado.append(f"   • Overshoot atual: {mp:.2f}%")
+            resultado.append("   • Considere aumentar ζ para reduzir oscilações")
         elif 0.4 <= self.zeta < 0.7:
             mp = 100 * math.exp(-math.pi * self.zeta / math.sqrt(1 - self.zeta**2))
             resultado.append("   ✅ Amortecimento adequado:")
             resultado.append(f"   • Overshoot moderado: {mp:.2f}%")
+            resultado.append("   • Bom compromisso entre velocidade e estabilidade")
         elif 0.7 <= self.zeta < 1:
             mp = 100 * math.exp(-math.pi * self.zeta / math.sqrt(1 - self.zeta**2))
             resultado.append("   ✅ Sistema bem amortecido:")
             resultado.append(f"   • Baixo overshoot: {mp:.2f}%")
+            resultado.append("   • Resposta suave com mínima oscilação")
         elif self.zeta == 1:
             resultado.append("   ⚡ Sistema criticamente amortecido (ÓTIMO):")
             resultado.append("   • Resposta mais rápida sem overshoot")
+            resultado.append("   • Configuração ideal para muitas aplicações")
         else:
             resultado.append("   📈 Sistema superamortecido:")
             resultado.append("   • Sem overshoot mas resposta lenta")
+            resultado.append("   • Considere reduzir ζ para melhorar velocidade")
         
         return resultado
     
     def calcular_resposta_temporal(self, tempo_final=None, num_pontos=1000):
         """
         Calcula a resposta temporal do sistema para plotagem
+        
+        Args:
+            tempo_final: Tempo final da simulação (s)
+            num_pontos: Número de pontos da simulação
+            
+        Returns:
+            tuple: (vetor_tempo, vetor_resposta)
         """
         if self.zeta < 0:
             return None, None
@@ -483,50 +527,73 @@ class AnalisadorSegundaOrdem:
     
     def plotar_resposta(self, frame_grafico=None):
         """
-        Plota a resposta temporal do sistema
+        Plota a resposta temporal do sistema com estilo profissional
+        
+        Args:
+            frame_grafico: Frame opcional para embedding (não usado nesta versão)
+            
+        Returns:
+            Figure: Objeto Figure do matplotlib
         """
         t, y = self.calcular_resposta_temporal()
         
         if t is None or y is None:
             return None
         
-        # Configurar o gráfico
+        # Configurar o gráfico com tema escuro profissional
         fig, ax = plt.subplots(figsize=(10, 6))
         fig.patch.set_facecolor('#16213e')
         ax.set_facecolor('#1a1a2e')
         
         # Plotar resposta
-        ax.plot(t, y, 'cyan', linewidth=2, label='Resposta do Sistema')
+        ax.plot(t, y, 'cyan', linewidth=2.5, label='Resposta do Sistema', zorder=3)
         
         # Plotar entrada
         if self.tipo_entrada == 'degrau':
             ax.plot(t, np.ones_like(t) * self.ganho, 'yellow', 
-                   linewidth=1.5, linestyle='--', label='Entrada (Degrau)', alpha=0.7)
+                   linewidth=1.5, linestyle='--', label='Entrada (Degrau)', alpha=0.7, zorder=2)
             
             # Marcar características para malha fechada
-            if self.tipo_malha == 'fechada':
+            if self.tipo_malha == 'fechada' and self.zeta > 0:
                 # Tempo de pico e Mp
                 if 0 < self.zeta < 1:
                     wd = self.wn * math.sqrt(1 - self.zeta**2)
                     tp = math.pi / wd
                     mp_valor = self.ganho * (1 + math.exp(-math.pi * self.zeta / math.sqrt(1 - self.zeta**2)))
                     
-                    ax.plot(tp, mp_valor, 'ro', markersize=8, label=f'Pico (Tp={tp:.3f}s)')
-                    ax.axhline(y=mp_valor, color='red', linestyle=':', alpha=0.5)
+                    ax.plot(tp, mp_valor, 'ro', markersize=8, label=f'Pico (Tp={tp:.3f}s)', zorder=4)
+                    ax.axhline(y=mp_valor, color='red', linestyle=':', alpha=0.5, linewidth=1)
+                    ax.text(tp, mp_valor + 0.05 * self.ganho, f'Mp={((mp_valor/self.ganho - 1)*100):.1f}%', 
+                           color='red', fontsize=9, ha='center', fontweight='bold')
                 
                 # Banda de ±2% e ±5%
+                ax.axhline(y=self.ganho * 1.02, color='orange', linestyle=':', 
+                          alpha=0.5, linewidth=1, label='±2%', zorder=1)
+                ax.axhline(y=self.ganho * 0.98, color='orange', linestyle=':', 
+                          alpha=0.5, linewidth=1, zorder=1)
+                ax.axhline(y=self.ganho * 1.05, color='lime', linestyle=':', 
+                          alpha=0.4, linewidth=1, label='±5%', zorder=1)
+                ax.axhline(y=self.ganho * 0.95, color='lime', linestyle=':', 
+                          alpha=0.4, linewidth=1, zorder=1)
+                
+                # Marcar tempo de acomodação (2%)
                 if self.zeta > 0:
-                    ax.axhline(y=self.ganho * 1.02, color='orange', linestyle=':', 
-                              alpha=0.5, linewidth=1, label='±2%')
-                    ax.axhline(y=self.ganho * 0.98, color='orange', linestyle=':', 
-                              alpha=0.5, linewidth=1)
-                    ax.axhline(y=self.ganho * 1.05, color='lime', linestyle=':', 
-                              alpha=0.5, linewidth=1, label='±5%')
-                    ax.axhline(y=self.ganho * 0.95, color='lime', linestyle=':', 
-                              alpha=0.5, linewidth=1)
+                    ts = 4 / (self.zeta * self.wn)
+                    if ts < t[-1]:
+                        ax.axvline(x=ts, color='orange', linestyle='--', 
+                                  alpha=0.6, linewidth=1.5, label=f'Ts(2%)={ts:.2f}s', zorder=1)
         else:  # rampa
             ax.plot(t, t, 'yellow', linewidth=1.5, linestyle='--', 
-                   label='Entrada (Rampa)', alpha=0.7)
+                   label='Entrada (Rampa)', alpha=0.7, zorder=2)
+            
+            # Mostrar erro de regime se aplicável
+            if self.tipo_malha == 'fechada' and self.zeta > 0:
+                kv = self.ganho * self.wn * self.wn
+                erro_ss = 1 / kv if kv != 0 else 0
+                if erro_ss > 0 and erro_ss < 10:
+                    # Linha do erro de regime
+                    ax.plot(t, t - erro_ss, 'green', linewidth=1.5, 
+                           linestyle=':', alpha=0.6, label=f'Entrada - e_ss ({erro_ss:.3f})', zorder=1)
         
         # Configurações do gráfico
         ax.set_xlabel('Tempo (s)', color='white', fontsize=12, fontweight='bold')
@@ -535,19 +602,136 @@ class AnalisadorSegundaOrdem:
         titulo = f'Resposta do Sistema - {self.tipo_malha.upper()} - Entrada: {self.tipo_entrada.upper()}'
         ax.set_title(titulo, color='white', fontsize=14, fontweight='bold', pad=20)
         
-        ax.grid(True, alpha=0.3, color='gray', linestyle='--')
-        ax.legend(loc='best', facecolor='#16213e', edgecolor='white', 
-                 fontsize=10, framealpha=0.9)
+        # Grade
+        ax.grid(True, alpha=0.3, color='gray', linestyle='--', linewidth=0.5)
+        ax.set_axisbelow(True)
+        
+        # Legenda
+        legend = ax.legend(loc='best', facecolor='#16213e', edgecolor='white', 
+                          fontsize=10, framealpha=0.9)
+        for text in legend.get_texts():
+            text.set_color('white')
         
         # Colorir labels dos eixos
-        ax.tick_params(axis='x', colors='white')
-        ax.tick_params(axis='y', colors='white')
+        ax.tick_params(axis='x', colors='white', labelsize=10)
+        ax.tick_params(axis='y', colors='white', labelsize=10)
         
         # Colorir bordas
         for spine in ax.spines.values():
             spine.set_edgecolor('white')
             spine.set_linewidth(1.5)
         
+        # Ajustar limites do eixo Y para melhor visualização
+        y_min = min(0, np.min(y) * 1.1)
+        y_max = np.max(y) * 1.15
+        
+        # Se houver pico, garantir que ele apareça
+        if self.tipo_entrada == 'degrau' and 0 < self.zeta < 1:
+            mp_valor = self.ganho * (1 + math.exp(-math.pi * self.zeta / math.sqrt(1 - self.zeta**2)))
+            y_max = max(y_max, mp_valor * 1.1)
+        
+        ax.set_ylim(y_min, y_max)
+        ax.set_xlim(0, t[-1])
+        
+        # Adicionar informações do sistema no gráfico
+        info_text = f'ωn = {self.wn:.3f} rad/s | ζ = {self.zeta:.3f} | K = {self.ganho:.3f}'
+        ax.text(0.02, 0.98, info_text, transform=ax.transAxes, 
+               fontsize=10, verticalalignment='top', color='lightgreen',
+               bbox=dict(boxstyle='round,pad=0.5', facecolor='black', alpha=0.7, edgecolor='lightgreen'),
+               fontweight='bold')
+        
+        # Adicionar classificação do sistema
+        classificacao = self.classificar_sistema().split(' - ')[0]  # Pegar só a primeira parte
+        classificacao_limpa = classificacao.replace('📉', '').replace('⚡', '').replace('📈', '').replace('🔄', '').replace('⚠️', '').strip()
+        ax.text(0.98, 0.98, classificacao_limpa, transform=ax.transAxes, 
+               fontsize=9, verticalalignment='top', horizontalalignment='right',
+               color='yellow', fontweight='bold',
+               bbox=dict(boxstyle='round,pad=0.4', facecolor='black', alpha=0.7, edgecolor='yellow'))
+        
         plt.tight_layout()
         
         return fig
+
+
+# Funções auxiliares para uso direto
+def analisar_sistema(numerador, denominador, tipo_malha='fechada', tipo_entrada='degrau'):
+    """
+    Função auxiliar para análise rápida de um sistema
+    
+    Args:
+        numerador: Lista de coeficientes do numerador
+        denominador: Lista de coeficientes do denominador
+        tipo_malha: 'fechada' ou 'aberta'
+        tipo_entrada: 'degrau' ou 'rampa'
+        
+    Returns:
+        str: Relatório completo da análise
+    
+    Exemplo:
+        >>> resultado = analisar_sistema([100], [1, 10, 100], 'fechada', 'degrau')
+        >>> print(resultado)
+    """
+    analisador = AnalisadorSegundaOrdem()
+    return analisador.analisar_de_funcao_transferencia(numerador, denominador, tipo_malha, tipo_entrada)
+
+
+def plotar_sistema(numerador, denominador, tipo_malha='fechada', tipo_entrada='degrau'):
+    """
+    Função auxiliar para plotagem rápida de um sistema
+    
+    Args:
+        numerador: Lista de coeficientes do numerador
+        denominador: Lista de coeficientes do denominador
+        tipo_malha: 'fechada' ou 'aberta'
+        tipo_entrada: 'degrau' ou 'rampa'
+        
+    Returns:
+        Figure: Objeto Figure do matplotlib
+    
+    Exemplo:
+        >>> fig = plotar_sistema([100], [1, 10, 100], 'fechada', 'degrau')
+        >>> plt.show()
+    """
+    analisador = AnalisadorSegundaOrdem()
+    analisador.analisar_de_funcao_transferencia(numerador, denominador, tipo_malha, tipo_entrada)
+    return analisador.plotar_resposta()
+
+
+# Exemplo de uso standalone
+if __name__ == "__main__":
+    print("=" * 80)
+    print("TESTE DO MÓDULO DE ANÁLISE DE SISTEMAS DE 2ª ORDEM".center(80))
+    print("=" * 80)
+    print()
+    
+    # Exemplo 1: Sistema subamortecido
+    print("EXEMPLO 1: Sistema Subamortecido")
+    print("-" * 80)
+    numerador = [100]
+    denominador = [1, 10, 100]
+    
+    resultado = analisar_sistema(numerador, denominador, 'fechada', 'degrau')
+    print(resultado)
+    print()
+    
+    # Plotar (comentado para não abrir janela automaticamente)
+    # fig = plotar_sistema(numerador, denominador, 'fechada', 'degrau')
+    # plt.show()
+    
+    print()
+    print("=" * 80)
+    print("EXEMPLO 2: Sistema Criticamente Amortecido")
+    print("=" * 80)
+    print()
+    
+    # Exemplo 2: Sistema criticamente amortecido
+    numerador2 = [25]
+    denominador2 = [1, 10, 25]
+    
+    resultado2 = analisar_sistema(numerador2, denominador2, 'fechada', 'degrau')
+    print(resultado2)
+    
+    print()
+    print("=" * 80)
+    print("TESTES CONCLUÍDOS")
+    print("=" * 80)

@@ -79,20 +79,60 @@ class SistemaTCC(ctk.CTk):
     
     def carregar_imagens(self):
         """Carrega as imagens utilizadas no sistema"""
+        self.foto_fundo = None # Resetar
+        self.logo_image = None # Adicionado para clareza
+
+        # --- Carregar Logo (Opcional, se você tiver um logo.png) ---
         try:
             if os.path.exists("logo.png"):
-                imagem_pil = Image.open("logo.png")
-                largura, altura = imagem_pil.size
-                self.foto_fundo = ctk.CTkImage(
-                    light_image=imagem_pil,
-                    dark_image=imagem_pil,
-                    size=(largura, altura)
-                )
+                img_pil = Image.open("logo.png").convert("RGBA")
+                max_h_logo = 60
+                ratio = min(1.0, max_h_logo / img_pil.height)
+                new_size = (int(img_pil.width * ratio), int(img_pil.height * ratio))
+                img_pil_resized = img_pil.resize(new_size, Image.Resampling.LANCZOS)
+                self.logo_image = ctk.CTkImage(light_image=img_pil_resized, dark_image=img_pil_resized, size=new_size)
+            # else: self.logo_image continua None
+        except Exception as e:
+            print(f"Erro ao carregar logo.png: {e}")
+            self.logo_image = None
+
+        # --- Carregar Imagem de Fundo (Papel de Parede) ---
+        try:
+            # Caminho fornecido pelo usuário
+            background_path = "image/icons/papel.png" # <<< CAMINHO DA SUA IMAGEM
+            if os.path.exists(background_path):
+                img_bg = Image.open(background_path)
+                # Criar CTkImage com o tamanho original da imagem
+                # O CTkLabel com place(relwidth=1, relheight=1) fará o stretch
+                self.foto_fundo = ctk.CTkImage(light_image=img_bg, dark_image=img_bg, size=img_bg.size)
+                print(f"Imagem de fundo '{background_path}' carregada.")
             else:
+                print(f"Aviso: Imagem de fundo não encontrada em '{background_path}'.")
                 self.foto_fundo = None
         except Exception as e:
             self.foto_fundo = None
-            print(f"Imagem de fundo não encontrada: {e}. Continuando sem imagem.")
+            print(f"Erro ao carregar imagem de fundo: {e}")
+
+        # --- Carregar Ícones dos Botões (se você os tiver) ---
+        # (Manter a lógica de carregamento dos ícones da resposta anterior, se aplicável)
+        self.icones = {} # Dicionário para guardar os ícones carregados
+        icon_folder = "icons" # Nome da pasta onde salvou os ícones
+        icon_size = (24, 24) # Tamanho desejado para os ícones nos botões
+        icon_files = {
+            "criterio": "stability_icon.png", # Substitua pelo nome real
+            "analise": "second_order_icon.png", # Substitua pelo nome real
+            "controladores": "controller_icon.png" # Substitua pelo nome real
+        }
+        for key, filename in icon_files.items():
+             try:
+                 path = os.path.join(icon_folder, filename) # Assume pasta 'icons' na raiz
+                 if os.path.exists(path):
+                     img = Image.open(path).convert("RGBA")
+                     self.icones[key] = ctk.CTkImage(light_image=img, dark_image=img, size=icon_size)
+                 else: self.icones[key] = None
+             except Exception as e:
+                 print(f"Erro ao carregar ícone {filename}: {e}")
+                 self.icones[key] = None
     
     def abrir_janela(self, tipo_janela, titulo):
         """Abre uma nova janela do tipo especificado"""
@@ -411,33 +451,9 @@ class JanelaCriterio(JanelaBase):
         
         ctk.CTkButton(
             frame_botoes, 
-            text="Apenas Routh-Hurwitz", 
+            text="Critério Routh-Hurwitz", 
             command=self.analisar_routh_hurwitz, 
             width=200,
-            height=48,
-            font=("Segoe UI", 13, "bold"),
-            fg_color=CORES["secundaria"],
-            hover_color=CORES["secundaria_hover"],
-            corner_radius=8
-        ).pack(side="left", padx=5)
-        
-        ctk.CTkButton(
-            frame_botoes, 
-            text="Analisar Nyquist", 
-            command=self.analisar_nyquist, 
-            width=170,
-            height=48,
-            font=("Segoe UI", 13, "bold"),
-            fg_color=CORES["secundaria"],
-            hover_color=CORES["secundaria_hover"],
-            corner_radius=8
-        ).pack(side="left", padx=5)
-        
-        ctk.CTkButton(
-            frame_botoes, 
-            text="Lugar das Raízes", 
-            command=self.analisar_lugar_raizes, 
-            width=170,
             height=48,
             font=("Segoe UI", 13, "bold"),
             fg_color=CORES["secundaria"],
