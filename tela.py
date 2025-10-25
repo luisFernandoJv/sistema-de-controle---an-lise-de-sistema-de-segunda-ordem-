@@ -3,7 +3,9 @@ from PIL import Image, ImageTk
 import os
 from criterios_estabilidade import CriteriosEstabilidade
 from analise_segunda_ordem import AnalisadorSegundaOrdem
-from controladores import JanelaControladores  # Importação do módulo de controladores
+from controladores import JanelaControladores
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
 
 # Configuração do tema
 ctk.set_appearance_mode("dark")
@@ -78,7 +80,6 @@ class SistemaTCC(ctk.CTk):
     def carregar_imagens(self):
         """Carrega as imagens utilizadas no sistema"""
         try:
-            # Tentar carregar logo se existir
             if os.path.exists("logo.png"):
                 imagem_pil = Image.open("logo.png")
                 largura, altura = imagem_pil.size
@@ -106,7 +107,6 @@ class SistemaTCC(ctk.CTk):
         elif tipo_janela == "analise":
             janela = JanelaAnalise(self, titulo)
         elif tipo_janela == "controladores":
-            # Usar a classe JanelaControladores importada
             janela = JanelaControladores(self)
         else:
             return
@@ -136,7 +136,6 @@ class TelaPrincipal(ctk.CTkFrame):
         frame_cabecalho.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
         frame_cabecalho.grid_columnconfigure(0, weight=1)
         
-        # Título principal
         titulo = ctk.CTkLabel(
             frame_cabecalho,
             text="FERRAMENTA COMPUTACIONAL PARA ANÁLISE E CARACTERIZAÇÃO DE SISTEMAS DE CONTROLE",
@@ -146,7 +145,6 @@ class TelaPrincipal(ctk.CTkFrame):
         )
         titulo.grid(row=0, column=0, pady=(15, 5), padx=20)
         
-        # Subtítulo
         subtitulo = ctk.CTkLabel(
             frame_cabecalho,
             text="Trabalho de Conclusão de Curso - Engenharia de Computação",
@@ -161,13 +159,11 @@ class TelaPrincipal(ctk.CTkFrame):
         frame_principal.grid_columnconfigure(0, weight=1)
         frame_principal.grid_rowconfigure(1, weight=1)
         
-        # Imagem de fundo (se existir)
         if self.controlador.foto_fundo:
             label_fundo = ctk.CTkLabel(frame_principal, image=self.controlador.foto_fundo, text="")
             label_fundo.place(relwidth=1, relheight=1)
             label_fundo.lower()
         
-        # Frame dos botões
         frame_botoes = ctk.CTkFrame(
             frame_principal, 
             fg_color=CORES["fundo_claro"],
@@ -177,7 +173,6 @@ class TelaPrincipal(ctk.CTkFrame):
         )
         frame_botoes.grid(row=0, column=0, pady=50, padx=20, sticky="n")
         
-        # Título da seção
         ctk.CTkLabel(
             frame_botoes,
             text="MÓDULOS DO SISTEMA",
@@ -192,7 +187,6 @@ class TelaPrincipal(ctk.CTkFrame):
             text_color=CORES["texto_secundario"]
         ).pack(pady=(0, 20))
         
-        # Informações dos botões - CORRIGIDO: controladores agora chama diretamente a classe
         informacoes_botoes = [
             {
                 "texto": "📊 ANÁLISE DE ESTABILIDADE",
@@ -214,7 +208,6 @@ class TelaPrincipal(ctk.CTkFrame):
             }
         ]
         
-        # Criar botões
         for info in informacoes_botoes:
             botao = ctk.CTkButton(
                 frame_botoes,
@@ -241,11 +234,9 @@ class TelaPrincipal(ctk.CTkFrame):
         frame_rodape.grid(row=2, column=0, sticky="ew", padx=0, pady=0)
         frame_rodape.grid_columnconfigure(0, weight=1)
         
-        # Container interno para melhor organização
         container_rodape = ctk.CTkFrame(frame_rodape, fg_color="transparent")
         container_rodape.pack(fill="x", padx=20, pady=15)
         
-        # Informações do aluno
         informacao_aluno = ctk.CTkLabel(
             container_rodape,
             text="Aluno: Luís Fernando Alexandre dos Santos | Orientador: Prof. Dr. Cecilio Martins de Sousa Neto",
@@ -254,7 +245,6 @@ class TelaPrincipal(ctk.CTkFrame):
         )
         informacao_aluno.pack(side="left")
         
-        # Ano e instituição
         ano = ctk.CTkLabel(
             container_rodape,
             text="2025 - Universidade Federal Rural do Semi-Árido",
@@ -270,7 +260,7 @@ class JanelaBase(ctk.CTkToplevel):
         self.titulo = titulo
         
         self.title(titulo)
-        self.geometry("1000x800")
+        self.geometry("1400x900")
         self.resizable(True, True)
         self.configure(fg_color=CORES["fundo_escuro"])
         
@@ -290,8 +280,8 @@ class JanelaBase(ctk.CTkToplevel):
         largura_pai = self.parent.winfo_width()
         altura_pai = self.parent.winfo_height()
         
-        largura = 1000
-        altura = 800
+        largura = 1400
+        altura = 900
         x = x_pai + (largura_pai - largura) // 2
         y = y_pai + (altura_pai - altura) // 2
         
@@ -307,7 +297,6 @@ class JanelaBase(ctk.CTkToplevel):
         frame_cabecalho.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
         frame_cabecalho.grid_columnconfigure(1, weight=1)
         
-        # Botão fechar
         botao_voltar = ctk.CTkButton(
             frame_cabecalho,
             text="← FECHAR",
@@ -321,7 +310,6 @@ class JanelaBase(ctk.CTkToplevel):
         )
         botao_voltar.grid(row=0, column=0, sticky="w", padx=20, pady=15)
         
-        # Título
         label_titulo = ctk.CTkLabel(
             frame_cabecalho,
             text=self.titulo,
@@ -348,7 +336,6 @@ class JanelaCriterio(JanelaBase):
         frame_conteudo.grid_columnconfigure(0, weight=1)
         frame_conteudo.grid_rowconfigure(2, weight=1)
         
-        # Área de entrada
         frame_entrada = ctk.CTkFrame(
             frame_conteudo,
             fg_color=CORES["acento"],
@@ -357,7 +344,6 @@ class JanelaCriterio(JanelaBase):
         frame_entrada.grid(row=0, column=0, sticky="ew", padx=20, pady=20)
         frame_entrada.grid_columnconfigure(1, weight=1)
         
-        # Entrada do Numerador
         ctk.CTkLabel(
             frame_entrada, 
             text="Numerador:", 
@@ -383,7 +369,6 @@ class JanelaCriterio(JanelaBase):
             text_color=CORES["texto_secundario"]
         ).grid(row=1, column=1, sticky="w", padx=15, pady=(0, 8))
         
-        # Entrada do Denominador
         ctk.CTkLabel(
             frame_entrada, 
             text="Denominador:", 
@@ -409,7 +394,6 @@ class JanelaCriterio(JanelaBase):
             text_color=CORES["texto_secundario"]
         ).grid(row=3, column=1, sticky="w", padx=15, pady=(0, 15))
         
-        # Botões de ação
         frame_botoes = ctk.CTkFrame(frame_conteudo, fg_color="transparent")
         frame_botoes.grid(row=1, column=0, sticky="w", padx=20, pady=15)
         
@@ -461,7 +445,6 @@ class JanelaCriterio(JanelaBase):
             corner_radius=8
         ).pack(side="left", padx=5)
         
-        # Área de resultados
         frame_resultados = ctk.CTkFrame(
             frame_conteudo,
             fg_color=CORES["acento"],
@@ -510,7 +493,6 @@ class JanelaCriterio(JanelaBase):
             raise ValueError("Erro na entrada de dados. Use números separados por espaço.")
     
     def analisar_sistema_completo(self):
-        """Análise completa do sistema"""
         try:
             numerador, denominador = self.obter_coeficientes()
             resultado = CriteriosEstabilidade.analisar_sistema_completo(numerador, denominador)
@@ -522,7 +504,6 @@ class JanelaCriterio(JanelaBase):
             self.mostrar_erro(str(e))
     
     def analisar_routh_hurwitz(self):
-        """Apenas análise Routh-Hurwitz"""
         try:
             numerador, denominador = self.obter_coeficientes()
             resultado = CriteriosEstabilidade.gerar_relatorio_routh_hurwitz(denominador)
@@ -534,7 +515,6 @@ class JanelaCriterio(JanelaBase):
             self.mostrar_erro(str(e))
     
     def analisar_nyquist(self):
-        """Análise de Nyquist"""
         try:
             numerador, denominador = self.obter_coeficientes()
             resultado = CriteriosEstabilidade.analisar_nyquist(numerador, denominador)
@@ -546,7 +526,6 @@ class JanelaCriterio(JanelaBase):
             self.mostrar_erro(str(e))
     
     def analisar_lugar_raizes(self):
-        """Análise do Lugar das Raízes"""
         try:
             numerador, denominador = self.obter_coeficientes()
             resultado = CriteriosEstabilidade.lugar_das_raizes(numerador, denominador)
@@ -565,179 +544,253 @@ class JanelaAnalise(JanelaBase):
     def __init__(self, parent, titulo):
         super().__init__(parent, titulo)
         self.analisador = AnalisadorSegundaOrdem()
+        self.canvas_grafico = None
     
     def criar_conteudo(self):
-        # Criar scrollable frame para todo o conteúdo
-        frame_scroll = ctk.CTkScrollableFrame(
-            self, 
+        # Container principal com grid para dividir tela
+        container_principal = ctk.CTkFrame(self, fg_color="transparent")
+        container_principal.grid(row=1, column=0, sticky="nsew", padx=20, pady=20)
+        container_principal.grid_columnconfigure(0, weight=1)
+        container_principal.grid_columnconfigure(1, weight=1)
+        container_principal.grid_rowconfigure(0, weight=1)
+        
+        # Lado esquerdo - Configurações e resultados
+        frame_esquerdo = ctk.CTkScrollableFrame(
+            container_principal, 
             fg_color=CORES["fundo_claro"],
             corner_radius=10
         )
-        frame_scroll.grid(row=1, column=0, sticky="nsew", padx=20, pady=20)
-        frame_scroll.grid_columnconfigure(0, weight=1)
+        frame_esquerdo.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        frame_esquerdo.grid_columnconfigure(0, weight=1)
         
-        # Seleção do tipo de malha
-        frame_tipo_malha = ctk.CTkFrame(
-            frame_scroll,
+        # Seleção do tipo de malha E tipo de entrada
+        frame_configuracoes = ctk.CTkFrame(
+            frame_esquerdo,
             fg_color=CORES["acento"],
             corner_radius=10
         )
-        frame_tipo_malha.grid(row=0, column=0, sticky="ew", padx=0, pady=(0, 20))
-        frame_tipo_malha.grid_columnconfigure(0, weight=1)
+        frame_configuracoes.grid(row=0, column=0, sticky="ew", padx=0, pady=(0, 15))
+        frame_configuracoes.grid_columnconfigure(0, weight=1)
+        frame_configuracoes.grid_columnconfigure(1, weight=1)
+        
+        # Tipo de Malha
+        frame_malha = ctk.CTkFrame(frame_configuracoes, fg_color="transparent")
+        frame_malha.grid(row=0, column=0, sticky="ew", pady=15, padx=15)
         
         ctk.CTkLabel(
-            frame_tipo_malha,
+            frame_malha,
             text="🔄 Tipo de Sistema:",
-            font=("Segoe UI", 16, "bold"),
+            font=("Segoe UI", 14, "bold"),
             text_color=CORES["texto_principal"]
-        ).grid(row=0, column=0, sticky="w", pady=15, padx=20)
-        
-        frame_radio = ctk.CTkFrame(frame_tipo_malha, fg_color="transparent")
-        frame_radio.grid(row=1, column=0, sticky="w", pady=(0, 15), padx=20)
+        ).pack(anchor="w", pady=(0, 8))
         
         self.tipo_malha = ctk.StringVar(value="fechada")
         
         ctk.CTkRadioButton(
-            frame_radio,
+            frame_malha,
             text="Malha Fechada",
             variable=self.tipo_malha,
             value="fechada",
-            font=("Segoe UI", 13, "bold"),
+            font=("Segoe UI", 12, "bold"),
             text_color=CORES["texto_principal"],
             fg_color=CORES["secundaria"],
             hover_color=CORES["secundaria_hover"]
-        ).pack(side="left", padx=10)
+        ).pack(anchor="w", pady=4)
         
         ctk.CTkRadioButton(
-            frame_radio,
+            frame_malha,
             text="Malha Aberta",
             variable=self.tipo_malha,
             value="aberta",
-            font=("Segoe UI", 13, "bold"),
+            font=("Segoe UI", 12, "bold"),
             text_color=CORES["texto_principal"],
             fg_color=CORES["secundaria"],
             hover_color=CORES["secundaria_hover"]
-        ).pack(side="left", padx=10)
+        ).pack(anchor="w", pady=4)
+        
+        # Tipo de Entrada
+        frame_entrada_tipo = ctk.CTkFrame(frame_configuracoes, fg_color="transparent")
+        frame_entrada_tipo.grid(row=0, column=1, sticky="ew", pady=15, padx=15)
+        
+        ctk.CTkLabel(
+            frame_entrada_tipo,
+            text="📥 Tipo de Entrada:",
+            font=("Segoe UI", 14, "bold"),
+            text_color=CORES["texto_principal"]
+        ).pack(anchor="w", pady=(0, 8))
+        
+        self.tipo_entrada = ctk.StringVar(value="degrau")
+        
+        ctk.CTkRadioButton(
+            frame_entrada_tipo,
+            text="Degrau Unitário",
+            variable=self.tipo_entrada,
+            value="degrau",
+            font=("Segoe UI", 12, "bold"),
+            text_color=CORES["texto_principal"],
+            fg_color=CORES["primaria"],
+            hover_color=CORES["primaria_hover"]
+        ).pack(anchor="w", pady=4)
+        
+        ctk.CTkRadioButton(
+            frame_entrada_tipo,
+            text="Rampa Unitária",
+            variable=self.tipo_entrada,
+            value="rampa",
+            font=("Segoe UI", 12, "bold"),
+            text_color=CORES["texto_principal"],
+            fg_color=CORES["primaria"],
+            hover_color=CORES["primaria_hover"]
+        ).pack(anchor="w", pady=4)
         
         # Área de entrada da função de transferência
         frame_entrada = ctk.CTkFrame(
-            frame_scroll,
+            frame_esquerdo,
             fg_color=CORES["acento"],
             corner_radius=10
         )
-        frame_entrada.grid(row=1, column=0, sticky="ew", padx=0, pady=(0, 20))
-        frame_entrada.grid_columnconfigure(1, weight=1)
+        frame_entrada.grid(row=1, column=0, sticky="ew", padx=0, pady=(0, 15))
+        frame_entrada.grid_columnconfigure(0, weight=1)
         
         ctk.CTkLabel(
             frame_entrada,
-            text="📐 Função de Transferência de 2ª Ordem:",
-            font=("Segoe UI", 16, "bold"),
+            text="📝 Função de Transferência de 2ª Ordem:",
+            font=("Segoe UI", 14, "bold"),
             text_color=CORES["texto_principal"]
-        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=15, padx=20)
+        ).grid(row=0, column=0, sticky="w", pady=12, padx=15)
         
-        # Entrada do Numerador
+        # Numerador
         ctk.CTkLabel(
             frame_entrada, 
             text="Numerador:", 
-            font=("Segoe UI", 14, "bold"),
+            font=("Segoe UI", 12, "bold"),
             text_color=CORES["texto_principal"]
-        ).grid(row=1, column=0, sticky="w", pady=8, padx=20)
+        ).grid(row=1, column=0, sticky="w", pady=5, padx=15)
         
         self.entrada_numerador = ctk.CTkEntry(
             frame_entrada, 
-            placeholder_text="Ex: 100 (para K·ωn²)",
-            width=350,
-            height=42,
-            font=("Segoe UI", 12),
+            placeholder_text="Ex: 100",
+            height=36,
+            font=("Segoe UI", 11),
             fg_color=CORES["fundo_claro"],
             border_color=CORES["borda"]
         )
-        self.entrada_numerador.grid(row=1, column=1, sticky="w", padx=20, pady=8)
+        self.entrada_numerador.grid(row=2, column=0, sticky="ew", padx=15, pady=(0, 5))
         
-        ctk.CTkLabel(
-            frame_entrada, 
-            text="Coeficientes separados por espaço (do maior para o menor grau)",
-            font=("Segoe UI", 10),
-            text_color=CORES["texto_secundario"]
-        ).grid(row=2, column=1, sticky="w", padx=20, pady=(0, 8))
-        
-        # Entrada do Denominador
+        # Denominador
         ctk.CTkLabel(
             frame_entrada, 
             text="Denominador:", 
-            font=("Segoe UI", 14, "bold"),
+            font=("Segoe UI", 12, "bold"),
             text_color=CORES["texto_principal"]
-        ).grid(row=3, column=0, sticky="w", pady=8, padx=20)
+        ).grid(row=3, column=0, sticky="w", pady=5, padx=15)
         
         self.entrada_denominador = ctk.CTkEntry(
             frame_entrada, 
-            placeholder_text="Ex: 1 10 100 (para s² + 10s + 100)",
-            width=350,
-            height=42,
-            font=("Segoe UI", 12),
+            placeholder_text="Ex: 1 10 100",
+            height=36,
+            font=("Segoe UI", 11),
             fg_color=CORES["fundo_claro"],
             border_color=CORES["borda"]
         )
-        self.entrada_denominador.grid(row=3, column=1, sticky="w", padx=20, pady=8)
+        self.entrada_denominador.grid(row=4, column=0, sticky="ew", padx=15, pady=(0, 15))
         
-        ctk.CTkLabel(
-            frame_entrada, 
-            text="Coeficientes separados por espaço (do maior para o menor grau)",
-            font=("Segoe UI", 10),
-            text_color=CORES["texto_secundario"]
-        ).grid(row=4, column=1, sticky="w", padx=20, pady=(0, 15))
+        # Botões de ação
+        frame_botoes = ctk.CTkFrame(frame_entrada, fg_color="transparent")
+        frame_botoes.grid(row=5, column=0, pady=(5, 15), padx=15)
         
-        # Botão de análise
         ctk.CTkButton(
-            frame_entrada,
-            text="▶ Analisar Sistema Completo",
+            frame_botoes,
+            text="▶ Analisar Sistema",
             command=self.analisar_sistema,
-            width=250,
-            height=50,
-            font=("Segoe UI", 14, "bold"),
+            width=200,
+            height=45,
+            font=("Segoe UI", 13, "bold"),
             fg_color=CORES["primaria"],
             hover_color=CORES["primaria_hover"],
             corner_radius=8
-        ).grid(row=5, column=0, columnspan=2, pady=(10, 20))
+        ).pack(side="left", padx=5)
         
-        # Área de resultados com melhor visualização
+        ctk.CTkButton(
+            frame_botoes,
+            text="📊 Plotar Gráfico",
+            command=self.plotar_grafico,
+            width=180,
+            height=45,
+            font=("Segoe UI", 13, "bold"),
+            fg_color=CORES["secundaria"],
+            hover_color=CORES["secundaria_hover"],
+            corner_radius=8
+        ).pack(side="left", padx=5)
+        
+        # Área de resultados
         frame_resultados = ctk.CTkFrame(
-            frame_scroll,
+            frame_esquerdo,
             fg_color=CORES["acento"],
             corner_radius=10
         )
-        frame_resultados.grid(row=2, column=0, sticky="ew", padx=0, pady=(0, 20))
+        frame_resultados.grid(row=2, column=0, sticky="nsew", padx=0, pady=(0, 15))
         frame_resultados.grid_columnconfigure(0, weight=1)
+        frame_resultados.grid_rowconfigure(1, weight=1)
         
         ctk.CTkLabel(
             frame_resultados,
             text="📊 Resultados da Análise:",
-            font=("Segoe UI", 16, "bold"),
+            font=("Segoe UI", 14, "bold"),
             text_color=CORES["texto_principal"]
-        ).grid(row=0, column=0, sticky="w", pady=12, padx=20)
+        ).grid(row=0, column=0, sticky="w", pady=10, padx=15)
         
-        # Textbox para resultados com altura fixa
         self.texto_resultados = ctk.CTkTextbox(
             frame_resultados,
-            font=("Consolas", 11),
+            font=("Consolas", 10),
             fg_color=CORES["fundo_claro"],
             border_color=CORES["borda"],
             border_width=1,
             wrap="word",
-            height=400
+            height=350
         )
-        self.texto_resultados.grid(row=1, column=0, sticky="ew", pady=(0, 15), padx=15)
-        self.texto_resultados.insert("1.0", "Os resultados da análise aparecerão aqui...\n\n")
-        self.texto_resultados.insert("end", "📐 ENTRADA DA FUNÇÃO DE TRANSFERÊNCIA:\n")
-        self.texto_resultados.insert("end", "Digite os coeficientes do numerador e denominador\n\n")
-        self.texto_resultados.insert("end", "Exemplos:\n")
-        self.texto_resultados.insert("end", "• Numerador: 100 (para K·ωn² = 100)\n")
-        self.texto_resultados.insert("end", "• Denominador: 1 10 100 (para s² + 10s + 100)\n\n")
-        self.texto_resultados.insert("end", "O sistema irá extrair automaticamente:\n")
-        self.texto_resultados.insert("end", "• Frequência Natural (ωn)\n")
-        self.texto_resultados.insert("end", "• Coeficiente de Amortecimento (ζ)\n")
-        self.texto_resultados.insert("end", "• Ganho (K)\n\n")
-        self.texto_resultados.insert("end", "Selecione o tipo de malha e clique em 'Analisar Sistema Completo'")
+        self.texto_resultados.grid(row=1, column=0, sticky="nsew", pady=(0, 12), padx=12)
+        self.texto_resultados.insert("1.0", "📝 INSTRUÇÕES:\n\n")
+        self.texto_resultados.insert("end", "1. Configure o tipo de malha e entrada\n")
+        self.texto_resultados.insert("end", "2. Digite os coeficientes:\n")
+        self.texto_resultados.insert("end", "   • Numerador: Ex: 100\n")
+        self.texto_resultados.insert("end", "   • Denominador: Ex: 1 10 100\n\n")
+        self.texto_resultados.insert("end", "3. Clique em 'Analisar Sistema'\n")
+        self.texto_resultados.insert("end", "4. Clique em 'Plotar Gráfico' para visualizar\n")
+        
+        # Lado direito - Gráfico
+        frame_direito = ctk.CTkFrame(
+            container_principal,
+            fg_color=CORES["acento"],
+            corner_radius=10
+        )
+        frame_direito.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
+        frame_direito.grid_columnconfigure(0, weight=1)
+        frame_direito.grid_rowconfigure(1, weight=1)
+        
+        ctk.CTkLabel(
+            frame_direito,
+            text="📈 Gráfico da Resposta Temporal",
+            font=("Segoe UI", 16, "bold"),
+            text_color=CORES["texto_principal"]
+        ).grid(row=0, column=0, sticky="w", pady=15, padx=20)
+        
+        # Frame para o gráfico
+        self.frame_grafico = ctk.CTkFrame(
+            frame_direito,
+            fg_color=CORES["fundo_claro"],
+            corner_radius=10
+        )
+        self.frame_grafico.grid(row=1, column=0, sticky="nsew", padx=15, pady=(0, 15))
+        
+        # Label inicial
+        self.label_sem_grafico = ctk.CTkLabel(
+            self.frame_grafico,
+            text="📊\n\nClique em 'Plotar Gráfico'\npara visualizar a resposta temporal",
+            font=("Segoe UI", 14),
+            text_color=CORES["texto_secundario"]
+        )
+        self.label_sem_grafico.place(relx=0.5, rely=0.5, anchor="center")
     
     def obter_coeficientes(self):
         """Obtém e valida os coeficientes do usuário"""
@@ -751,7 +804,6 @@ class JanelaAnalise(JanelaBase):
             numerador = [float(x) for x in texto_num.split()]
             denominador = [float(x) for x in texto_den.split()]
             
-            # Verificar se o denominador é de segunda ordem
             if len(denominador) != 3:
                 raise ValueError(f"O denominador deve ter 3 coeficientes (sistema de 2ª ordem).\nVocê forneceu {len(denominador)} coeficiente(s).")
             
@@ -767,12 +819,62 @@ class JanelaAnalise(JanelaBase):
         try:
             numerador, denominador = self.obter_coeficientes()
             tipo_malha = self.tipo_malha.get()
+            tipo_entrada = self.tipo_entrada.get()
             
             # Usar o método que extrai os parâmetros da função de transferência
-            resultado = self.analisador.analisar_de_funcao_transferencia(numerador, denominador, tipo_malha)
+            resultado = self.analisador.analisar_de_funcao_transferencia(
+                numerador, 
+                denominador, 
+                tipo_malha, 
+                tipo_entrada
+            )
             
             self.texto_resultados.delete("1.0", "end")
             self.texto_resultados.insert("1.0", resultado)
+            
+        except Exception as e:
+            self.mostrar_erro(str(e))
+    
+    def plotar_grafico(self):
+        """Plota o gráfico da resposta temporal"""
+        try:
+            numerador, denominador = self.obter_coeficientes()
+            tipo_malha = self.tipo_malha.get()
+            tipo_entrada = self.tipo_entrada.get()
+            
+            # Extrair parâmetros e configurar o analisador
+            wn, zeta, ganho = self.analisador.extrair_parametros_de_funcao(
+                numerador, denominador, tipo_malha
+            )
+            
+            self.analisador.wn = wn
+            self.analisador.zeta = zeta
+            self.analisador.ganho = ganho
+            self.analisador.tipo_malha = tipo_malha
+            self.analisador.tipo_entrada = tipo_entrada
+            self.analisador.numerador = numerador
+            self.analisador.denominador = denominador
+            
+            # Limpar gráfico anterior se existir
+            if self.canvas_grafico:
+                self.canvas_grafico.get_tk_widget().destroy()
+            
+            # Remover label inicial
+            if self.label_sem_grafico:
+                self.label_sem_grafico.destroy()
+                self.label_sem_grafico = None
+            
+            # Gerar nova figura
+            fig = self.analisador.plotar_resposta()
+            
+            if fig:
+                # Criar canvas para matplotlib
+                self.canvas_grafico = FigureCanvasTkAgg(fig, master=self.frame_grafico)
+                self.canvas_grafico.draw()
+                self.canvas_grafico.get_tk_widget().pack(fill="both", expand=True, padx=5, pady=5)
+                
+                # Fechar figura do matplotlib para liberar memória
+                plt.close(fig)
             
         except Exception as e:
             self.mostrar_erro(str(e))

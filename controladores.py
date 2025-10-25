@@ -176,7 +176,7 @@ class JanelaControladores(ctk.CTkToplevel):
         # Título
         ctk.CTkLabel(
             frame,
-            text="1️⃣ FUNÇÃO DE TRANSFERÊNCIA",
+            text="FUNÇÃO DE TRANSFERÊNCIA",
             font=("Segoe UI", 14, "bold"),
             text_color=CORES["texto_principal"]
         ).pack(anchor="w", padx=20, pady=(15, 10))
@@ -263,7 +263,7 @@ class JanelaControladores(ctk.CTkToplevel):
         # Título
         ctk.CTkLabel(
             frame,
-            text="2️⃣ TIPO DE ENTRADA",
+            text=" TIPO DE ENTRADA",
             font=("Segoe UI", 14, "bold"),
             text_color=CORES["texto_principal"]
         ).pack(anchor="w", padx=20, pady=(15, 10))
@@ -305,7 +305,7 @@ class JanelaControladores(ctk.CTkToplevel):
         # Título
         ctk.CTkLabel(
             frame,
-            text="3️⃣ CONTROLADOR",
+            text=" CONTROLADOR",
             font=("Segoe UI", 14, "bold"),
             text_color=CORES["texto_principal"]
         ).pack(anchor="w", padx=20, pady=(15, 10))
@@ -825,10 +825,11 @@ class JanelaControladores(ctk.CTkToplevel):
         return metricas
     
     
-    def plotar_resposta_completa(self, ax, t, y, metricas, titulo, cor):
+    def plotar_resposta_completa(self, ax, t, y, metricas, titulo, cor, y_lim_top=None):
         """
         Plota o gráfico de resposta completo, com todas as anotações
         vistas na captura de tela.
+        y_lim_top: Força o limite superior do eixo Y (opcional).
         """
         m = metricas  # Apelido para métricas
         
@@ -875,7 +876,7 @@ class JanelaControladores(ctk.CTkToplevel):
                 bbox=dict(boxstyle='round,pad=0.4', 
                 facecolor=CORES["fundo_claro"], 
                 alpha=0.75, 
-                edgecolor=CORES["texto_secundario"])) # <-- CORREÇÃO AQUI
+                edgecolor=CORES["texto_secundario"]))
 
         # 4. Configurações finais do gráfico
         ax.set_title(titulo, fontsize=11)
@@ -890,9 +891,11 @@ class JanelaControladores(ctk.CTkToplevel):
         for text in legend.get_texts():
             text.set_color(CORES["texto_principal"])
         
-        # Ajusta limites para visualização
-        y_max_visible = max(1.1, m['y_pico'] * 1.1) if m['y_pico'] > 0 else 1.5
-        ax.set_ylim(bottom=0, top=y_max_visible)
+        # --- AJUSTE DE ESCALA ---
+        # Usa o limite Y global se fornecido, senão calcula localmente como fallback
+        y_top_limit = y_lim_top if y_lim_top is not None else max(1.1, m['y_pico'] * 1.1 if m['y_pico'] > 0 else 1.5)
+        ax.set_ylim(bottom=0, top=y_top_limit) 
+        # --- FIM DO AJUSTE DE ESCALA ---
         ax.set_xlim(left=0, right=t[-1])
     
     def gerar_analise(self):
@@ -925,16 +928,10 @@ class JanelaControladores(ctk.CTkToplevel):
         tipo_entrada = self.tipo_entrada.get()
         
         try:
-            # --- AJUSTE PRINCIPAL ---
-            # O sistema "Sem Controlador" será a Malha Aberta (G)
+            # --- Sistemas ---
             sys_sem_aberta = G 
-            # O sistema "Com Controlador" será a Malha Fechada (feedback(G*Gc, 1))
             sys_com_fechada = feedback(G * Gc, 1)
-            
-            # Para as métricas Wn e Zeta do sistema original, pegamos da malha fechada
-            # Isso é o que define o comportamento (subamortecido, etc.)
             sys_sem_fechada = feedback(G, 1) 
-            # --- FIM DO AJUSTE ---
             
             # Limpar gráficos
             self.ax_resp_sem.clear()
@@ -945,67 +942,88 @@ class JanelaControladores(ctk.CTkToplevel):
                 t_final = 15
                 t = np.linspace(0, t_final, 1000)
                 
-                # --- AJUSTE: Plotar Malha Aberta ---
-                # Pega a resposta de G(s)
+                # --- Obter Respostas ---
                 t_sem, y_sem = step_response(sys_sem_aberta, T=t)
+                t_com, y_com = step_response(sys_com_fechada, T=t)
                 
-                # Calcula métricas: Wn/Zeta de feedback(G,1), resto de G(s)
+                # --- AJUSTE DE ESCALA: Encontrar o Y máximo global ---
+                y_max_sem = np.max(y_sem) if len(y_sem) > 0 else 1.0
+                y_max_com = np.max(y_com) if len(y_com) > 0 else 1.0
+                # Calcula o limite superior, garantindo um mínimo de 1.1 e adicionando 10% de margem ao maior pico
+                y_max_global = max(1.1, y_max_sem * 1.1, y_max_com * 1.1) 
+                # --- FIM DO AJUSTE DE ESCALA ---
+
+                # --- Calcular Métricas ---
                 metricas_sem = self.calcular_metricas_resposta(t_sem, y_sem, sys_sem_fechada) 
+                metricas_com = self.calcular_metricas_resposta(t_com, y_com, sys_com_fechada)
                 
-                # Plota a resposta de G(s)
+                # --- Plotar SEM Controlador ---
                 self.plotar_resposta_completa(
                     self.ax_resp_sem, t_sem, y_sem, metricas_sem,
                     'Resposta ao Degrau - Sistema Original (Malha Aberta)',
-                    self.graph_colors['primary']
+                    self.graph_colors['primary'],
+                    y_lim_top=y_max_global # Passa o limite global
                 )
                 
-                # --- COM CONTROLADOR (Malha Fechada) ---
-                t_com, y_com = step_response(sys_com_fechada, T=t)
-                # Calcula métricas de feedback(G*Gc, 1)
-                metricas_com = self.calcular_metricas_resposta(t_com, y_com, sys_com_fechada)
-                
-                # Plota a resposta de feedback(G*Gc, 1)
+                # --- Plotar COM Controlador ---
                 self.plotar_resposta_completa(
                     self.ax_resp_com, t_com, y_com, metricas_com,
                     'Resposta ao Degrau - Com Controlador (Malha Fechada)',
-                    self.graph_colors['secondary']
+                    self.graph_colors['secondary'],
+                    y_lim_top=y_max_global # Passa o limite global
                 )
                 
             else:  # Rampa Unitária
-                t = np.linspace(0, 10, 1000)
+                t_final_rampa = 10 # Tempo final para rampa
+                t = np.linspace(0, t_final_rampa, 1000)
                 u = t
                 
                 # Aplicar estilo ANTES de plotar
                 self.setup_plot_style(self.ax_resp_sem)
                 self.setup_plot_style(self.ax_resp_com)
                 
-                # --- AJUSTE: Plotar Malha Aberta ---
-                t_sem, y_sem, _ = scipy_lsim(sys_sem_aberta, u, t) # Usando G (sys_sem_aberta)
+                # --- Obter Respostas ---
+                t_sem, y_sem, _ = scipy_lsim(sys_sem_aberta, u, t)
+                t_com, y_com, _ = scipy_lsim(sys_com_fechada, u, t)
+                
+                # --- AJUSTE DE ESCALA RAMPA ---
+                # Define o limite Y baseado no valor máximo atingido pela entrada OU saídas
+                y_max_rampa_sem = np.max(y_sem) if len(y_sem) > 0 else t_final_rampa
+                y_max_rampa_com = np.max(y_com) if len(y_com) > 0 else t_final_rampa
+                y_max_global_rampa = max(t_final_rampa, y_max_rampa_sem, y_max_rampa_com) * 1.1 # Margem de 10%
+                # --- FIM AJUSTE ESCALA RAMPA ---
+
+                # --- Plotar SEM Controlador ---
                 self.ax_resp_sem.plot(t_sem, y_sem, linewidth=2.5, color=self.graph_colors['primary'], label='Saída')
                 self.ax_resp_sem.plot(t_sem, u, '--', linewidth=2, color=CORES["texto_secundario"], 
                                     alpha=0.8, label='Entrada (Rampa)')
                 self.ax_resp_sem.set_title('Resposta à Rampa - Sistema Original (Malha Aberta)', fontsize=11)
                 self.ax_resp_sem.set_xlabel('Tempo (s)', fontsize=10)
                 self.ax_resp_sem.set_ylabel('Amplitude', fontsize=10)
+                self.ax_resp_sem.set_ylim(bottom=0, top=y_max_global_rampa) # Usa limite calculado
+                self.ax_resp_sem.set_xlim(left=0, right=t_final_rampa)
                 
                 legend_sem = self.ax_resp_sem.legend(fontsize=9, loc='upper left')
                 legend_sem.get_frame().set_facecolor(CORES["fundo_claro"])
                 legend_sem.get_frame().set_edgecolor(CORES["texto_secundario"])
+                legend_sem.get_frame().set_alpha(0.75)
                 for text in legend_sem.get_texts():
                     text.set_color(CORES["texto_principal"])
                 
-                # --- COM CONTROLADOR (Malha Fechada) ---
-                t_com, y_com, _ = scipy_lsim(sys_com_fechada, u, t) # Usando sys_com_fechada
+                # --- Plotar COM Controlador ---
                 self.ax_resp_com.plot(t_com, y_com, linewidth=2.5, color=self.graph_colors['secondary'], label='Saída')
                 self.ax_resp_com.plot(t_com, u, '--', linewidth=2, color=CORES["texto_secundario"], 
                                     alpha=0.8, label='Entrada (Rampa)')
                 self.ax_resp_com.set_title('Resposta à Rampa - Com Controlador (Malha Fechada)', fontsize=11)
                 self.ax_resp_com.set_xlabel('Tempo (s)', fontsize=10)
                 self.ax_resp_com.set_ylabel('Amplitude', fontsize=10)
-                
+                self.ax_resp_com.set_ylim(bottom=0, top=y_max_global_rampa) # Usa limite calculado
+                self.ax_resp_com.set_xlim(left=0, right=t_final_rampa)
+
                 legend_com = self.ax_resp_com.legend(fontsize=9, loc='upper left')
                 legend_com.get_frame().set_facecolor(CORES["fundo_claro"])
                 legend_com.get_frame().set_edgecolor(CORES["texto_secundario"])
+                legend_com.get_frame().set_alpha(0.75)
                 for text in legend_com.get_texts():
                     text.set_color(CORES["texto_principal"])
 
