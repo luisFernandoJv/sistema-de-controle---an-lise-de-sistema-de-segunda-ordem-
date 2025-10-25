@@ -170,28 +170,87 @@ class TelaPrincipal(ctk.CTkFrame):
         frame_cabecalho = ctk.CTkFrame(
             self, 
             fg_color=CORES["acento"],
-            height=100,
+            height=140,  # Aumentei a altura para melhor acomodação
             corner_radius=0
         )
         frame_cabecalho.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
         frame_cabecalho.grid_columnconfigure(0, weight=1)
+        frame_cabecalho.grid_rowconfigure(0, weight=1)
         
-        titulo = ctk.CTkLabel(
-            frame_cabecalho,
+        # Container principal do cabeçalho
+        container_principal = ctk.CTkFrame(frame_cabecalho, fg_color="transparent")
+        container_principal.grid(row=0, column=0, sticky="nsew", padx=20, pady=15)
+        container_principal.grid_columnconfigure(0, weight=3)  # Título ocupa mais espaço
+        container_principal.grid_columnconfigure(1, weight=1)  # Logo ocupa menos espaço
+        
+        # LADO ESQUERDO - TÍTULO E INFORMAÇÕES
+        container_titulo = ctk.CTkFrame(container_principal, fg_color="transparent")
+        container_titulo.grid(row=0, column=0, sticky="w", padx=0, pady=0)
+        
+        # Título principal (maior destaque)
+        titulo_principal = ctk.CTkLabel(
+            container_titulo,
             text="FERRAMENTA COMPUTACIONAL PARA ANÁLISE E CARACTERIZAÇÃO DE SISTEMAS DE CONTROLE",
-            font=("Segoe UI", 20, "bold"),
+            font=("Segoe UI", 16, "bold"),
             text_color=CORES["texto_principal"],
-            wraplength=900
+            wraplength=600,
+            justify="left"
         )
-        titulo.grid(row=0, column=0, pady=(15, 5), padx=20)
+        titulo_principal.pack(anchor="w", pady=(0, 5))
         
+        # Linha divisória sutil
+        linha_divisoria = ctk.CTkFrame(
+            container_titulo,
+            height=2,
+            fg_color=CORES["primaria"],
+            corner_radius=1
+        )
+        linha_divisoria.pack(fill="x", pady=8)
+        
+        # Subtítulo
         subtitulo = ctk.CTkLabel(
-            frame_cabecalho,
+            container_titulo,
             text="Trabalho de Conclusão de Curso - Engenharia de Computação",
-            font=("Segoe UI", 13),
+            font=("Segoe UI", 13, "bold"),
             text_color=CORES["texto_secundario"]
         )
-        subtitulo.grid(row=1, column=0, pady=(0, 15))
+        subtitulo.pack(anchor="w", pady=(0, 5))
+        
+        # Informação adicional (se necessário)
+        info_adicional = ctk.CTkLabel(
+            container_titulo,
+            text="Sistema de Análise de Controladores",
+            font=("Segoe UI", 11),
+            text_color=CORES["texto_secundario"]
+        )
+        info_adicional.pack(anchor="w")
+        
+        # LADO DIREITO - LOGO E INFORMAÇÕES INSTITUCIONAIS
+        container_logo = ctk.CTkFrame(container_principal, fg_color="transparent")
+        container_logo.grid(row=0, column=1, sticky="e", padx=0, pady=0)
+        
+        # Container para centralizar verticalmente a logo e texto
+        container_logo_interno = ctk.CTkFrame(container_logo, fg_color="transparent")
+        container_logo_interno.pack(expand=True, fill="y")
+        
+        # Logo (se existir)
+        if self.controlador.logo_image:
+            logo_label = ctk.CTkLabel(
+                container_logo_interno,
+                image=self.controlador.logo_image,
+                text=""
+            )
+            logo_label.pack(pady=(0, 5))
+        
+        # Texto institucional
+        texto_institucional = ctk.CTkLabel(
+            container_logo_interno,
+            text="UFERSA\nUniversidade Federal Rural do Semi-Árido",
+            font=("Segoe UI", 10, "bold"),
+            text_color=CORES["texto_secundario"],
+            justify="center"
+        )
+        texto_institucional.pack()
     
     def criar_conteudo_principal(self):
         frame_principal = ctk.CTkFrame(self, fg_color="transparent")
@@ -563,29 +622,52 @@ class JanelaAnalise(JanelaBase):
         self.canvas_grafico = None
     
     def criar_conteudo(self):
-        # Container principal com grid para dividir tela
+        # Container principal com layout mais controlado
         container_principal = ctk.CTkFrame(self, fg_color="transparent")
         container_principal.grid(row=1, column=0, sticky="nsew", padx=20, pady=20)
-        container_principal.grid_columnconfigure(0, weight=1)
-        container_principal.grid_columnconfigure(1, weight=1)
+        container_principal.grid_columnconfigure(0, weight=0)  # Lado esquerdo - FIXO
+        container_principal.grid_columnconfigure(1, weight=1)  # Lado direito - EXPANDE
         container_principal.grid_rowconfigure(0, weight=1)
         
-        # Lado esquerdo - Configurações e resultados
-        frame_esquerdo = ctk.CTkScrollableFrame(
+        # --- LADO ESQUERDO: Configurações e resultados (LARGURA FIXA) ---
+        frame_esquerdo = ctk.CTkFrame(
             container_principal, 
             fg_color=CORES["fundo_claro"],
-            corner_radius=10
+            corner_radius=10,
+            width=450  # LARGURA FIXA EXPLÍCITA
         )
-        frame_esquerdo.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        frame_esquerdo.grid(row=0, column=0, sticky="ns", padx=(0, 10))
+        frame_esquerdo.grid_propagate(False)  # IMPEDE REDIMENSIONAMENTO
         frame_esquerdo.grid_columnconfigure(0, weight=1)
+        frame_esquerdo.grid_rowconfigure(1, weight=1)  # Área de resultados expande
         
-        # Seleção do tipo de malha E tipo de entrada
-        frame_configuracoes = ctk.CTkFrame(
+        # Cabeçalho do painel esquerdo
+        frame_cabecalho_esq = ctk.CTkFrame(frame_esquerdo, fg_color="transparent")
+        frame_cabecalho_esq.grid(row=0, column=0, sticky="ew", padx=15, pady=15)
+        
+        ctk.CTkLabel(
+            frame_cabecalho_esq,
+            text="CONFIGURAÇÃO DO SISTEMA",
+            font=("Segoe UI", 16, "bold"),
+            text_color=CORES["texto_principal"]
+        ).pack(anchor="w")
+        
+        # Container scrollable para todo o conteúdo esquerdo
+        scroll_container = ctk.CTkScrollableFrame(
             frame_esquerdo,
+            fg_color="transparent",
+            height=600  # ALTURA FIXA
+        )
+        scroll_container.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
+        scroll_container.grid_columnconfigure(0, weight=1)
+        
+        # Frame de configurações
+        frame_configuracoes = ctk.CTkFrame(
+            scroll_container,
             fg_color=CORES["acento"],
             corner_radius=10
         )
-        frame_configuracoes.grid(row=0, column=0, sticky="ew", padx=0, pady=(0, 15))
+        frame_configuracoes.grid(row=0, column=0, sticky="ew", pady=(0, 15))
         frame_configuracoes.grid_columnconfigure(0, weight=1)
         frame_configuracoes.grid_columnconfigure(1, weight=1)
         
@@ -661,11 +743,11 @@ class JanelaAnalise(JanelaBase):
         
         # Área de entrada da função de transferência
         frame_entrada = ctk.CTkFrame(
-            frame_esquerdo,
+            scroll_container,
             fg_color=CORES["acento"],
             corner_radius=10
         )
-        frame_entrada.grid(row=1, column=0, sticky="ew", padx=0, pady=(0, 15))
+        frame_entrada.grid(row=1, column=0, sticky="ew", pady=(0, 15))
         frame_entrada.grid_columnconfigure(0, weight=1)
         
         ctk.CTkLabel(
@@ -685,7 +767,7 @@ class JanelaAnalise(JanelaBase):
         
         self.entrada_numerador = ctk.CTkEntry(
             frame_entrada, 
-            placeholder_text="Ex: 100",
+            placeholder_text="Ex: 4",
             height=36,
             font=("Segoe UI", 11),
             fg_color=CORES["fundo_claro"],
@@ -703,7 +785,7 @@ class JanelaAnalise(JanelaBase):
         
         self.entrada_denominador = ctk.CTkEntry(
             frame_entrada, 
-            placeholder_text="Ex: 1 10 100",
+            placeholder_text="Ex: 1 2 4",
             height=36,
             font=("Segoe UI", 11),
             fg_color=CORES["fundo_claro"],
@@ -719,7 +801,7 @@ class JanelaAnalise(JanelaBase):
             frame_botoes,
             text="▶ Analisar Sistema",
             command=self.analisar_sistema,
-            width=200,
+            width=180,
             height=45,
             font=("Segoe UI", 13, "bold"),
             fg_color=CORES["primaria"],
@@ -731,7 +813,7 @@ class JanelaAnalise(JanelaBase):
             frame_botoes,
             text="📊 Plotar Gráfico",
             command=self.plotar_grafico,
-            width=180,
+            width=160,
             height=45,
             font=("Segoe UI", 13, "bold"),
             fg_color=CORES["secundaria"],
@@ -741,11 +823,11 @@ class JanelaAnalise(JanelaBase):
         
         # Área de resultados
         frame_resultados = ctk.CTkFrame(
-            frame_esquerdo,
+            scroll_container,
             fg_color=CORES["acento"],
             corner_radius=10
         )
-        frame_resultados.grid(row=2, column=0, sticky="nsew", padx=0, pady=(0, 15))
+        frame_resultados.grid(row=2, column=0, sticky="nsew", pady=(0, 15))
         frame_resultados.grid_columnconfigure(0, weight=1)
         frame_resultados.grid_rowconfigure(1, weight=1)
         
@@ -763,18 +845,18 @@ class JanelaAnalise(JanelaBase):
             border_color=CORES["borda"],
             border_width=1,
             wrap="word",
-            height=350
+            height=300
         )
         self.texto_resultados.grid(row=1, column=0, sticky="nsew", pady=(0, 12), padx=12)
         self.texto_resultados.insert("1.0", "📝 INSTRUÇÕES:\n\n")
         self.texto_resultados.insert("end", "1. Configure o tipo de malha e entrada\n")
         self.texto_resultados.insert("end", "2. Digite os coeficientes:\n")
-        self.texto_resultados.insert("end", "   • Numerador: Ex: 100\n")
-        self.texto_resultados.insert("end", "   • Denominador: Ex: 1 10 100\n\n")
+        self.texto_resultados.insert("end", "   • Numerador: Ex: 4\n")
+        self.texto_resultados.insert("end", "   • Denominador: Ex: 1 2 4\n\n")
         self.texto_resultados.insert("end", "3. Clique em 'Analisar Sistema'\n")
         self.texto_resultados.insert("end", "4. Clique em 'Plotar Gráfico' para visualizar\n")
         
-        # Lado direito - Gráfico
+        # --- LADO DIREITO: Gráfico (EXPANDE LIVREMENTE) ---
         frame_direito = ctk.CTkFrame(
             container_principal,
             fg_color=CORES["acento"],
@@ -782,7 +864,7 @@ class JanelaAnalise(JanelaBase):
         )
         frame_direito.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
         frame_direito.grid_columnconfigure(0, weight=1)
-        frame_direito.grid_rowconfigure(1, weight=1)
+        frame_direito.grid_rowconfigure(1, weight=1)  # Gráfico expande
         
         ctk.CTkLabel(
             frame_direito,
@@ -791,22 +873,34 @@ class JanelaAnalise(JanelaBase):
             text_color=CORES["texto_principal"]
         ).grid(row=0, column=0, sticky="w", pady=15, padx=20)
         
-        # Frame para o gráfico
+        # Frame para o gráfico - COM CONTROLE RÍGIDO
         self.frame_grafico = ctk.CTkFrame(
             frame_direito,
             fg_color=CORES["fundo_claro"],
             corner_radius=10
         )
         self.frame_grafico.grid(row=1, column=0, sticky="nsew", padx=15, pady=(0, 15))
+        self.frame_grafico.grid_columnconfigure(0, weight=1)
+        self.frame_grafico.grid_rowconfigure(0, weight=1)
+        
+        # Container interno para o gráfico - COM TAMANHO CONTROLADO
+        self.grafico_container = ctk.CTkFrame(
+            self.frame_grafico, 
+            fg_color=CORES["fundo_claro"]
+        )
+        self.grafico_container.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        self.grafico_container.grid_columnconfigure(0, weight=1)
+        self.grafico_container.grid_rowconfigure(0, weight=1)
         
         # Label inicial
         self.label_sem_grafico = ctk.CTkLabel(
-            self.frame_grafico,
+            self.grafico_container,
             text="📊\n\nClique em 'Plotar Gráfico'\npara visualizar a resposta temporal",
             font=("Segoe UI", 14),
-            text_color=CORES["texto_secundario"]
+            text_color=CORES["texto_secundario"],
+            justify="center"
         )
-        self.label_sem_grafico.place(relx=0.5, rely=0.5, anchor="center")
+        self.label_sem_grafico.grid(row=0, column=0, sticky="")
     
     def obter_coeficientes(self):
         """Obtém e valida os coeficientes do usuário"""
@@ -852,7 +946,7 @@ class JanelaAnalise(JanelaBase):
             self.mostrar_erro(str(e))
     
     def plotar_grafico(self):
-        """Plota o gráfico da resposta temporal"""
+        """Plota o gráfico da resposta temporal - VERSÃO FINAL CORRIGIDA"""
         try:
             numerador, denominador = self.obter_coeficientes()
             tipo_malha = self.tipo_malha.get()
@@ -874,6 +968,7 @@ class JanelaAnalise(JanelaBase):
             # Limpar gráfico anterior se existir
             if self.canvas_grafico:
                 self.canvas_grafico.get_tk_widget().destroy()
+                self.canvas_grafico = None
             
             # Remover label inicial
             if self.label_sem_grafico:
@@ -884,10 +979,16 @@ class JanelaAnalise(JanelaBase):
             fig = self.analisador.plotar_resposta()
             
             if fig:
-                # Criar canvas para matplotlib
-                self.canvas_grafico = FigureCanvasTkAgg(fig, master=self.frame_grafico)
+                # Criar canvas para matplotlib - COM CONTROLE DE TAMANHO
+                self.canvas_grafico = FigureCanvasTkAgg(fig, master=self.grafico_container)
                 self.canvas_grafico.draw()
-                self.canvas_grafico.get_tk_widget().pack(fill="both", expand=True, padx=5, pady=5)
+                
+                # Usar grid com sticky para preencher APENAS o container do gráfico
+                canvas_widget = self.canvas_grafico.get_tk_widget()
+                canvas_widget.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
+                
+                # Configurar o widget para expandir apenas dentro do container
+                canvas_widget.grid_propagate(True)
                 
                 # Fechar figura do matplotlib para liberar memória
                 plt.close(fig)

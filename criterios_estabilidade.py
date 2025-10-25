@@ -187,67 +187,83 @@ class CriteriosEstabilidade:
         return f"Δ(s) = {equacao} = 0"
 
     @staticmethod
+    @staticmethod
     def formatar_tabela_routh(tabela):
-        """Formata a tabela de Routh-Hurwitz de forma profissional e organizada"""
+        """Formata a tabela de Routh-Hurwitz de forma profissional e organizada,
+           incluindo a coluna das potências de s E os cabeçalhos de coluna."""
         linhas = []
-        
-        # Determinar o número de colunas
-        num_colunas = tabela.shape[1]
-        grau_max = tabela.shape[0] - 1
-        
-        # Criar cabeçalho com as potências de s
-        cabecalho = "┌" + "─" * 12 + "┬"
-        for i in range(num_colunas - 1):
-            cabecalho += "─" * 12 + "┬"
-        cabecalho += "─" * 12 + "┐"
-        linhas.append(cabecalho)
-        
-        # Linha do cabeçalho com potências
-        linha_potencias = "│"
-        for i in range(num_colunas):
-            exp = grau_max - 2*i
-            if exp >= 0:
-                if exp == 0:
-                    linha_potencias += f"    s⁰    │"
-                elif exp == 1:
-                    linha_potencias += f"    s¹    │"
-                else:
-                    linha_potencias += f"   s{exp:}   │"
+        num_linhas = tabela.shape[0]
+        num_colunas_dados = tabela.shape[1]
+        grau_max = num_linhas - 1 # O grau máximo do polinômio original
+
+        # Calcular largura das colunas
+        s_col_width = len(f" s^{grau_max} ") + 1 # Ex: " s^2 | " (adiciona espaços)
+        data_col_width = 12 # Largura para os números e cabeçalhos s^n
+
+        # --- Linha Superior ---
+        linha_superior = "┌" + "─" * s_col_width + "┬"
+        for j in range(num_colunas_dados):
+            linha_superior += "─" * data_col_width + ("┬" if j < num_colunas_dados - 1 else "┐")
+        linhas.append(linha_superior)
+
+        # --- AJUSTE: Linha de Cabeçalho das Colunas de Dados ---
+        header_line = f"│{'':{s_col_width}}│" # Espaço vazio para a coluna s^n
+        for j in range(num_colunas_dados):
+            # A coluna j corresponde à potência s^(grau_max - 2*j)
+            col_power = grau_max - 2 * j
+            if col_power >= 0:
+                header_text = f"s^{col_power}"
             else:
-                linha_potencias += " " * 12 + "│"
-        linhas.append(linha_potencias)
-        
-        # Linha separadora
-        separadora = "├" + "─" * 12 + "┼"
-        for i in range(num_colunas - 1):
-            separadora += "─" * 12 + "┼"
-        separadora += "─" * 12 + "┤"
-        linhas.append(separadora)
-        
-        # Linhas da tabela
-        for i in range(tabela.shape[0]):
-            linha = "│"
-            for j in range(tabela.shape[1]):
+                header_text = "" # Colunas extras ficam vazias
+            # Centraliza o texto na largura da coluna de dados
+            header_line += f"{header_text:^{data_col_width}}│"
+        linhas.append(header_line)
+        # --- FIM AJUSTE ---
+
+        # --- Linha Separadora Abaixo do Cabeçalho ---
+        separadora_header = "├" + "─" * s_col_width + "┼"
+        for j in range(num_colunas_dados):
+             separadora_header += "─" * data_col_width + ("┼" if j < num_colunas_dados - 1 else "┤")
+        linhas.append(separadora_header)
+
+
+        # --- Linhas da Tabela com Potências de s e Dados ---
+        for i in range(num_linhas):
+            potencia_s = grau_max - i
+            label_s = f"s^{potencia_s}"
+            # Alinha o label à direita dentro da coluna s^n, com padding
+            linha_atual = f"│{label_s:>{s_col_width-2}}  │" # Adiciona 2 espaços antes do |
+
+            # Adiciona os valores da linha
+            for j in range(num_colunas_dados):
                 valor = tabela[i, j]
+                # Formatação dos números
                 if abs(valor) < 1e-10:
-                    linha += f"    0.0000  │"
-                elif abs(valor) < 1e-4:
-                    linha += f" {valor:10.2e} │"
+                    valor_str = f"  {0.0:.4f}  "
+                # Usar notação científica se |valor| for muito pequeno ou muito grande
+                elif abs(valor) < 1e-4 or abs(valor) > 99999.9:
+                    valor_str = f" {valor:.2e} "
                 else:
-                    linha += f" {valor:10.4f} │"
-            linhas.append(linha)
-            
-            # Adicionar linha separadora se não for a última linha
-            if i < tabela.shape[0] - 1:
-                linhas.append(separadora)
-        
-        # Rodapé da tabela
-        rodape = "└" + "─" * 12 + "┴"
-        for i in range(num_colunas - 1):
-            rodape += "─" * 12 + "┴"
-        rodape += "─" * 12 + "┘"
-        linhas.append(rodape)
-        
+                    valor_str = f" {valor:.4f} "
+
+                # Centraliza o valor na coluna de dados
+                linha_atual += f"{valor_str:^{data_col_width}}│"
+
+            linhas.append(linha_atual)
+
+            # --- Linha Separadora entre as linhas de dados ---
+            if i < num_linhas - 1:
+                separadora_dados = "├" + "─" * s_col_width + "┼"
+                for j in range(num_colunas_dados):
+                     separadora_dados += "─" * data_col_width + ("┼" if j < num_colunas_dados - 1 else "┤")
+                linhas.append(separadora_dados)
+
+        # --- Linha Inferior ---
+        linha_inferior = "└" + "─" * s_col_width + "┴"
+        for j in range(num_colunas_dados):
+            linha_inferior += "─" * data_col_width + ("┴" if j < num_colunas_dados - 1 else "┘")
+        linhas.append(linha_inferior)
+
         return "\n".join(linhas)
 
     @staticmethod
@@ -334,5 +350,5 @@ def rhc(coeficientes):
 # Exemplo de uso automático (como no MATLAB)
 if __name__ == "__main__":
     # Teste automático com os mesmos coeficientes do exemplo
-    coeficientes_exemplo = [5, 4, 6, 9, 8, 7]
+    coeficientes_exemplo = [1, 0.8, 4]
     rhc(coeficientes_exemplo)
