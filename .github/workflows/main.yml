@@ -21,27 +21,27 @@ jobs:
     - name: 📦 Instalar dependências
       run: |
         python -m pip install --upgrade pip
-        # Lista de dependências baseada em TODOS os seus arquivos .py
         pip install pyinstaller customtkinter pillow matplotlib numpy scipy control
 
     - name: ⚙️ Compilar o sistema
+      # CORREÇÃO: Trocado '^' por '`' para ser compatível com PowerShell
       run: |
-        pyinstaller ^
-          --noconfirm ^
-          --onefile ^
-          --windowed ^
-          --name "SistemaControle" ^
-          --icon=logo.png ^
-          --add-data "logo.png;." ^
-          --add-data "icons;icons" ^
-          --add-data "criterios_estabilidade.py;." ^
-          --add-data "analise_segunda_ordem.py;." ^
-          --add-data "controladores.py;." ^
-          --collect-all "customtkinter" ^
-          --collect-all "numpy" ^
-          --collect-all "scipy" ^
-          --collect-all "control" ^
-          --hidden-import "matplotlib.backends.backend_tkagg" ^
+        pyinstaller `
+          --noconfirm `
+          --onefile `
+          --windowed `
+          --name "SistemaControle" `
+          --icon=logo.png `
+          --add-data "logo.png;." `
+          --add-data "icons;icons" `
+          --add-data "criterios_estabilidade.py;." `
+          --add-data "analise_segunda_ordem.py;." `
+          --add-data "controladores.py;." `
+          --collect-all "customtkinter" `
+          --collect-all "numpy" `
+          --collect-all "scipy" `
+          --collect-all "control" `
+          --hidden-import "matplotlib.backends.backend_tkagg" `
           tela.py
 
     - name: 📤 Fazer upload do executável
