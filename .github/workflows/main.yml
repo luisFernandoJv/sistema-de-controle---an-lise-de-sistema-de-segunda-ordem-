@@ -33,7 +33,6 @@ jobs:
           --name "SistemaControle" `
           --icon=logo.png `
           --add-data "logo.png;." `
-          # REMOVIDA A LINHA QUE PROCURAVA "icons;icons"
           --add-data "criterios_estabilidade.py;." `
           --add-data "analise_segunda_ordem.py;." `
           --add-data "controladores.py;." `
@@ -49,3 +48,4 @@ jobs:
       with:
         name: Sistema-de-Controle-EXE
         path: dist/SistemaControle.exe
+
