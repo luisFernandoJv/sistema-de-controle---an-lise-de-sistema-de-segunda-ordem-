@@ -95,20 +95,6 @@ class SistemaTCC(ctk.CTk):
             print(f"Erro ao carregar logo.png: {e}")
             self.logo_image = None
 
-        # Carregar Imagem de Fundo
-        try:
-            background_path = "image/icons/papel.png"
-            if os.path.exists(background_path):
-                img_bg = Image.open(background_path)
-                self.foto_fundo = ctk.CTkImage(light_image=img_bg, dark_image=img_bg, size=img_bg.size)
-                print(f"Imagem de fundo '{background_path}' carregada.")
-            else:
-                print(f"Aviso: Imagem de fundo não encontrada em '{background_path}'.")
-                self.foto_fundo = None
-        except Exception as e:
-            self.foto_fundo = None
-            print(f"Erro ao carregar imagem de fundo: {e}")
-
         # Carregar Ícones dos Botões
         self.icones = {}
         icon_folder = "icons"
