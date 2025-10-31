@@ -8,12 +8,13 @@ from scipy.signal import lsim as scipy_lsim
 from matplotlib.ticker import AutoMinorLocator
 from matplotlib.patches import Circle
 import tkinter as tk
+import platform
 
 # Configuração do tema
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
-# Paleta de cores (mesma do tela.py)
+# Paleta de cores
 CORES = {
     "primaria": "#1a4d8f",
     "primaria_hover": "#144173",
@@ -33,17 +34,40 @@ CORES = {
 }
 
 class JanelaControladores(ctk.CTkToplevel):
-    """Janela de análise de controladores - completamente corrigida"""
+    """Janela de análise de controladores - Otimizada para Windows"""
     
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
         
+        # Detectar configurações do Windows
+        self.is_windows = platform.system() == "Windows"
+        self.dpi_scale = self.detectar_dpi_scale()
+        
         # Configuração da janela
         self.title("ANÁLISE DE CONTROLADORES")
-        self.geometry("1200x900")
+        self.configurar_tamanho_janela()
         self.resizable(True, True)
         self.configure(fg_color=CORES["fundo_escuro"])
+        
+        # Opção para tela cheia (descomente a linha abaixo para ativar)
+        # self.state('zoomed')  # Windows
+        # self.attributes('-fullscreen', True)  # Linux/Mac
+        
+        # Configuração específica para Windows
+        if self.is_windows:
+            try:
+                # Habilita DPI awareness no Windows
+                from ctypes import windll
+                windll.shcore.SetProcessDpiAwareness(1)
+            except:
+                pass
+            
+            # Ícone (se disponível)
+            try:
+                self.iconbitmap(default='icon.ico')
+            except:
+                pass
         
         # Cores para gráficos
         self.graph_colors = {
@@ -63,12 +87,8 @@ class JanelaControladores(ctk.CTkToplevel):
             'peak': '#6c5ce7'
         }
         
-        # Configurar estilo matplotlib
-        plt.rcParams['font.size'] = 9
-        plt.rcParams['axes.titlesize'] = 11
-        plt.rcParams['axes.labelsize'] = 10
-        plt.rcParams['legend.fontsize'] = 8
-        plt.rcParams['figure.titlesize'] = 12
+        # Configurar estilo matplotlib com ajuste de DPI
+        self.configurar_matplotlib()
         
         self.centralizar_janela()
         self.protocol("WM_DELETE_WINDOW", self.fechar_janela)
@@ -76,25 +96,106 @@ class JanelaControladores(ctk.CTkToplevel):
         # Configurar grid
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
+
+        self.transient(self.parent)
+        self.grab_set()
+        self.focus_set()
         
         # Criar interface
         self.criar_cabecalho()
         self.criar_conteudo()
+        
+        # Ajustar após criar interface
+        self.update_idletasks()
+        
+    def detectar_dpi_scale(self):
+        """Detecta o fator de escala DPI do Windows"""
+        try:
+            if self.is_windows:
+                from ctypes import windll
+                hdc = windll.user32.GetDC(0)
+                dpi = windll.gdi32.GetDeviceCaps(hdc, 88)  # LOGPIXELSX
+                windll.user32.ReleaseDC(0, hdc)
+                return dpi / 96.0  # 96 DPI é 100%
+        except:
+            pass
+        return 1.0
+    
+    def configurar_tamanho_janela(self):
+        """Configura tamanho responsivo baseado na resolução da tela"""
+        # Obter resolução da tela
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        
+        # Calcular tamanho ideal (80% da tela, mas não menor que mínimo)
+        ideal_width = int(screen_width * 0.80)
+        ideal_height = int(screen_height * 0.85)
+        
+        # Tamanhos mínimo e máximo
+        min_width = 1000
+        min_height = 700
+        max_width = screen_width  # Máximo = largura da tela
+        max_height = screen_height  # Máximo = altura da tela
+        
+        # Aplicar limites
+        self.window_width = max(min_width, min(ideal_width, max_width))
+        self.window_height = max(min_height, min(ideal_height, max_height))
+        
+        # Configurar tamanho mínimo
+        self.minsize(min_width, min_height)
+        
+    def ativar_tela_cheia(self):
+        """Ativa o modo tela cheia"""
+        if self.is_windows:
+            self.state('zoomed')  # Maximizado no Windows
+        else:
+            self.attributes('-fullscreen', True)  # Tela cheia no Linux/Mac
+    
+    def desativar_tela_cheia(self):
+        """Desativa o modo tela cheia"""
+        if self.is_windows:
+            self.state('normal')
+        else:
+            self.attributes('-fullscreen', False)
+        
+    def configurar_matplotlib(self):
+        """Configura matplotlib para renderização otimizada no Windows"""
+        # Ajustar DPI baseado na escala do sistema
+        base_dpi = 100
+        adjusted_dpi = int(base_dpi / self.dpi_scale) if self.dpi_scale > 1 else base_dpi
+        
+        plt.rcParams['figure.dpi'] = adjusted_dpi
+        plt.rcParams['savefig.dpi'] = adjusted_dpi
+        
+        # Configurações de fonte
+        plt.rcParams['font.size'] = 9
+        plt.rcParams['axes.titlesize'] = 11
+        plt.rcParams['axes.labelsize'] = 10
+        plt.rcParams['legend.fontsize'] = 8
+        plt.rcParams['figure.titlesize'] = 12
+        plt.rcParams['font.family'] = 'sans-serif'
+        
+        # Backend otimizado para Windows
+        if self.is_windows:
+            plt.rcParams['backend'] = 'TkAgg'
     
     def centralizar_janela(self):
-        """Centraliza a janela"""
+        """Centraliza a janela na tela"""
         self.update_idletasks()
-        x_pai = self.parent.winfo_x()
-        y_pai = self.parent.winfo_y()
-        largura_pai = self.parent.winfo_width()
-        altura_pai = self.parent.winfo_height()
         
-        largura = 1200
-        altura = 900
-        x = x_pai + (largura_pai - largura) // 2
-        y = y_pai + (altura_pai - altura) // 2
+        # Obter dimensões da tela
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
         
-        self.geometry(f'{largura}x{altura}+{x}+{y}')
+        # Calcular posição central
+        x = (screen_width - self.window_width) // 2
+        y = (screen_height - self.window_height) // 2
+        
+        # Garantir que não fique fora da tela
+        x = max(0, x)
+        y = max(0, y)
+        
+        self.geometry(f'{self.window_width}x{self.window_height}+{x}+{y}')
     
     def criar_cabecalho(self):
         """Cria o cabeçalho"""
@@ -106,6 +207,7 @@ class JanelaControladores(ctk.CTkToplevel):
         )
         frame_cabecalho.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
         frame_cabecalho.grid_columnconfigure(1, weight=1)
+        frame_cabecalho.grid_columnconfigure(2, weight=0)
         
         # Botão fechar
         botao_voltar = ctk.CTkButton(
@@ -120,6 +222,21 @@ class JanelaControladores(ctk.CTkToplevel):
             corner_radius=8
         )
         botao_voltar.grid(row=0, column=0, sticky="w", padx=20, pady=15)
+        
+        # Botão tela cheia/normal
+        self.botao_fullscreen = ctk.CTkButton(
+            frame_cabecalho,
+            text="⛶ TELA CHEIA",
+            command=self.toggle_tela_cheia,
+            width=130,
+            height=38,
+            font=("Segoe UI", 11, "bold"),
+            fg_color=CORES["secundaria"],
+            hover_color=CORES["secundaria_hover"],
+            corner_radius=8
+        )
+        self.botao_fullscreen.grid(row=0, column=2, sticky="e", padx=20, pady=15)
+        self.fullscreen_ativo = False
         
         # Título
         label_titulo = ctk.CTkLabel(
@@ -145,27 +262,24 @@ class JanelaControladores(ctk.CTkToplevel):
     
     def criar_painel_controle(self, parent):
         """Cria o painel de controle lateral"""
+        # Ajustar largura baseado no DPI
+        panel_width = int(380 * self.dpi_scale)
+        
         frame_scroll = ctk.CTkScrollableFrame(
             parent,
-            width=380,
+            width=panel_width,
             fg_color="transparent"
         )
         frame_scroll.grid(row=0, column=0, sticky="nsew", padx=(0, 10), pady=0)
         
-        # 1. Função de Transferência
+        # Frames
         self.criar_frame_sistema(frame_scroll)
-        
-        # 2. Tipo de Entrada
         self.criar_frame_entrada(frame_scroll)
-        
-        # 3. Controlador
         self.criar_frame_controlador(frame_scroll)
-        
-        # 4. Botões de Ação
         self.criar_botoes_acao(frame_scroll)
     
     def criar_frame_sistema(self, parent):
-        """Frame de configuração do sistema - COM SISTEMA SUBAMORTECIDO PADRÃO"""
+        """Frame de configuração do sistema"""
         frame = ctk.CTkFrame(
             parent,
             fg_color=CORES["acento"],
@@ -198,7 +312,7 @@ class JanelaControladores(ctk.CTkToplevel):
             border_color=CORES["borda"]
         )
         self.entrada_numerador.pack(fill="x", padx=20, pady=(0, 5))
-        self.entrada_numerador.insert(0, "4")  # ✅ SISTEMA SUBAMORTECIDO
+        self.entrada_numerador.insert(0, "4")
         
         ctk.CTkLabel(
             frame,
@@ -224,7 +338,7 @@ class JanelaControladores(ctk.CTkToplevel):
             border_color=CORES["borda"]
         )
         self.entrada_denominador.pack(fill="x", padx=20, pady=(0, 5))
-        self.entrada_denominador.insert(0, "1 0.8 4")  # ✅ SISTEMA SUBAMORTECIDO
+        self.entrada_denominador.insert(0, "1 0.8 4")
         
         ctk.CTkLabel(
             frame,
@@ -260,17 +374,15 @@ class JanelaControladores(ctk.CTkToplevel):
         )
         frame.pack(fill="x", pady=(0, 15))
         
-        # Título
         ctk.CTkLabel(
             frame,
-            text=" TIPO DE ENTRADA",
+            text="⚡ TIPO DE ENTRADA",
             font=("Segoe UI", 14, "bold"),
             text_color=CORES["texto_principal"]
         ).pack(anchor="w", padx=20, pady=(15, 10))
         
         self.tipo_entrada = ctk.StringVar(value="Degrau Unitário")
         
-        # Radio buttons
         ctk.CTkRadioButton(
             frame,
             text="Degrau Unitário",
@@ -302,15 +414,13 @@ class JanelaControladores(ctk.CTkToplevel):
         )
         frame.pack(fill="x", pady=(0, 15))
         
-        # Título
         ctk.CTkLabel(
             frame,
-            text=" CONTROLADOR",
+            text="🎮 CONTROLADOR",
             font=("Segoe UI", 14, "bold"),
             text_color=CORES["texto_principal"]
         ).pack(anchor="w", padx=20, pady=(15, 10))
         
-        # Tipo de controlador
         ctk.CTkLabel(
             frame,
             text="Tipo:",
@@ -332,7 +442,6 @@ class JanelaControladores(ctk.CTkToplevel):
         self.tipo_controlador.pack(fill="x", padx=20, pady=(0, 15))
         self.tipo_controlador.set("PI")
         
-        # Frame para parâmetros
         self.frame_parametros = ctk.CTkFrame(frame, fg_color="transparent")
         self.frame_parametros.pack(fill="x", padx=20, pady=(0, 15))
         
@@ -340,20 +449,16 @@ class JanelaControladores(ctk.CTkToplevel):
     
     def atualizar_parametros_controlador(self, event=None):
         """Atualiza os campos de parâmetros do controlador"""
-        # Limpar frame
         for widget in self.frame_parametros.winfo_children():
             widget.destroy()
         
         tipo = self.tipo_controlador.get()
         
-        # Kp - sempre presente
         self.criar_campo_parametro(self.frame_parametros, "Kp:", "1.0", "kp")
         
-        # Ki - para PI e PID
         if tipo in ["PI", "PID"]:
             self.criar_campo_parametro(self.frame_parametros, "Ki:", "0.5", "ki")
         
-        # Kd - para PD e PID
         if tipo in ["PD", "PID"]:
             self.criar_campo_parametro(self.frame_parametros, "Kd:", "0.1", "kd")
     
@@ -384,7 +489,6 @@ class JanelaControladores(ctk.CTkToplevel):
     
     def criar_botoes_acao(self, parent):
         """Cria os botões de ação"""
-        # Botão principal
         ctk.CTkButton(
             parent,
             text="▶ GERAR ANÁLISE COMPLETA",
@@ -396,7 +500,6 @@ class JanelaControladores(ctk.CTkToplevel):
             corner_radius=8
         ).pack(fill="x", pady=(10, 10))
         
-        # Botão limpar
         ctk.CTkButton(
             parent,
             text="🗑️ Limpar Tudo",
@@ -409,29 +512,29 @@ class JanelaControladores(ctk.CTkToplevel):
         ).pack(fill="x")
     
     def criar_area_graficos(self, parent):
-        """Cria a área de gráficos"""
+        """Cria a área de gráficos com tamanho responsivo"""
         frame_graficos = ctk.CTkFrame(parent, fg_color=CORES["acento"], corner_radius=10)
         frame_graficos.grid(row=0, column=1, sticky="nsew", pady=0)
         frame_graficos.grid_columnconfigure(0, weight=1)
         frame_graficos.grid_rowconfigure(0, weight=1)
         
-        # Notebook para abas
+        # Calcular largura do notebook baseado no tamanho da janela
+        notebook_width = max(600, int((self.window_width - 450) * 0.95))
+        
         self.notebook = ctk.CTkTabview(
             frame_graficos, 
             fg_color=CORES["fundo_claro"],
             segmented_button_fg_color=CORES["primaria"],
             segmented_button_selected_color=CORES["primaria_hover"],
             segmented_button_selected_hover_color=CORES["primaria_hover"],
-            width=780
+            width=notebook_width
         )
         self.notebook.pack(fill="both", expand=True, padx=10, pady=10)
         
-        # Criar abas
         self.notebook.add("📊 Resposta Temporal")
-        self.notebook.add("📍 Lugar das Raízes")
+        self.notebook.add("🔍 Lugar das Raízes")
         self.notebook.add("⭕ Polos e Zeros")
         
-        # Configurar cada aba
         self.criar_aba_resposta()
         self.criar_aba_lgr()
         self.criar_aba_polos_zeros()
@@ -447,12 +550,15 @@ class JanelaControladores(ctk.CTkToplevel):
         container.grid_rowconfigure(0, weight=1)
         container.grid_rowconfigure(1, weight=0)
         
+        # Calcular DPI ajustado para gráficos
+        graph_dpi = max(70, int(90 / self.dpi_scale))
+        
         # Gráfico sem controlador
         frame_sem = ctk.CTkFrame(container, fg_color=CORES["acento"], corner_radius=8)
         frame_sem.grid(row=0, column=0, sticky="nsew", padx=(0, 5), pady=(0, 5))
         frame_sem.grid_columnconfigure(0, weight=1)
-        frame_sem.grid_rowconfigure(1, weight=1) # Linha para o gráfico
-        frame_sem.grid_rowconfigure(2, weight=0) # Linha para a Toolbar
+        frame_sem.grid_rowconfigure(1, weight=1)
+        frame_sem.grid_rowconfigure(2, weight=0)
 
         ctk.CTkLabel(
             frame_sem,
@@ -461,37 +567,24 @@ class JanelaControladores(ctk.CTkToplevel):
             text_color=CORES["texto_principal"]
         ).grid(row=0, column=0, pady=(8, 5), sticky="w", padx=10)
         
-        self.fig_resp_sem = plt.Figure(figsize=(6, 4), dpi=90)
+        self.fig_resp_sem = plt.Figure(figsize=(6, 4), dpi=graph_dpi)
         self.ax_resp_sem = self.fig_resp_sem.add_subplot(111)
         self.setup_plot_style(self.ax_resp_sem)
         
         self.canvas_resp_sem = FigureCanvasTkAgg(self.fig_resp_sem, master=frame_sem)
         self.canvas_resp_sem.get_tk_widget().grid(row=1, column=0, sticky="nsew", padx=8, pady=(0, 5))
         
-        # --- Toolbar SEM Controlador ---
         toolbar_frame_sem = ctk.CTkFrame(frame_sem, fg_color="transparent")
         toolbar_frame_sem.grid(row=2, column=0, sticky="ew", padx=8, pady=(0, 8))
         toolbar_sem = NavigationToolbar2Tk(self.canvas_resp_sem, toolbar_frame_sem)
-        toolbar_sem.config(background=CORES["acento"])
-        toolbar_sem._message_label.config(background=CORES["acento"], foreground=CORES["texto_principal"])
-        
-        # --- CORREÇÃO AQUI ---
-        for widget in toolbar_sem.winfo_children():
-            # Apenas configura os botões, ignora frames/separadores
-            if isinstance(widget, (tk.Button, tk.Checkbutton)):
-                widget.config(background=CORES["fundo_claro"], relief="flat", 
-                              fg=CORES["texto_principal"], 
-                              activeforeground=CORES["texto_principal"], 
-                              activebackground=CORES["primaria"])
-        # --- FIM DA CORREÇÃO ---
-        toolbar_sem.update()
+        self.configurar_toolbar(toolbar_sem)
         
         # Gráfico com controlador
         frame_com = ctk.CTkFrame(container, fg_color=CORES["acento"], corner_radius=8)
         frame_com.grid(row=0, column=1, sticky="nsew", padx=(5, 0), pady=(0, 5))
         frame_com.grid_columnconfigure(0, weight=1)
-        frame_com.grid_rowconfigure(1, weight=1) # Linha para o gráfico
-        frame_com.grid_rowconfigure(2, weight=0) # Linha para a Toolbar
+        frame_com.grid_rowconfigure(1, weight=1)
+        frame_com.grid_rowconfigure(2, weight=0)
 
         ctk.CTkLabel(
             frame_com,
@@ -500,29 +593,17 @@ class JanelaControladores(ctk.CTkToplevel):
             text_color=CORES["texto_principal"]
         ).grid(row=0, column=0, pady=(8, 5), sticky="w", padx=10)
         
-        self.fig_resp_com = plt.Figure(figsize=(6, 4), dpi=90)
+        self.fig_resp_com = plt.Figure(figsize=(6, 4), dpi=graph_dpi)
         self.ax_resp_com = self.fig_resp_com.add_subplot(111)
         self.setup_plot_style(self.ax_resp_com)
         
         self.canvas_resp_com = FigureCanvasTkAgg(self.fig_resp_com, master=frame_com)
         self.canvas_resp_com.get_tk_widget().grid(row=1, column=0, sticky="nsew", padx=8, pady=(0, 5))
         
-        # --- Toolbar COM Controlador ---
         toolbar_frame_com = ctk.CTkFrame(frame_com, fg_color="transparent")
         toolbar_frame_com.grid(row=2, column=0, sticky="ew", padx=8, pady=(0, 8))
         toolbar_com = NavigationToolbar2Tk(self.canvas_resp_com, toolbar_frame_com)
-        toolbar_com.config(background=CORES["acento"])
-        toolbar_com._message_label.config(background=CORES["acento"], foreground=CORES["texto_principal"])
-        
-        # --- CORREÇÃO AQUI ---
-        for widget in toolbar_com.winfo_children():
-            if isinstance(widget, (tk.Button, tk.Checkbutton)):
-                widget.config(background=CORES["fundo_claro"], relief="flat", 
-                              fg=CORES["texto_principal"], 
-                              activeforeground=CORES["texto_principal"], 
-                              activebackground=CORES["primaria"])
-        # --- FIM DA CORREÇÃO ---
-        toolbar_com.update()
+        self.configurar_toolbar(toolbar_com)
 
         # Frame de informações
         frame_info = ctk.CTkFrame(container, fg_color=CORES["acento"], corner_radius=8)
@@ -530,7 +611,7 @@ class JanelaControladores(ctk.CTkToplevel):
         
         self.label_info_resposta = ctk.CTkLabel(
             frame_info,
-            text="🔍 Use os botões ⤭ (Zoom) e ✥ (Pan) para explorar os gráficos.",
+            text="🔎 Use os botões ⤭ (Zoom) e ✥ (Pan) para explorar os gráficos.",
             font=("Segoe UI", 10),
             text_color=CORES["texto_secundario"]
         )
@@ -538,7 +619,7 @@ class JanelaControladores(ctk.CTkToplevel):
     
     def criar_aba_lgr(self):
         """Cria a aba de Lugar das Raízes"""
-        tab = self.notebook.tab("📍 Lugar das Raízes")
+        tab = self.notebook.tab("🔍 Lugar das Raízes")
         
         container = ctk.CTkFrame(tab, fg_color="transparent")
         container.pack(fill="both", expand=True, padx=5, pady=5)
@@ -546,50 +627,40 @@ class JanelaControladores(ctk.CTkToplevel):
         container.grid_columnconfigure(1, weight=1)
         container.grid_rowconfigure(0, weight=1)
         
+        graph_dpi = max(70, int(90 / self.dpi_scale))
+        
         # LGR sem controlador
         frame_sem = ctk.CTkFrame(container, fg_color=CORES["acento"], corner_radius=8)
         frame_sem.grid(row=0, column=0, sticky="nsew", padx=(0, 5), pady=0)
         frame_sem.grid_columnconfigure(0, weight=1)
         frame_sem.grid_rowconfigure(1, weight=1)
-        frame_sem.grid_rowconfigure(2, weight=0) # Linha para Toolbar
+        frame_sem.grid_rowconfigure(2, weight=0)
 
         ctk.CTkLabel(
             frame_sem,
-            text="📐 SEM CONTROLADOR",
+            text="🔍 SEM CONTROLADOR",
             font=("Segoe UI", 12, "bold"),
             text_color=CORES["texto_principal"]
         ).grid(row=0, column=0, pady=(8, 5), sticky="w", padx=10)
         
-        self.fig_lgr_sem = plt.Figure(figsize=(6, 4), dpi=90)
+        self.fig_lgr_sem = plt.Figure(figsize=(6, 4), dpi=graph_dpi)
         self.ax_lgr_sem = self.fig_lgr_sem.add_subplot(111)
         self.setup_plot_style(self.ax_lgr_sem)
         
         self.canvas_lgr_sem = FigureCanvasTkAgg(self.fig_lgr_sem, master=frame_sem)
         self.canvas_lgr_sem.get_tk_widget().grid(row=1, column=0, sticky="nsew", padx=8, pady=(0, 5))
         
-        # --- Toolbar LGR Sem ---
         toolbar_frame_lgr_sem = ctk.CTkFrame(frame_sem, fg_color="transparent")
         toolbar_frame_lgr_sem.grid(row=2, column=0, sticky="ew", padx=8, pady=(0, 8))
         toolbar_lgr_sem = NavigationToolbar2Tk(self.canvas_lgr_sem, toolbar_frame_lgr_sem)
-        toolbar_lgr_sem.config(background=CORES["acento"])
-        toolbar_lgr_sem._message_label.config(background=CORES["acento"], foreground=CORES["texto_principal"])
-        
-        # --- CORREÇÃO AQUI ---
-        for widget in toolbar_lgr_sem.winfo_children():
-            if isinstance(widget, (tk.Button, tk.Checkbutton)):
-                widget.config(background=CORES["fundo_claro"], relief="flat", 
-                              fg=CORES["texto_principal"], 
-                              activeforeground=CORES["texto_principal"], 
-                              activebackground=CORES["primaria"])
-        # --- FIM DA CORREÇÃO ---
-        toolbar_lgr_sem.update()
+        self.configurar_toolbar(toolbar_lgr_sem)
 
         # LGR com controlador
         frame_com = ctk.CTkFrame(container, fg_color=CORES["acento"], corner_radius=8)
         frame_com.grid(row=0, column=1, sticky="nsew", padx=(5, 0), pady=0)
         frame_com.grid_columnconfigure(0, weight=1)
         frame_com.grid_rowconfigure(1, weight=1)
-        frame_com.grid_rowconfigure(2, weight=0) # Linha para Toolbar
+        frame_com.grid_rowconfigure(2, weight=0)
 
         ctk.CTkLabel(
             frame_com,
@@ -598,29 +669,17 @@ class JanelaControladores(ctk.CTkToplevel):
             text_color=CORES["texto_principal"]
         ).grid(row=0, column=0, pady=(8, 5), sticky="w", padx=10)
         
-        self.fig_lgr_com = plt.Figure(figsize=(6, 4), dpi=90)
+        self.fig_lgr_com = plt.Figure(figsize=(6, 4), dpi=graph_dpi)
         self.ax_lgr_com = self.fig_lgr_com.add_subplot(111)
         self.setup_plot_style(self.ax_lgr_com)
         
         self.canvas_lgr_com = FigureCanvasTkAgg(self.fig_lgr_com, master=frame_com)
         self.canvas_lgr_com.get_tk_widget().grid(row=1, column=0, sticky="nsew", padx=8, pady=(0, 5))
         
-        # --- Toolbar LGR Com ---
         toolbar_frame_lgr_com = ctk.CTkFrame(frame_com, fg_color="transparent")
         toolbar_frame_lgr_com.grid(row=2, column=0, sticky="ew", padx=8, pady=(0, 8))
         toolbar_lgr_com = NavigationToolbar2Tk(self.canvas_lgr_com, toolbar_frame_lgr_com)
-        toolbar_lgr_com.config(background=CORES["acento"])
-        toolbar_lgr_com._message_label.config(background=CORES["acento"], foreground=CORES["texto_principal"])
-        
-        # --- CORREÇÃO AQUI ---
-        for widget in toolbar_lgr_com.winfo_children():
-            if isinstance(widget, (tk.Button, tk.Checkbutton)):
-                widget.config(background=CORES["fundo_claro"], relief="flat", 
-                              fg=CORES["texto_principal"], 
-                              activeforeground=CORES["texto_principal"], 
-                              activebackground=CORES["primaria"])
-        # --- FIM DA CORREÇÃO ---
-        toolbar_lgr_com.update()
+        self.configurar_toolbar(toolbar_lgr_com)
     
     def criar_aba_polos_zeros(self):
         """Cria a aba de Polos e Zeros"""
@@ -629,9 +688,11 @@ class JanelaControladores(ctk.CTkToplevel):
         container = ctk.CTkFrame(tab, fg_color="transparent")
         container.pack(fill="both", expand=True, padx=5, pady=5)
         container.grid_columnconfigure(0, weight=1)
-        container.grid_rowconfigure(0, weight=2) # Gráfico
-        container.grid_rowconfigure(1, weight=0) # Toolbar
-        container.grid_rowconfigure(2, weight=1) # Info
+        container.grid_rowconfigure(0, weight=2)
+        container.grid_rowconfigure(1, weight=0)
+        container.grid_rowconfigure(2, weight=1)
+        
+        graph_dpi = max(70, int(90 / self.dpi_scale))
         
         # Gráfico
         frame_grafico = ctk.CTkFrame(container, fg_color=CORES["acento"], corner_radius=8)
@@ -646,35 +707,24 @@ class JanelaControladores(ctk.CTkToplevel):
             text_color=CORES["texto_principal"]
         ).grid(row=0, column=0, pady=(8, 5), sticky="w", padx=10)
         
-        self.fig_pz = plt.Figure(figsize=(8, 5), dpi=90)
+        self.fig_pz = plt.Figure(figsize=(8, 5), dpi=graph_dpi)
         self.ax_pz = self.fig_pz.add_subplot(111)
         self.setup_plot_style(self.ax_pz)
         
         self.canvas_pz = FigureCanvasTkAgg(self.fig_pz, master=frame_grafico)
         self.canvas_pz.get_tk_widget().grid(row=1, column=0, sticky="nsew", padx=8, pady=(0, 8))
         
-        # --- Toolbar PZ ---
+        # Toolbar PZ
         toolbar_frame_pz = ctk.CTkFrame(container, fg_color="transparent")
         toolbar_frame_pz.grid(row=1, column=0, sticky="ew", padx=5, pady=(0, 8))
         toolbar_pz = NavigationToolbar2Tk(self.canvas_pz, toolbar_frame_pz)
-        toolbar_pz.config(background=CORES["acento"])
-        toolbar_pz._message_label.config(background=CORES["acento"], foreground=CORES["texto_principal"])
-        
-        # --- CORREÇÃO AQUI ---
-        for widget in toolbar_pz.winfo_children():
-            if isinstance(widget, (tk.Button, tk.Checkbutton)):
-                widget.config(background=CORES["fundo_claro"], relief="flat", 
-                              fg=CORES["texto_principal"], 
-                              activeforeground=CORES["texto_principal"], 
-                              activebackground=CORES["primaria"])
-        # --- FIM DA CORREÇÃO ---
-        toolbar_pz.update()
+        self.configurar_toolbar(toolbar_pz)
 
         # Informações
         frame_info = ctk.CTkFrame(container, fg_color=CORES["acento"], corner_radius=8)
         frame_info.grid(row=2, column=0, sticky="nsew", pady=(5, 0))
         frame_info.grid_columnconfigure(0, weight=1)
-        frame_info.grid_rowconfigure(1, weight=1) # <-- Ajuste
+        frame_info.grid_rowconfigure(1, weight=1)
         
         ctk.CTkLabel(
             frame_info,
@@ -694,14 +744,31 @@ class JanelaControladores(ctk.CTkToplevel):
         self.texto_info.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
         self.texto_info.insert("1.0", "Informações sobre polos e zeros aparecerão aqui...")
     
-    def setup_plot_style(self, ax):
-        """Configura o estilo dos gráficos para o tema dark da interface"""
+    def configurar_toolbar(self, toolbar):
+        """Configura a toolbar do matplotlib para o tema dark"""
+        toolbar.config(background=CORES["acento"])
+        toolbar._message_label.config(
+            background=CORES["acento"], 
+            foreground=CORES["texto_principal"]
+        )
         
-        # Cor de fundo do gráfico e da figura
+        for widget in toolbar.winfo_children():
+            if isinstance(widget, (tk.Button, tk.Checkbutton)):
+                widget.config(
+                    background=CORES["fundo_claro"], 
+                    relief="flat", 
+                    fg=CORES["texto_principal"], 
+                    activeforeground=CORES["texto_principal"], 
+                    activebackground=CORES["primaria"]
+                )
+        
+        toolbar.update()
+    
+    def setup_plot_style(self, ax):
+        """Configura o estilo dos gráficos para o tema dark"""
         ax.set_facecolor(CORES["fundo_claro"])
         ax.figure.set_facecolor(CORES["acento"])
         
-        # Cor dos textos (títulos, labels, ticks)
         ax.tick_params(axis='both', which='major', colors=CORES["texto_principal"], labelsize=9)
         ax.title.set_color(CORES["texto_principal"])
         ax.xaxis.label.set_color(CORES["texto_principal"])
@@ -710,16 +777,13 @@ class JanelaControladores(ctk.CTkToplevel):
         ax.yaxis.label.set_fontweight('bold')
         ax.title.set_fontweight('bold')
         
-        # Cor das bordas (spines)
         for spine in ax.spines.values():
             spine.set_color(CORES["texto_secundario"])
             spine.set_linewidth(1.2)
         
-        # Configuração da grade
         ax.grid(True, which='both', linestyle=':', linewidth=0.5, 
                 color=CORES["texto_secundario"], alpha=0.3)
         
-        # Tickers menores
         ax.xaxis.set_minor_locator(AutoMinorLocator())
         ax.yaxis.set_minor_locator(AutoMinorLocator())
         ax.tick_params(which='both', width=1)
@@ -758,84 +822,63 @@ class JanelaControladores(ctk.CTkToplevel):
             raise ValueError(f"Valor inválido nos parâmetros do controlador: {str(e)}")
     
     def calcular_metricas_resposta(self, t, y, sys_cl):
-        """
-        Calcula todas as métricas de resposta ao degrau para um sistema.
-        t, y: Vetores de tempo e resposta.
-        sys_cl: O sistema em malha fechada (usado para extrair Wn e Zeta).
-        """
+        """Calcula todas as métricas de resposta ao degrau"""
         metricas = {}
         
         try:
-            # Métricas baseadas em Wn e Zeta (dos polos dominantes)
             wn_damp, zeta_damp, _ = control.damp(sys_cl, doprint=False)
             
-            # Encontra o polo dominante (menor wn, se houver > 1 par)
             if len(wn_damp) > 0:
-                # Filtra polos reais puros (wn=0) se houver
                 valid_wn = wn_damp[wn_damp > 1e-5]
                 if len(valid_wn) > 0:
                     idx_dominante = np.argmin(valid_wn)
                     metricas['Wn'] = valid_wn[idx_dominante]
                     metricas['Zeta'] = zeta_damp[np.where(wn_damp == valid_wn[idx_dominante])[0][0]]
-                else: # Caso só tenha polos reais
+                else:
                     metricas['Wn'] = 0
                     metricas['Zeta'] = 0
             else:
                 metricas['Wn'] = 0
                 metricas['Zeta'] = 0
 
-            # Métricas baseadas no tempo de resposta
             y_final = y[-1]
             metricas['y_final'] = y_final
             
-            # Pico e Overshoot (Mp)
             y_pico = np.max(y)
             metricas['y_pico'] = y_pico
             metricas['Tp'] = t[np.argmax(y)]
-            # Evita divisão por zero se o valor final for 0
             metricas['Mp'] = (y_pico - y_final) / y_final * 100 if abs(y_final) > 1e-6 else 0
             
-            # Tempo de Subida (Tr) - 10% a 90%
             try:
                 t_10 = t[np.where(y >= 0.1 * y_final)[0][0]]
                 t_90 = t[np.where(y >= 0.9 * y_final)[0][0]]
                 metricas['Tr'] = t_90 - t_10
             except IndexError:
-                metricas['Tr'] = 0  # Não subiu o suficiente
+                metricas['Tr'] = 0
 
-            # Tempo de Acomodação (Ts) - Critério de 2%
             try:
                 lim_sup = y_final * 1.02
                 lim_inf = y_final * 0.98
-                # Encontra o último índice onde o sinal está FORA da banda de 2%
                 indices_fora_banda = np.where((y > lim_sup) | (y < lim_inf))[0]
                 idx_ts = indices_fora_banda[-1]
                 metricas['Ts'] = t[idx_ts + 1]
                 metricas['y_Ts'] = y[idx_ts + 1]
             except IndexError:
-                # Se nunca saiu da banda (ou nunca entrou), Ts é 0 ou o tempo final
                 metricas['Ts'] = 0
                 metricas['y_Ts'] = y_final
 
         except Exception as e:
             print(f"Erro ao calcular métricas: {e}")
-            # Retorna valores padrão em caso de erro
             return {'y_final': 0, 'y_pico': 0, 'Tp': 0, 'Mp': 0, 'Tr': 0, 'Ts': 0, 'y_Ts': 0, 'Wn': 0, 'Zeta': 0}
             
         return metricas
     
-    
     def plotar_resposta_completa(self, ax, t, y, metricas, titulo, cor, y_lim_top=None):
-        """
-        Plota o gráfico de resposta completo, SEM a caixa de Wn/Zeta.
-        y_lim_top: Força o limite superior do eixo Y (opcional).
-        """
+        """Plota o gráfico de resposta completo"""
         m = metricas
-        # wn = m.get('Wn', 0) # Não precisamos mais extrair se não vamos mostrar
-        zeta = m.get('Zeta', 0) # Zeta ainda é usado para lógica de plotagem
+        zeta = m.get('Zeta', 0)
         ganho_k = m.get('y_final', 0)
 
-        # --- 1. Plotar Linhas Essenciais ---
         cor_plot = 'cyan' if cor == self.graph_colors['primary'] else 'orange'
         label_saida = f"Saída (Mp: {m.get('Mp', 0):.1f}%)"
         ax.plot(t, y, color=cor_plot, linewidth=2.5, label=label_saida, zorder=3)
@@ -847,7 +890,6 @@ class JanelaControladores(ctk.CTkToplevel):
         ax.axhline(y=m['y_final'], color='lime', linestyle=':',
                    linewidth=1.5, label=label_vf, alpha=0.8, zorder=2)
 
-        # --- 2. Faixa de Tolerância ±2% ---
         if zeta >= 0 and m['y_final'] > 1e-6:
             y_sup_2 = m['y_final'] * 1.02
             y_inf_2 = m['y_final'] * 0.98
@@ -856,7 +898,6 @@ class JanelaControladores(ctk.CTkToplevel):
             ax.axhline(y=y_inf_2, color='orange', linestyle=':',
                       alpha=0.4, linewidth=0.8, zorder=1)
 
-        # --- 3. Marcadores de Pico e Ts ---
         if 0 <= zeta < 1 and m.get('Mp', 0) > 0.1:
             tp = m.get('Tp', 0)
             y_pico = m.get('y_pico', m['y_final'])
@@ -872,28 +913,14 @@ class JanelaControladores(ctk.CTkToplevel):
             ax.axvline(x=ts_2, color='orange', linestyle='--',
                        alpha=0.6, linewidth=1.5, zorder=1)
 
-        # --- 4. Caixas de Informação (Texto Essencial) ---
-
-        # --- REMOVIDO: Caixa Superior Esquerda (Wn e Zeta) ---
-        # info_text_params = (
-        #      f'ωn = {wn:.3f} rad/s\n'
-        #     rf'$\zeta$ = {zeta:.3f}'
-        # )
-        # ax.text(0.02, 0.98, info_text_params, transform=ax.transAxes, ...)
-        # --- FIM DA REMOÇÃO ---
-
-
-        # --- 5. Configurações Finais do Gráfico ---
         ax.set_title(titulo, fontsize=11, pad=10)
         ax.set_xlabel('Tempo (s)', fontsize=10, color=CORES["texto_principal"])
         ax.set_ylabel('Amplitude', fontsize=10, color=CORES["texto_principal"])
 
-        # Legenda principal
         legend = ax.legend(loc='best', fontsize=9, facecolor=CORES["fundo_claro"],
                            edgecolor=CORES["texto_secundario"], labelcolor=CORES["texto_principal"])
         if legend: legend.get_frame().set_alpha(0.85)
 
-        # Ajusta limites
         y_top_limit = y_lim_top if y_lim_top is not None else max(1.1, m.get('y_pico', 1.0) * 1.15 if m.get('Mp',0) > 0.1 else 1.5)
         y_bottom_limit = min(0, np.min(y) * 1.1 if len(y) > 0 and np.min(y) < -1e-3 else 0)
         ax.set_ylim(bottom=y_bottom_limit, top=y_top_limit)
@@ -905,7 +932,6 @@ class JanelaControladores(ctk.CTkToplevel):
     def gerar_analise(self):
         """Gera a análise completa do sistema"""
         try:
-            # Obter sistema
             num = self.parse_coeficientes(self.entrada_numerador.get())
             den = self.parse_coeficientes(self.entrada_denominador.get())
             
@@ -913,57 +939,44 @@ class JanelaControladores(ctk.CTkToplevel):
                 raise ValueError("Numerador e denominador não podem estar vazios")
             
             G = tf(num, den)
-            
-            # Obter controlador
             Gc = self.get_controlador_tf()
             
-            # Gerar gráficos
             self.gerar_resposta_temporal(G, Gc)
             self.gerar_lgr(G, Gc)
             self.gerar_polos_zeros(G, Gc)
-            
-            # self.mostrar_mensagem("Sucesso", "Análise gerada com sucesso!")
             
         except Exception as e:
             self.mostrar_erro(str(e))
     
     def gerar_resposta_temporal(self, G, Gc):
-        """Gera os gráficos de resposta temporal com todas as informações"""
+        """Gera os gráficos de resposta temporal"""
         tipo_entrada = self.tipo_entrada.get()
 
         try:
-            # --- Sistemas ---
             sys_sem_aberta = G
             sys_com_fechada = feedback(G * Gc, 1)
             sys_sem_fechada = feedback(G, 1)
 
-            # Limpar gráficos ANTES de qualquer plotagem
             self.ax_resp_sem.clear()
             self.ax_resp_com.clear()
 
-            # Reaplica o estilo após limpar
             self.setup_plot_style(self.ax_resp_sem)
             self.setup_plot_style(self.ax_resp_com)
 
             if tipo_entrada == "Degrau Unitário":
-                # Configurar tempo de simulação
                 t_final = 20
                 t = np.linspace(0, t_final, 1000)
 
-                # --- Obter Respostas ---
                 t_sem, y_sem = step_response(sys_sem_aberta, T=t)
                 t_com, y_com = step_response(sys_com_fechada, T=t)
 
-                # --- Ajuste de Escala ---
                 y_max_sem = np.max(y_sem) if len(y_sem) > 0 else 1.0
                 y_max_com = np.max(y_com) if len(y_com) > 0 else 1.0
                 y_max_global = max(1.1, y_max_sem * 1.1, y_max_com * 1.1)
 
-                # --- Calcular Métricas ---
                 metricas_sem = self.calcular_metricas_resposta(t_sem, y_sem, sys_sem_fechada)
                 metricas_com = self.calcular_metricas_resposta(t_com, y_com, sys_com_fechada)
 
-                # --- Plotar SEM Controlador ---
                 self.plotar_resposta_completa(
                     self.ax_resp_sem, t_sem, y_sem, metricas_sem,
                     'Resposta ao Degrau - Sistema Original (Malha Aberta)',
@@ -971,7 +984,6 @@ class JanelaControladores(ctk.CTkToplevel):
                     y_lim_top=y_max_global
                 )
 
-                # --- Plotar COM Controlador ---
                 self.plotar_resposta_completa(
                     self.ax_resp_com, t_com, y_com, metricas_com,
                     'Resposta ao Degrau - Com Controlador (Malha Fechada)',
@@ -979,31 +991,23 @@ class JanelaControladores(ctk.CTkToplevel):
                     y_lim_top=y_max_global
                 )
 
-            # --- CORREÇÃO E AJUSTE PARA RAMPA ---
             else:  # Rampa Unitária
-                t_final_rampa = 10 # Tempo final para rampa
+                t_final_rampa = 10
                 t = np.linspace(0, t_final_rampa, 1000)
-                u = t # Sinal de entrada rampa
+                u = t
 
-                # --- Conversão para formato scipy ---
-                # control.tf armazena num/den como listas aninhadas, pegamos o primeiro elemento
                 num_sem, den_sem = sys_sem_aberta.num[0][0], sys_sem_aberta.den[0][0]
                 num_com, den_com = sys_com_fechada.num[0][0], sys_com_fechada.den[0][0]
-                # --- Fim da Conversão ---
 
-                # --- Obter Respostas com scipy_lsim ---
                 t_sem, y_sem, _ = scipy_lsim((num_sem, den_sem), U=u, T=t)
                 t_com, y_com, _ = scipy_lsim((num_com, den_com), U=u, T=t)
 
-                # --- Ajuste de Escala Rampa ---
                 y_max_rampa_sem = np.max(y_sem) if len(y_sem) > 0 else t_final_rampa
                 y_max_rampa_com = np.max(y_com) if len(y_com) > 0 else t_final_rampa
-                y_max_global_rampa = max(t_final_rampa, y_max_rampa_sem, y_max_rampa_com) * 1.1 # Margem
+                y_max_global_rampa = max(t_final_rampa, y_max_rampa_sem, y_max_rampa_com) * 1.1
 
-                # --- Plotar SEM Controlador ---
-                # Usar os vetores de tempo retornados por lsim (t_sem, t_com)
                 self.ax_resp_sem.plot(t_sem, y_sem, linewidth=2.5, color=self.graph_colors['primary'], label='Saída')
-                self.ax_resp_sem.plot(t_sem, u, '--', linewidth=1.5, color=CORES["texto_secundario"], # Linha da rampa
+                self.ax_resp_sem.plot(t_sem, u, '--', linewidth=1.5, color=CORES["texto_secundario"],
                                     alpha=0.8, label='Entrada (Rampa)')
                 self.ax_resp_sem.set_title('Resposta à Rampa - Sistema Original (Malha Aberta)', fontsize=11)
                 self.ax_resp_sem.set_xlabel('Tempo (s)', fontsize=10)
@@ -1011,17 +1015,15 @@ class JanelaControladores(ctk.CTkToplevel):
                 self.ax_resp_sem.set_ylim(bottom=0, top=y_max_global_rampa)
                 self.ax_resp_sem.set_xlim(left=0, right=t_final_rampa)
 
-                # Configurar legenda dark
-                legend_sem = self.ax_resp_sem.legend(fontsize=9, loc='lower right') # Mudar para lower right
+                legend_sem = self.ax_resp_sem.legend(fontsize=9, loc='lower right')
                 legend_sem.get_frame().set_facecolor(CORES["fundo_claro"])
                 legend_sem.get_frame().set_edgecolor(CORES["texto_secundario"])
                 legend_sem.get_frame().set_alpha(0.75)
                 for text in legend_sem.get_texts():
                     text.set_color(CORES["texto_principal"])
 
-                # --- Plotar COM Controlador ---
                 self.ax_resp_com.plot(t_com, y_com, linewidth=2.5, color=self.graph_colors['secondary'], label='Saída')
-                self.ax_resp_com.plot(t_com, u, '--', linewidth=1.5, color=CORES["texto_secundario"], # Linha da rampa
+                self.ax_resp_com.plot(t_com, u, '--', linewidth=1.5, color=CORES["texto_secundario"],
                                     alpha=0.8, label='Entrada (Rampa)')
                 self.ax_resp_com.set_title('Resposta à Rampa - Com Controlador (Malha Fechada)', fontsize=11)
                 self.ax_resp_com.set_xlabel('Tempo (s)', fontsize=10)
@@ -1029,35 +1031,30 @@ class JanelaControladores(ctk.CTkToplevel):
                 self.ax_resp_com.set_ylim(bottom=0, top=y_max_global_rampa)
                 self.ax_resp_com.set_xlim(left=0, right=t_final_rampa)
 
-                # Configurar legenda dark
-                legend_com = self.ax_resp_com.legend(fontsize=9, loc='lower right') # Mudar para lower right
+                legend_com = self.ax_resp_com.legend(fontsize=9, loc='lower right')
                 legend_com.get_frame().set_facecolor(CORES["fundo_claro"])
                 legend_com.get_frame().set_edgecolor(CORES["texto_secundario"])
                 legend_com.get_frame().set_alpha(0.75)
                 for text in legend_com.get_texts():
                     text.set_color(CORES["texto_principal"])
 
-            # --- FIM DA CORREÇÃO RAMPA ---
-
-            # Aplicar estilo final (redundante mas seguro) e desenhar
             self.setup_plot_style(self.ax_resp_sem)
             self.setup_plot_style(self.ax_resp_com)
-            # Usar tight_layout para evitar sobreposição
+            
             try:
                  self.fig_resp_sem.tight_layout(pad=1.5)
                  self.fig_resp_com.tight_layout(pad=1.5)
-            except ValueError:
-                 print("Aviso: tight_layout falhou, pode haver sobreposição de elementos.")
+            except:
+                 pass
 
             self.canvas_resp_sem.draw()
             self.canvas_resp_com.draw()
 
         except Exception as e:
             print(f"Erro ao gerar resposta temporal: {e}")
-            # Mostrar mensagem de erro nos gráficos
             for ax in [self.ax_resp_sem, self.ax_resp_com]:
                 ax.clear()
-                self.setup_plot_style(ax) # Aplica o estilo mesmo no erro
+                self.setup_plot_style(ax)
                 ax.text(0.5, 0.5, f'Erro: {str(e)}',
                        ha='center', va='center', transform=ax.transAxes,
                        fontsize=10, color=CORES["erro"])
@@ -1065,21 +1062,17 @@ class JanelaControladores(ctk.CTkToplevel):
             self.canvas_resp_com.draw()
     
     def gerar_lgr(self, G, Gc):
-        """Gera os gráficos de Lugar Geométrico das Raízes - CORRIGIDO"""
-        # Limpar gráficos
+        """Gera os gráficos de Lugar Geométrico das Raízes"""
         self.ax_lgr_sem.clear()
         self.ax_lgr_com.clear()
         
-        # CORREÇÃO: Usar rlocus sem o parâmetro print_gain que causa erro
         try:
-            # LGR sem controlador
             control.rlocus(G, ax=self.ax_lgr_sem, grid=True)
             self.ax_lgr_sem.set_title('Lugar das Raízes - Sistema Original', fontsize=11, fontweight='bold')
             self.ax_lgr_sem.set_xlabel('Parte Real', fontsize=10, fontweight='bold')
             self.ax_lgr_sem.set_ylabel('Parte Imaginária', fontsize=10, fontweight='bold')
             self.ax_lgr_sem.grid(True, alpha=0.3)
             
-            # LGR com controlador
             control.rlocus(G * Gc, ax=self.ax_lgr_com, grid=True)
             self.ax_lgr_com.set_title('Lugar das Raízes - Com Controlador', fontsize=11, fontweight='bold')
             self.ax_lgr_com.set_xlabel('Parte Real', fontsize=10, fontweight='bold')
@@ -1087,7 +1080,6 @@ class JanelaControladores(ctk.CTkToplevel):
             self.ax_lgr_com.grid(True, alpha=0.3)
             
         except Exception as e:
-            # Fallback caso ainda haja problemas
             self.ax_lgr_sem.text(0.5, 0.5, 'Erro ao gerar LGR\nTente outros parâmetros', 
                                ha='center', va='center', transform=self.ax_lgr_sem.transAxes)
             self.ax_lgr_com.text(0.5, 0.5, 'Erro ao gerar LGR\nTente outros parâmetros', 
@@ -1095,25 +1087,25 @@ class JanelaControladores(ctk.CTkToplevel):
         
         self.setup_plot_style(self.ax_lgr_sem)
         self.setup_plot_style(self.ax_lgr_com)
-        self.fig_lgr_sem.tight_layout(pad=3.0)
-        self.fig_lgr_com.tight_layout(pad=3.0)
+        
+        try:
+            self.fig_lgr_sem.tight_layout(pad=3.0)
+            self.fig_lgr_com.tight_layout(pad=3.0)
+        except:
+            pass
+            
         self.canvas_lgr_sem.draw()
         self.canvas_lgr_com.draw()
     
     def gerar_polos_zeros(self, G, Gc):
         """Gera o gráfico de polos e zeros"""
         try:
-            # Sistema com controlador
             sys_com = feedback(G * Gc, 1)
-            
-            # CORREÇÃO: Importar poles e zeros corretamente
             poles_com = control.poles(sys_com)
             zeros_com = control.zeros(sys_com)
             
-            # Limpar gráfico
             self.ax_pz.clear()
             
-            # Plotar polos
             if poles_com.size > 0:
                 polos_estaveis = poles_com[poles_com.real < 0]
                 polos_instaveis = poles_com[poles_com.real >= 0]
@@ -1130,13 +1122,11 @@ class JanelaControladores(ctk.CTkToplevel):
                                   color=self.graph_colors['unstable'], 
                                   label='Polos Instáveis')
             
-            # Plotar zeros
             if zeros_com.size > 0:
                 self.ax_pz.plot(zeros_com.real, zeros_com.imag, 'o', markersize=10, 
                               markeredgewidth=2, fillstyle='none', 
                               color=self.graph_colors['zeros'], label='Zeros')
             
-            # Configurar gráfico
             self.ax_pz.axhline(0, color='black', linewidth=1, alpha=0.8)
             self.ax_pz.axvline(0, color='black', linewidth=1, alpha=0.8)
             
@@ -1166,10 +1156,14 @@ class JanelaControladores(ctk.CTkToplevel):
             self.ax_pz.grid(True, alpha=0.3)
             
             self.setup_plot_style(self.ax_pz)
-            self.fig_pz.tight_layout(pad=3.0)
+            
+            try:
+                self.fig_pz.tight_layout(pad=3.0)
+            except:
+                pass
+                
             self.canvas_pz.draw()
             
-            # Atualizar informações textuais
             self.atualizar_info_pz(poles_com, zeros_com)
             
         except Exception as e:
@@ -1179,19 +1173,17 @@ class JanelaControladores(ctk.CTkToplevel):
         """Atualiza as informações textuais de polos e zeros"""
         self.texto_info.delete("1.0", "end")
         
-        # Cabeçalho
         self.texto_info.insert("end", "=" * 65 + "\n")
         self.texto_info.insert("end", "ANÁLISE DO SISTEMA COM CONTROLADOR\n")
         self.texto_info.insert("end", "=" * 65 + "\n\n")
         
-        # Informações dos polos
         self.texto_info.insert("end", "🎯 POLOS DO SISTEMA:\n")
         self.texto_info.insert("end", "-" * 65 + "\n")
         
+        polos_estaveis = 0
+        polos_instaveis = 0
+        
         if poles.size > 0:
-            polos_estaveis = 0
-            polos_instaveis = 0
-            
             for i, p in enumerate(poles):
                 parte_real = p.real
                 parte_imag = p.imag
@@ -1213,7 +1205,6 @@ class JanelaControladores(ctk.CTkToplevel):
         else:
             self.texto_info.insert("end", "  Nenhum polo encontrado.\n")
         
-        # Informações dos zeros
         self.texto_info.insert("end", "\n🎯 ZEROS DO SISTEMA:\n")
         self.texto_info.insert("end", "-" * 65 + "\n")
         
@@ -1234,7 +1225,6 @@ class JanelaControladores(ctk.CTkToplevel):
         else:
             self.texto_info.insert("end", "  Nenhum zero encontrado.\n")
         
-        # Análise de estabilidade
         self.texto_info.insert("end", "\n📊 ANÁLISE DE ESTABILIDADE:\n")
         self.texto_info.insert("end", "=" * 65 + "\n")
         
@@ -1249,7 +1239,6 @@ class JanelaControladores(ctk.CTkToplevel):
                 self.texto_info.insert("end", "⚠️  Sistema MARGINALMENTE ESTÁVEL\n")
                 self.texto_info.insert("end", "   Há polos no eixo imaginário.\n")
         
-        # Informações adicionais
         self.texto_info.insert("end", "\n📌 RESUMO:\n")
         self.texto_info.insert("end", "-" * 65 + "\n")
         self.texto_info.insert("end", f"   Total de polos: {poles.size}\n")
@@ -1259,9 +1248,19 @@ class JanelaControladores(ctk.CTkToplevel):
         
         self.texto_info.insert("end", "\n" + "=" * 65 + "\n")
     
+    def toggle_tela_cheia(self):
+        """Alterna entre tela cheia e janela normal"""
+        if self.fullscreen_ativo:
+            self.desativar_tela_cheia()
+            self.botao_fullscreen.configure(text="⛶ TELA CHEIA")
+            self.fullscreen_ativo = False
+        else:
+            self.ativar_tela_cheia()
+            self.botao_fullscreen.configure(text="⛶ SAIR TELA CHEIA")
+            self.fullscreen_ativo = True
+    
     def limpar_tudo(self):
         """Limpa todos os gráficos e campos"""
-        # Limpar gráficos
         for ax in [self.ax_resp_sem, self.ax_resp_com, 
                   self.ax_lgr_sem, self.ax_lgr_com, self.ax_pz]:
             ax.clear()
@@ -1271,11 +1270,9 @@ class JanelaControladores(ctk.CTkToplevel):
                       self.canvas_lgr_sem, self.canvas_lgr_com, self.canvas_pz]:
             canvas.draw()
         
-        # Limpar informações
         self.texto_info.delete("1.0", "end")
         self.texto_info.insert("1.0", "Informações sobre polos e zeros aparecerão aqui...")
         
-        # Resetar campos para SISTEMA SUBAMORTECIDO
         self.entrada_numerador.delete(0, "end")
         self.entrada_numerador.insert(0, "4")
         self.entrada_denominador.delete(0, "end")
@@ -1306,11 +1303,20 @@ class JanelaControladores(ctk.CTkToplevel):
             messagebox.showerror("Erro", mensagem)
     
     def fechar_janela(self):
-        """Fecha a janela"""
+        """Fecha a janela de forma segura"""
+        try:
+            # Limpar figuras do matplotlib antes de fechar
+            plt.close(self.fig_resp_sem)
+            plt.close(self.fig_resp_com)
+            plt.close(self.fig_lgr_sem)
+            plt.close(self.fig_lgr_com)
+            plt.close(self.fig_pz)
+        except:
+            pass
+        
         self.destroy()
 
 
-# Função para ser chamada de tela.py
 def abrir_analisador_controladores(parent_window):
     """
     Função para abrir o analisador de controladores
@@ -1324,9 +1330,16 @@ def abrir_analisador_controladores(parent_window):
     return JanelaControladores(parent_window)
 
 
-# Para teste standalone
 if __name__ == "__main__":
     import customtkinter as ctk
+    
+    # Configuração para Windows
+    if platform.system() == "Windows":
+        try:
+            from ctypes import windll
+            windll.shcore.SetProcessDpiAwareness(1)
+        except:
+            pass
     
     root = ctk.CTk()
     root.withdraw()

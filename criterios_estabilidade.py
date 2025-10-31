@@ -2,12 +2,80 @@ import numpy as np
 from scipy import signal
 import matplotlib.pyplot as plt
 import math
+import platform
 
 class ErroValidacao(Exception):
     """Exceção customizada para erros de validação"""
     pass
 
 class CriteriosEstabilidade:
+    
+    # Variável de classe para controle de tela cheia em janelas GUI
+    _janela_atual = None
+    _fullscreen_ativo = False
+    
+    @staticmethod
+    def configurar_janela_gui(janela):
+        """
+        Configura uma janela GUI para suportar tela cheia
+        
+        Args:
+            janela: Objeto da janela (tkinter/customtkinter)
+        """
+        CriteriosEstabilidade._janela_atual = janela
+        CriteriosEstabilidade._fullscreen_ativo = False
+        
+        # Detectar sistema operacional
+        is_windows = platform.system() == "Windows"
+        
+        # Adicionar método de alternância
+        def toggle_fullscreen():
+            if CriteriosEstabilidade._fullscreen_ativo:
+                if is_windows:
+                    janela.state('normal')
+                else:
+                    janela.attributes('-fullscreen', False)
+                CriteriosEstabilidade._fullscreen_ativo = False
+            else:
+                if is_windows:
+                    janela.state('zoomed')
+                else:
+                    janela.attributes('-fullscreen', True)
+                CriteriosEstabilidade._fullscreen_ativo = True
+        
+        # Atalhos de teclado
+        try:
+            janela.bind('<F11>', lambda e: toggle_fullscreen())
+            janela.bind('<Escape>', lambda e: (
+                janela.state('normal') if is_windows else janela.attributes('-fullscreen', False),
+                setattr(CriteriosEstabilidade, '_fullscreen_ativo', False)
+            ) if CriteriosEstabilidade._fullscreen_ativo else None)
+        except:
+            pass
+        
+        return toggle_fullscreen
+    
+    @staticmethod
+    def ativar_tela_cheia():
+        """Ativa tela cheia na janela atual"""
+        if CriteriosEstabilidade._janela_atual:
+            is_windows = platform.system() == "Windows"
+            if is_windows:
+                CriteriosEstabilidade._janela_atual.state('zoomed')
+            else:
+                CriteriosEstabilidade._janela_atual.attributes('-fullscreen', True)
+            CriteriosEstabilidade._fullscreen_ativo = True
+    
+    @staticmethod
+    def desativar_tela_cheia():
+        """Desativa tela cheia na janela atual"""
+        if CriteriosEstabilidade._janela_atual:
+            is_windows = platform.system() == "Windows"
+            if is_windows:
+                CriteriosEstabilidade._janela_atual.state('normal')
+            else:
+                CriteriosEstabilidade._janela_atual.attributes('-fullscreen', False)
+            CriteriosEstabilidade._fullscreen_ativo = False
     
     @staticmethod
     def validar_coeficientes(coeficientes, nome="coeficientes"):

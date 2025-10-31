@@ -36,16 +36,25 @@ class SistemaTCC(ctk.CTk):
         
         # Configuração da janela principal
         self.title("FERRAMENTA COMPUTACIONAL PARA ANÁLISE E CARACTERIZAÇÃO DE SISTEMAS DE CONTROLE")
-        self.geometry("1000x700")
+        
+        # ✅ MELHORIA: Obter dimensões da tela para responsividade
+        self.screen_width = self.winfo_screenwidth()
+        self.screen_height = self.winfo_screenheight()
+        
+        # ✅ MELHORIA: Calcular tamanho responsivo (80% da tela)
+        window_width = min(int(self.screen_width * 0.8), 1200)
+        window_height = min(int(self.screen_height * 0.8), 800)
+        
+        self.geometry(f"{window_width}x{window_height}")
         
         # Configurações de tamanho
-        self.maxsize(width=1200, height=800)
-        self.minsize(width=800, height=600)
+        self.maxsize(width=self.screen_width, height=self.screen_height)
+        self.minsize(width=1200, height=700)
         
         # Aplicar cor de fundo
         self.configure(fg_color=CORES["fundo_escuro"])
         
-        # Centralizar janela
+        # ✅ MELHORIA: Centralizar janela DEPOIS de definir geometria
         self.centralizar_janela()
         
         # Carregar imagens
@@ -61,12 +70,18 @@ class SistemaTCC(ctk.CTk):
         self.container.grid_columnconfigure(0, weight=1)
         self.container.grid_rowconfigure(0, weight=1)
         
-        # Dicionário para armazenar janelas abertas
+        # ✅ MELHORIA: Dicionário para rastrear janelas abertas
         self.janelas_abertas = {}
         
         # Criar tela principal
         self.tela_principal = TelaPrincipal(parent=self.container, controlador=self)
         self.tela_principal.grid(row=0, column=0, sticky="nsew")
+        
+        # ✅ MELHORIA: Forçar foco na janela principal
+        self.lift()
+        self.focus_force()
+        self.attributes('-topmost', True)
+        self.after(100, lambda: self.attributes('-topmost', False))
     
     def centralizar_janela(self):
         """Centraliza a janela na tela"""
@@ -97,13 +112,20 @@ class SistemaTCC(ctk.CTk):
 
     
     def abrir_janela(self, tipo_janela, titulo):
-        """Abre uma nova janela do tipo especificado"""
+        """
+        ✅ MELHORIA CRÍTICA: Abre uma nova janela com gerenciamento adequado
+        Garante que janelas filhas fiquem SEMPRE na frente
+        """
+        # Fechar janela anterior do mesmo tipo se existir
         if tipo_janela in self.janelas_abertas:
             try:
                 self.janelas_abertas[tipo_janela].destroy()
             except:
                 pass
+            finally:
+                self.janelas_abertas.pop(tipo_janela, None)
         
+        # Criar nova janela
         if tipo_janela == "criterio":
             janela = JanelaCriterio(self, titulo)
         elif tipo_janela == "analise":
@@ -113,8 +135,27 @@ class SistemaTCC(ctk.CTk):
         else:
             return
         
+        # ✅ MELHORIA: Configurações para Windows
+        janela.transient(self)  # Define como janela filha
+        janela.grab_set()       # Foco modal suave
+        janela.lift()           # Trazer para frente
+        janela.focus_force()    # Forçar foco
+        
+        # ✅ MELHORIA: Garantir que fique sempre visível
+        janela.attributes('-topmost', True)
+        janela.after(200, lambda: janela.attributes('-topmost', False))
+        
+        # Armazenar referência
         self.janelas_abertas[tipo_janela] = janela
-        janela.focus_set()
+        
+        # ✅ MELHORIA: Callback para limpar ao fechar
+        def ao_fechar():
+            self.janelas_abertas.pop(tipo_janela, None)
+            janela.destroy()
+            self.lift()  # Retornar foco à janela principal
+            self.focus_force()
+        
+        janela.protocol("WM_DELETE_WINDOW", ao_fechar)
 
 class TelaPrincipal(ctk.CTkFrame):
     def __init__(self, parent, controlador):
@@ -148,12 +189,14 @@ class TelaPrincipal(ctk.CTkFrame):
         container_titulo = ctk.CTkFrame(container_principal, fg_color="transparent")
         container_titulo.grid(row=0, column=0, sticky="w", padx=0, pady=0)
         
+        # ✅ MELHORIA: Título responsivo com wraplength dinâmico
+        titulo_width = min(600, int(self.controlador.screen_width * 0.5))
         titulo_principal = ctk.CTkLabel(
             container_titulo,
             text="FERRAMENTA COMPUTACIONAL PARA ANÁLISE E CARACTERIZAÇÃO DE SISTEMAS DE CONTROLE",
             font=("Segoe UI", 16, "bold"),
             text_color=CORES["texto_principal"],
-            wraplength=600,
+            wraplength=titulo_width,
             justify="left"
         )
         titulo_principal.pack(anchor="w", pady=(0, 5))
@@ -232,6 +275,9 @@ class TelaPrincipal(ctk.CTkFrame):
             text_color=CORES["texto_secundario"]
         ).pack(pady=(0, 20))
         
+        # ✅ MELHORIA: Botões com largura responsiva
+        button_width = min(400, int(self.controlador.screen_width * 0.3))
+        
         informacoes_botoes = [
             {
                 "texto": "📊 ANÁLISE DE ESTABILIDADE",
@@ -258,7 +304,7 @@ class TelaPrincipal(ctk.CTkFrame):
                 frame_botoes,
                 text=info["texto"],
                 command=info["comando"],
-                width=400,
+                width=button_width,
                 height=65,
                 font=("Segoe UI", 16, "bold"),
                 corner_radius=10,
@@ -299,17 +345,38 @@ class TelaPrincipal(ctk.CTkFrame):
         ano.pack(side="right")
 
 class JanelaBase(ctk.CTkToplevel):
+    """✅ MELHORIA: Classe base otimizada para Windows"""
     def __init__(self, parent, titulo):
         super().__init__(parent)
         self.parent = parent
         self.titulo = titulo
         
         self.title(titulo)
-        self.geometry("1400x900")
+        
+        # ✅ MELHORIA: Tamanho responsivo
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        
+        window_width = min(int(screen_width * 0.85), 1400)
+        window_height = min(int(screen_height * 0.85), 900)
+        
+        self.geometry(f"{window_width}x{window_height}")
         self.resizable(True, True)
         self.configure(fg_color=CORES["fundo_escuro"])
         
+        # ✅ MELHORIA: Configurações específicas para Windows
         self.centralizar_janela()
+        
+        # ✅ CRÍTICO: Configurações de janela para Windows
+        self.transient(parent)  # Janela filha
+        self.lift()             # Trazer para frente
+        self.focus_force()      # Forçar foco
+        self.grab_set()         # Modal suave
+        
+        # ✅ CRÍTICO: Garantir visibilidade no Windows
+        self.attributes('-topmost', True)
+        self.after(300, lambda: self.attributes('-topmost', False))
+        
         self.protocol("WM_DELETE_WINDOW", self.fechar_janela)
         
         self.grid_columnconfigure(0, weight=1)
@@ -319,16 +386,22 @@ class JanelaBase(ctk.CTkToplevel):
         self.criar_conteudo()
     
     def centralizar_janela(self):
+        """Centraliza a janela na tela"""
         self.update_idletasks()
         x_pai = self.parent.winfo_x()
         y_pai = self.parent.winfo_y()
         largura_pai = self.parent.winfo_width()
         altura_pai = self.parent.winfo_height()
         
-        largura = 1400
-        altura = 900
+        largura = self.winfo_width()
+        altura = self.winfo_height()
+        
         x = x_pai + (largura_pai - largura) // 2
         y = y_pai + (altura_pai - altura) // 2
+        
+        # ✅ MELHORIA: Garantir que não saia da tela
+        x = max(0, min(x, self.winfo_screenwidth() - largura))
+        y = max(0, min(y, self.winfo_screenheight() - altura))
         
         self.geometry(f'{largura}x{altura}+{x}+{y}')
     
@@ -367,7 +440,19 @@ class JanelaBase(ctk.CTkToplevel):
         pass
     
     def fechar_janela(self):
+        """✅ MELHORIA: Fechar com limpeza adequada"""
+        try:
+            self.grab_release()  # Liberar grab
+        except:
+            pass
         self.destroy()
+        
+        # ✅ MELHORIA: Retornar foco à janela principal
+        try:
+            self.parent.lift()
+            self.parent.focus_force()
+        except:
+            pass
 
 class JanelaCriterio(JanelaBase):
     def __init__(self, parent, titulo):
@@ -502,11 +587,9 @@ class JanelaCriterio(JanelaBase):
             texto_num = self.entrada_numerador.get().strip()
             texto_den = self.entrada_denominador.get().strip()
             
-            # Validação básica de preenchimento
             if not texto_num or not texto_den:
                 raise ValueError("❌ Por favor, preencha ambos os campos:\n   • Numerador\n   • Denominador")
             
-            # Tentar converter para números
             try:
                 numerador = [float(x) for x in texto_num.split()]
             except ValueError as e:
@@ -527,14 +610,12 @@ class JanelaCriterio(JanelaBase):
                     f"   Exemplo correto: 1 5 6 ou 2.5 4.2 8.1"
                 )
             
-            # Validações específicas
             if len(numerador) == 0:
                 raise ValueError("❌ Numerador não pode estar vazio!")
             
             if len(denominador) == 0:
                 raise ValueError("❌ Denominador não pode estar vazio!")
             
-            # Verificar se o primeiro coeficiente do denominador não é zero
             if abs(denominador[0]) < 1e-15:
                 raise ValueError(
                     "❌ O primeiro coeficiente do DENOMINADOR não pode ser ZERO!\n"
@@ -543,7 +624,6 @@ class JanelaCriterio(JanelaBase):
                     f"   Exemplo correto: 1 5 6 (não 0 5 6)"
                 )
             
-            # Verificar se todos os coeficientes do denominador são zero
             if all(abs(c) < 1e-15 for c in denominador):
                 raise ValueError(
                     "❌ O DENOMINADOR não pode ter todos os coeficientes iguais a ZERO!\n"
@@ -611,12 +691,15 @@ class JanelaAnalise(JanelaBase):
         container_principal.grid_columnconfigure(1, weight=1)
         container_principal.grid_rowconfigure(0, weight=1)
         
+        # ✅ MELHORIA: Largura responsiva do painel esquerdo
+        panel_width = min(450, int(self.winfo_screenwidth() * 0.3))
+        
         # LADO ESQUERDO
         frame_esquerdo = ctk.CTkFrame(
             container_principal, 
             fg_color=CORES["fundo_claro"],
             corner_radius=10,
-            width=450
+            width=panel_width
         )
         frame_esquerdo.grid(row=0, column=0, sticky="ns", padx=(0, 10))
         frame_esquerdo.grid_propagate(False)
@@ -731,7 +814,7 @@ class JanelaAnalise(JanelaBase):
         
         ctk.CTkLabel(
             frame_entrada,
-            text="📐 Função de Transferência de 2ª Ordem:",
+            text="📝 Função de Transferência de 2ª Ordem:",
             font=("Segoe UI", 14, "bold"),
             text_color=CORES["texto_principal"]
         ).grid(row=0, column=0, sticky="w", pady=12, padx=15)
@@ -884,11 +967,9 @@ class JanelaAnalise(JanelaBase):
             texto_num = self.entrada_numerador.get().strip()
             texto_den = self.entrada_denominador.get().strip()
             
-            # Validação básica de preenchimento
             if not texto_num or not texto_den:
                 raise ValueError("❌ Por favor, preencha ambos os campos:\n   • Numerador\n   • Denominador")
             
-            # Tentar converter para números
             try:
                 numerador = [float(x) for x in texto_num.split()]
             except ValueError:
@@ -909,7 +990,6 @@ class JanelaAnalise(JanelaBase):
                     f"   Exemplo correto: 1 2 4 ou 1.5 3.2 5.8"
                 )
             
-            # Validações específicas para sistema de 2ª ordem
             if len(denominador) != 3:
                 raise ValueError(
                     f"❌ Sistema deve ser de 2ª ORDEM!\n"
@@ -919,7 +999,6 @@ class JanelaAnalise(JanelaBase):
                     f"   Exemplo: 1 2 4 (representa s² + 2s + 4)"
                 )
             
-            # Verificar se o primeiro coeficiente do denominador não é zero
             if abs(denominador[0]) < 1e-15:
                 raise ValueError(
                     "❌ O primeiro coeficiente do DENOMINADOR não pode ser ZERO!\n"
@@ -928,7 +1007,6 @@ class JanelaAnalise(JanelaBase):
                     f"   Exemplo correto: 1 2 4 (não 0 2 4)"
                 )
             
-            # Verificar se todos os coeficientes do denominador são zero
             if all(abs(c) < 1e-15 for c in denominador):
                 raise ValueError(
                     "❌ O DENOMINADOR não pode ter todos os coeficientes iguais a ZERO!\n"
