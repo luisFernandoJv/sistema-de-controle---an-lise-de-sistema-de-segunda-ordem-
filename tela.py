@@ -1,8 +1,8 @@
 import customtkinter as ctk
 from PIL import Image, ImageTk
 import os
-from criterios_estabilidade import CriteriosEstabilidade
-from analise_segunda_ordem import AnalisadorSegundaOrdem
+from criterios_estabilidade import CriteriosEstabilidade, ErroValidacao
+from analise_segunda_ordem import AnalisadorSegundaOrdem, ErroValidacao as ErroValidacao2
 from controladores import JanelaControladores
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
@@ -79,10 +79,10 @@ class SistemaTCC(ctk.CTk):
     
     def carregar_imagens(self):
         """Carrega as imagens utilizadas no sistema"""
-        self.foto_fundo = None # Resetar
-        self.logo_image = None # Adicionado para clareza
+        self.foto_fundo = None
+        self.logo_image = None
 
-        # --- Carregar Logo (Opcional, se você tiver um logo.png) ---
+        # Carregar Logo
         try:
             if os.path.exists("logo.png"):
                 img_pil = Image.open("logo.png").convert("RGBA")
@@ -91,19 +91,15 @@ class SistemaTCC(ctk.CTk):
                 new_size = (int(img_pil.width * ratio), int(img_pil.height * ratio))
                 img_pil_resized = img_pil.resize(new_size, Image.Resampling.LANCZOS)
                 self.logo_image = ctk.CTkImage(light_image=img_pil_resized, dark_image=img_pil_resized, size=new_size)
-            # else: self.logo_image continua None
         except Exception as e:
             print(f"Erro ao carregar logo.png: {e}")
             self.logo_image = None
 
-        # --- Carregar Imagem de Fundo (Papel de Parede) ---
+        # Carregar Imagem de Fundo
         try:
-            # Caminho fornecido pelo usuário
-            background_path = "image/icons/papel.png" # <<< CAMINHO DA SUA IMAGEM
+            background_path = "image/icons/papel.png"
             if os.path.exists(background_path):
                 img_bg = Image.open(background_path)
-                # Criar CTkImage com o tamanho original da imagem
-                # O CTkLabel com place(relwidth=1, relheight=1) fará o stretch
                 self.foto_fundo = ctk.CTkImage(light_image=img_bg, dark_image=img_bg, size=img_bg.size)
                 print(f"Imagem de fundo '{background_path}' carregada.")
             else:
@@ -113,26 +109,26 @@ class SistemaTCC(ctk.CTk):
             self.foto_fundo = None
             print(f"Erro ao carregar imagem de fundo: {e}")
 
-        # --- Carregar Ícones dos Botões (se você os tiver) ---
-        # (Manter a lógica de carregamento dos ícones da resposta anterior, se aplicável)
-        self.icones = {} # Dicionário para guardar os ícones carregados
-        icon_folder = "icons" # Nome da pasta onde salvou os ícones
-        icon_size = (24, 24) # Tamanho desejado para os ícones nos botões
+        # Carregar Ícones dos Botões
+        self.icones = {}
+        icon_folder = "icons"
+        icon_size = (24, 24)
         icon_files = {
-            "criterio": "stability_icon.png", # Substitua pelo nome real
-            "analise": "second_order_icon.png", # Substitua pelo nome real
-            "controladores": "controller_icon.png" # Substitua pelo nome real
+            "criterio": "stability_icon.png",
+            "analise": "second_order_icon.png",
+            "controladores": "controller_icon.png"
         }
         for key, filename in icon_files.items():
-             try:
-                 path = os.path.join(icon_folder, filename) # Assume pasta 'icons' na raiz
-                 if os.path.exists(path):
-                     img = Image.open(path).convert("RGBA")
-                     self.icones[key] = ctk.CTkImage(light_image=img, dark_image=img, size=icon_size)
-                 else: self.icones[key] = None
-             except Exception as e:
-                 print(f"Erro ao carregar ícone {filename}: {e}")
-                 self.icones[key] = None
+            try:
+                path = os.path.join(icon_folder, filename)
+                if os.path.exists(path):
+                    img = Image.open(path).convert("RGBA")
+                    self.icones[key] = ctk.CTkImage(light_image=img, dark_image=img, size=icon_size)
+                else:
+                    self.icones[key] = None
+            except Exception as e:
+                print(f"Erro ao carregar ícone {filename}: {e}")
+                self.icones[key] = None
     
     def abrir_janela(self, tipo_janela, titulo):
         """Abre uma nova janela do tipo especificado"""
@@ -170,24 +166,22 @@ class TelaPrincipal(ctk.CTkFrame):
         frame_cabecalho = ctk.CTkFrame(
             self, 
             fg_color=CORES["acento"],
-            height=140,  # Aumentei a altura para melhor acomodação
+            height=140,
             corner_radius=0
         )
         frame_cabecalho.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
         frame_cabecalho.grid_columnconfigure(0, weight=1)
         frame_cabecalho.grid_rowconfigure(0, weight=1)
         
-        # Container principal do cabeçalho
         container_principal = ctk.CTkFrame(frame_cabecalho, fg_color="transparent")
         container_principal.grid(row=0, column=0, sticky="nsew", padx=20, pady=15)
-        container_principal.grid_columnconfigure(0, weight=3)  # Título ocupa mais espaço
-        container_principal.grid_columnconfigure(1, weight=1)  # Logo ocupa menos espaço
+        container_principal.grid_columnconfigure(0, weight=3)
+        container_principal.grid_columnconfigure(1, weight=1)
         
         # LADO ESQUERDO - TÍTULO E INFORMAÇÕES
         container_titulo = ctk.CTkFrame(container_principal, fg_color="transparent")
         container_titulo.grid(row=0, column=0, sticky="w", padx=0, pady=0)
         
-        # Título principal (maior destaque)
         titulo_principal = ctk.CTkLabel(
             container_titulo,
             text="FERRAMENTA COMPUTACIONAL PARA ANÁLISE E CARACTERIZAÇÃO DE SISTEMAS DE CONTROLE",
@@ -198,7 +192,6 @@ class TelaPrincipal(ctk.CTkFrame):
         )
         titulo_principal.pack(anchor="w", pady=(0, 5))
         
-        # Linha divisória sutil
         linha_divisoria = ctk.CTkFrame(
             container_titulo,
             height=2,
@@ -207,7 +200,6 @@ class TelaPrincipal(ctk.CTkFrame):
         )
         linha_divisoria.pack(fill="x", pady=8)
         
-        # Subtítulo
         subtitulo = ctk.CTkLabel(
             container_titulo,
             text="Trabalho de Conclusão de Curso - Engenharia de Computação",
@@ -216,24 +208,13 @@ class TelaPrincipal(ctk.CTkFrame):
         )
         subtitulo.pack(anchor="w", pady=(0, 5))
         
-        # Informação adicional (se necessário)
-        info_adicional = ctk.CTkLabel(
-            container_titulo,
-            text="Sistema de Análise de Controladores",
-            font=("Segoe UI", 11),
-            text_color=CORES["texto_secundario"]
-        )
-        info_adicional.pack(anchor="w")
-        
-        # LADO DIREITO - LOGO E INFORMAÇÕES INSTITUCIONAIS
+        # LADO DIREITO - LOGO
         container_logo = ctk.CTkFrame(container_principal, fg_color="transparent")
         container_logo.grid(row=0, column=1, sticky="e", padx=0, pady=0)
         
-        # Container para centralizar verticalmente a logo e texto
         container_logo_interno = ctk.CTkFrame(container_logo, fg_color="transparent")
         container_logo_interno.pack(expand=True, fill="y")
         
-        # Logo (se existir)
         if self.controlador.logo_image:
             logo_label = ctk.CTkLabel(
                 container_logo_interno,
@@ -242,7 +223,6 @@ class TelaPrincipal(ctk.CTkFrame):
             )
             logo_label.pack(pady=(0, 5))
         
-        # Texto institucional
         texto_institucional = ctk.CTkLabel(
             container_logo_interno,
             text="UFERSA\nUniversidade Federal Rural do Semi-Árido",
@@ -556,16 +536,60 @@ class JanelaCriterio(JanelaBase):
             texto_num = self.entrada_numerador.get().strip()
             texto_den = self.entrada_denominador.get().strip()
             
+            # Validação básica de preenchimento
             if not texto_num or not texto_den:
-                raise ValueError("Por favor, preencha ambos os campos: numerador e denominador.")
+                raise ValueError("❌ Por favor, preencha ambos os campos:\n   • Numerador\n   • Denominador")
             
-            numerador = [float(x) for x in texto_num.split()]
-            denominador = [float(x) for x in texto_den.split()]
+            # Tentar converter para números
+            try:
+                numerador = [float(x) for x in texto_num.split()]
+            except ValueError as e:
+                raise ValueError(
+                    f"❌ Erro no NUMERADOR!\n"
+                    f"   Valor inserido: '{texto_num}'\n"
+                    f"   Use apenas números separados por espaço.\n"
+                    f"   Exemplo correto: 1 3 ou 2.5 4.2"
+                )
+            
+            try:
+                denominador = [float(x) for x in texto_den.split()]
+            except ValueError as e:
+                raise ValueError(
+                    f"❌ Erro no DENOMINADOR!\n"
+                    f"   Valor inserido: '{texto_den}'\n"
+                    f"   Use apenas números separados por espaço.\n"
+                    f"   Exemplo correto: 1 5 6 ou 2.5 4.2 8.1"
+                )
+            
+            # Validações específicas
+            if len(numerador) == 0:
+                raise ValueError("❌ Numerador não pode estar vazio!")
+            
+            if len(denominador) == 0:
+                raise ValueError("❌ Denominador não pode estar vazio!")
+            
+            # Verificar se o primeiro coeficiente do denominador não é zero
+            if abs(denominador[0]) < 1e-15:
+                raise ValueError(
+                    "❌ O primeiro coeficiente do DENOMINADOR não pode ser ZERO!\n"
+                    f"   Valor inserido: {denominador}\n"
+                    f"   O coeficiente do termo de maior grau deve ser diferente de zero.\n"
+                    f"   Exemplo correto: 1 5 6 (não 0 5 6)"
+                )
+            
+            # Verificar se todos os coeficientes do denominador são zero
+            if all(abs(c) < 1e-15 for c in denominador):
+                raise ValueError(
+                    "❌ O DENOMINADOR não pode ter todos os coeficientes iguais a ZERO!\n"
+                    f"   Valor inserido: {denominador}"
+                )
             
             return numerador, denominador
             
         except ValueError as e:
-            raise ValueError("Erro na entrada de dados. Use números separados por espaço.")
+            raise e
+        except Exception as e:
+            raise ValueError(f"❌ Erro inesperado ao processar entrada: {str(e)}")
     
     def analisar_sistema_completo(self):
         try:
@@ -575,8 +599,10 @@ class JanelaCriterio(JanelaBase):
             self.texto_resultados.delete("1.0", "end")
             self.texto_resultados.insert("1.0", resultado)
             
-        except Exception as e:
+        except (ValueError, ErroValidacao) as e:
             self.mostrar_erro(str(e))
+        except Exception as e:
+            self.mostrar_erro(f"Erro inesperado: {str(e)}")
     
     def analisar_routh_hurwitz(self):
         try:
@@ -586,34 +612,25 @@ class JanelaCriterio(JanelaBase):
             self.texto_resultados.delete("1.0", "end")
             self.texto_resultados.insert("1.0", resultado)
             
-        except Exception as e:
+        except (ValueError, ErroValidacao) as e:
             self.mostrar_erro(str(e))
-    
-    def analisar_nyquist(self):
-        try:
-            numerador, denominador = self.obter_coeficientes()
-            resultado = CriteriosEstabilidade.analisar_nyquist(numerador, denominador)
-            
-            self.texto_resultados.delete("1.0", "end")
-            self.texto_resultados.insert("1.0", resultado)
-            
         except Exception as e:
-            self.mostrar_erro(str(e))
-    
-    def analisar_lugar_raizes(self):
-        try:
-            numerador, denominador = self.obter_coeficientes()
-            resultado = CriteriosEstabilidade.lugar_das_raizes(numerador, denominador)
-            
-            self.texto_resultados.delete("1.0", "end")
-            self.texto_resultados.insert("1.0", resultado)
-            
-        except Exception as e:
-            self.mostrar_erro(str(e))
+            self.mostrar_erro(f"Erro inesperado: {str(e)}")
     
     def mostrar_erro(self, mensagem):
         self.texto_resultados.delete("1.0", "end")
-        self.texto_resultados.insert("1.0", f"❌ ERRO: {mensagem}")
+        self.texto_resultados.insert("1.0", f"{mensagem}\n\n")
+        self.texto_resultados.insert("end", "=" * 60 + "\n")
+        self.texto_resultados.insert("end", "DICAS PARA CORRIGIR:\n")
+        self.texto_resultados.insert("end", "=" * 60 + "\n")
+        self.texto_resultados.insert("end", "✓ Use apenas números (inteiros ou decimais)\n")
+        self.texto_resultados.insert("end", "✓ Separe os coeficientes por ESPAÇO\n")
+        self.texto_resultados.insert("end", "✓ Use ponto (.) para decimais, não vírgula\n")
+        self.texto_resultados.insert("end", "✓ O primeiro coeficiente não pode ser ZERO\n")
+        self.texto_resultados.insert("end", "✓ Digite os coeficientes do MAIOR para o MENOR grau\n\n")
+        self.texto_resultados.insert("end", "Exemplos corretos:\n")
+        self.texto_resultados.insert("end", "• Numerador: 1 3\n")
+        self.texto_resultados.insert("end", "• Denominador: 1 5 6\n")
 
 class JanelaAnalise(JanelaBase):
     def __init__(self, parent, titulo):
@@ -622,26 +639,24 @@ class JanelaAnalise(JanelaBase):
         self.canvas_grafico = None
     
     def criar_conteudo(self):
-        # Container principal com layout mais controlado
         container_principal = ctk.CTkFrame(self, fg_color="transparent")
         container_principal.grid(row=1, column=0, sticky="nsew", padx=20, pady=20)
-        container_principal.grid_columnconfigure(0, weight=0)  # Lado esquerdo - FIXO
-        container_principal.grid_columnconfigure(1, weight=1)  # Lado direito - EXPANDE
+        container_principal.grid_columnconfigure(0, weight=0)
+        container_principal.grid_columnconfigure(1, weight=1)
         container_principal.grid_rowconfigure(0, weight=1)
         
-        # --- LADO ESQUERDO: Configurações e resultados (LARGURA FIXA) ---
+        # LADO ESQUERDO
         frame_esquerdo = ctk.CTkFrame(
             container_principal, 
             fg_color=CORES["fundo_claro"],
             corner_radius=10,
-            width=450  # LARGURA FIXA EXPLÍCITA
+            width=450
         )
         frame_esquerdo.grid(row=0, column=0, sticky="ns", padx=(0, 10))
-        frame_esquerdo.grid_propagate(False)  # IMPEDE REDIMENSIONAMENTO
+        frame_esquerdo.grid_propagate(False)
         frame_esquerdo.grid_columnconfigure(0, weight=1)
-        frame_esquerdo.grid_rowconfigure(1, weight=1)  # Área de resultados expande
+        frame_esquerdo.grid_rowconfigure(1, weight=1)
         
-        # Cabeçalho do painel esquerdo
         frame_cabecalho_esq = ctk.CTkFrame(frame_esquerdo, fg_color="transparent")
         frame_cabecalho_esq.grid(row=0, column=0, sticky="ew", padx=15, pady=15)
         
@@ -652,16 +667,14 @@ class JanelaAnalise(JanelaBase):
             text_color=CORES["texto_principal"]
         ).pack(anchor="w")
         
-        # Container scrollable para todo o conteúdo esquerdo
         scroll_container = ctk.CTkScrollableFrame(
             frame_esquerdo,
             fg_color="transparent",
-            height=600  # ALTURA FIXA
+            height=600
         )
         scroll_container.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
         scroll_container.grid_columnconfigure(0, weight=1)
         
-        # Frame de configurações
         frame_configuracoes = ctk.CTkFrame(
             scroll_container,
             fg_color=CORES["acento"],
@@ -752,7 +765,7 @@ class JanelaAnalise(JanelaBase):
         
         ctk.CTkLabel(
             frame_entrada,
-            text="📝 Função de Transferência de 2ª Ordem:",
+            text="📐 Função de Transferência de 2ª Ordem:",
             font=("Segoe UI", 14, "bold"),
             text_color=CORES["texto_principal"]
         ).grid(row=0, column=0, sticky="w", pady=12, padx=15)
@@ -856,7 +869,7 @@ class JanelaAnalise(JanelaBase):
         self.texto_resultados.insert("end", "3. Clique em 'Analisar Sistema'\n")
         self.texto_resultados.insert("end", "4. Clique em 'Plotar Gráfico' para visualizar\n")
         
-        # --- LADO DIREITO: Gráfico (EXPANDE LIVREMENTE) ---
+        # LADO DIREITO - Gráfico
         frame_direito = ctk.CTkFrame(
             container_principal,
             fg_color=CORES["acento"],
@@ -864,7 +877,7 @@ class JanelaAnalise(JanelaBase):
         )
         frame_direito.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
         frame_direito.grid_columnconfigure(0, weight=1)
-        frame_direito.grid_rowconfigure(1, weight=1)  # Gráfico expande
+        frame_direito.grid_rowconfigure(1, weight=1)
         
         ctk.CTkLabel(
             frame_direito,
@@ -873,7 +886,6 @@ class JanelaAnalise(JanelaBase):
             text_color=CORES["texto_principal"]
         ).grid(row=0, column=0, sticky="w", pady=15, padx=20)
         
-        # Frame para o gráfico - COM CONTROLE RÍGIDO
         self.frame_grafico = ctk.CTkFrame(
             frame_direito,
             fg_color=CORES["fundo_claro"],
@@ -883,7 +895,6 @@ class JanelaAnalise(JanelaBase):
         self.frame_grafico.grid_columnconfigure(0, weight=1)
         self.frame_grafico.grid_rowconfigure(0, weight=1)
         
-        # Container interno para o gráfico - COM TAMANHO CONTROLADO
         self.grafico_container = ctk.CTkFrame(
             self.frame_grafico, 
             fg_color=CORES["fundo_claro"]
@@ -892,7 +903,6 @@ class JanelaAnalise(JanelaBase):
         self.grafico_container.grid_columnconfigure(0, weight=1)
         self.grafico_container.grid_rowconfigure(0, weight=1)
         
-        # Label inicial
         self.label_sem_grafico = ctk.CTkLabel(
             self.grafico_container,
             text="📊\n\nClique em 'Plotar Gráfico'\npara visualizar a resposta temporal",
@@ -908,21 +918,66 @@ class JanelaAnalise(JanelaBase):
             texto_num = self.entrada_numerador.get().strip()
             texto_den = self.entrada_denominador.get().strip()
             
+            # Validação básica de preenchimento
             if not texto_num or not texto_den:
-                raise ValueError("Por favor, preencha ambos os campos: numerador e denominador.")
+                raise ValueError("❌ Por favor, preencha ambos os campos:\n   • Numerador\n   • Denominador")
             
-            numerador = [float(x) for x in texto_num.split()]
-            denominador = [float(x) for x in texto_den.split()]
+            # Tentar converter para números
+            try:
+                numerador = [float(x) for x in texto_num.split()]
+            except ValueError:
+                raise ValueError(
+                    f"❌ Erro no NUMERADOR!\n"
+                    f"   Valor inserido: '{texto_num}'\n"
+                    f"   Use apenas números separados por espaço.\n"
+                    f"   Exemplo correto: 4 ou 2.5"
+                )
             
+            try:
+                denominador = [float(x) for x in texto_den.split()]
+            except ValueError:
+                raise ValueError(
+                    f"❌ Erro no DENOMINADOR!\n"
+                    f"   Valor inserido: '{texto_den}'\n"
+                    f"   Use apenas números separados por espaço.\n"
+                    f"   Exemplo correto: 1 2 4 ou 1.5 3.2 5.8"
+                )
+            
+            # Validações específicas para sistema de 2ª ordem
             if len(denominador) != 3:
-                raise ValueError(f"O denominador deve ter 3 coeficientes (sistema de 2ª ordem).\nVocê forneceu {len(denominador)} coeficiente(s).")
+                raise ValueError(
+                    f"❌ Sistema deve ser de 2ª ORDEM!\n"
+                    f"   O denominador deve ter EXATAMENTE 3 coeficientes.\n"
+                    f"   Você forneceu {len(denominador)} coeficiente(s): {denominador}\n"
+                    f"   Formato correto: a₀s² + a₁s + a₂\n"
+                    f"   Exemplo: 1 2 4 (representa s² + 2s + 4)"
+                )
+            
+            # Verificar se o primeiro coeficiente do denominador não é zero
+            if abs(denominador[0]) < 1e-15:
+                raise ValueError(
+                    "❌ O primeiro coeficiente do DENOMINADOR não pode ser ZERO!\n"
+                    f"   Valor inserido: {denominador}\n"
+                    f"   O coeficiente de s² deve ser diferente de zero.\n"
+                    f"   Exemplo correto: 1 2 4 (não 0 2 4)"
+                )
+            
+            # Verificar se todos os coeficientes do denominador são zero
+            if all(abs(c) < 1e-15 for c in denominador):
+                raise ValueError(
+                    "❌ O DENOMINADOR não pode ter todos os coeficientes iguais a ZERO!\n"
+                    f"   Valor inserido: {denominador}"
+                )
+            
+            if len(numerador) == 0:
+                raise ValueError("❌ Numerador não pode estar vazio!")
             
             return numerador, denominador
             
         except ValueError as e:
-            if "could not convert" in str(e):
-                raise ValueError("Erro na entrada de dados. Use números separados por espaço.")
             raise e
+        except Exception as e:
+            raise ValueError(f"❌ Erro inesperado ao processar entrada: {str(e)}")
     
     def analisar_sistema(self):
         """Realiza a análise completa do sistema"""
@@ -931,7 +986,6 @@ class JanelaAnalise(JanelaBase):
             tipo_malha = self.tipo_malha.get()
             tipo_entrada = self.tipo_entrada.get()
             
-            # Usar o método que extrai os parâmetros da função de transferência
             resultado = self.analisador.analisar_de_funcao_transferencia(
                 numerador, 
                 denominador, 
@@ -942,17 +996,18 @@ class JanelaAnalise(JanelaBase):
             self.texto_resultados.delete("1.0", "end")
             self.texto_resultados.insert("1.0", resultado)
             
-        except Exception as e:
+        except (ValueError, ErroValidacao2) as e:
             self.mostrar_erro(str(e))
+        except Exception as e:
+            self.mostrar_erro(f"Erro inesperado: {str(e)}")
     
     def plotar_grafico(self):
-        """Plota o gráfico da resposta temporal - VERSÃO FINAL CORRIGIDA"""
+        """Plota o gráfico da resposta temporal"""
         try:
             numerador, denominador = self.obter_coeficientes()
             tipo_malha = self.tipo_malha.get()
             tipo_entrada = self.tipo_entrada.get()
             
-            # Extrair parâmetros e configurar o analisador
             wn, zeta, ganho = self.analisador.extrair_parametros_de_funcao(
                 numerador, denominador, tipo_malha
             )
@@ -965,40 +1020,47 @@ class JanelaAnalise(JanelaBase):
             self.analisador.numerador = numerador
             self.analisador.denominador = denominador
             
-            # Limpar gráfico anterior se existir
             if self.canvas_grafico:
                 self.canvas_grafico.get_tk_widget().destroy()
                 self.canvas_grafico = None
             
-            # Remover label inicial
             if self.label_sem_grafico:
                 self.label_sem_grafico.destroy()
                 self.label_sem_grafico = None
             
-            # Gerar nova figura
             fig = self.analisador.plotar_resposta()
             
             if fig:
-                # Criar canvas para matplotlib - COM CONTROLE DE TAMANHO
                 self.canvas_grafico = FigureCanvasTkAgg(fig, master=self.grafico_container)
                 self.canvas_grafico.draw()
                 
-                # Usar grid com sticky para preencher APENAS o container do gráfico
                 canvas_widget = self.canvas_grafico.get_tk_widget()
                 canvas_widget.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
-                
-                # Configurar o widget para expandir apenas dentro do container
                 canvas_widget.grid_propagate(True)
                 
-                # Fechar figura do matplotlib para liberar memória
                 plt.close(fig)
             
-        except Exception as e:
+        except (ValueError, ErroValidacao2) as e:
             self.mostrar_erro(str(e))
+        except Exception as e:
+            self.mostrar_erro(f"Erro inesperado ao plotar: {str(e)}")
     
     def mostrar_erro(self, mensagem):
         self.texto_resultados.delete("1.0", "end")
-        self.texto_resultados.insert("1.0", f"❌ ERRO: {mensagem}")
+        self.texto_resultados.insert("1.0", f"{mensagem}\n\n")
+        self.texto_resultados.insert("end", "=" * 60 + "\n")
+        self.texto_resultados.insert("end", "DICAS PARA CORRIGIR:\n")
+        self.texto_resultados.insert("end", "=" * 60 + "\n")
+        self.texto_resultados.insert("end", "✓ Use apenas números (inteiros ou decimais)\n")
+        self.texto_resultados.insert("end", "✓ Separe os coeficientes por ESPAÇO\n")
+        self.texto_resultados.insert("end", "✓ Use ponto (.) para decimais, não vírgula\n")
+        self.texto_resultados.insert("end", "✓ O primeiro coeficiente não pode ser ZERO\n")
+        self.texto_resultados.insert("end", "✓ Denominador deve ter EXATAMENTE 3 coeficientes\n")
+        self.texto_resultados.insert("end", "✓ Digite os coeficientes do MAIOR para o MENOR grau\n\n")
+        self.texto_resultados.insert("end", "Exemplos corretos para sistema de 2ª ordem:\n")
+        self.texto_resultados.insert("end", "• Numerador: 4\n")
+        self.texto_resultados.insert("end", "• Denominador: 1 2 4\n")
+        self.texto_resultados.insert("end", "  (representa: G(s) = 4 / (s² + 2s + 4))\n")
 
 # Executar a aplicação
 if __name__ == "__main__":
