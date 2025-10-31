@@ -95,26 +95,6 @@ class SistemaTCC(ctk.CTk):
             print(f"Erro ao carregar logo.png: {e}")
             self.logo_image = None
 
-        # Carregar Ícones dos Botões
-        self.icones = {}
-        icon_folder = "icons"
-        icon_size = (24, 24)
-        icon_files = {
-            "criterio": "stability_icon.png",
-            "analise": "second_order_icon.png",
-            "controladores": "controller_icon.png"
-        }
-        for key, filename in icon_files.items():
-            try:
-                path = os.path.join(icon_folder, filename)
-                if os.path.exists(path):
-                    img = Image.open(path).convert("RGBA")
-                    self.icones[key] = ctk.CTkImage(light_image=img, dark_image=img, size=icon_size)
-                else:
-                    self.icones[key] = None
-            except Exception as e:
-                print(f"Erro ao carregar ícone {filename}: {e}")
-                self.icones[key] = None
     
     def abrir_janela(self, tipo_janela, titulo):
         """Abre uma nova janela do tipo especificado"""
