@@ -10,33 +10,31 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout código
+    - name: 🔄 Checkout do código
       uses: actions/checkout@v4
 
-    - name: Instalar Python
+    - name: 🐍 Instalar Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
 
-    - name: Instalar dependências
+    - name: 📦 Instalar dependências
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller
-        pip install customtkinter matplotlib numpy scipy control pillow
+        pip install pyinstaller customtkinter pillow matplotlib numpy scipy control sympy fpdf2
 
-    - name: Compilar para EXE
+    - name: ⚙️ Compilar o sistema
       run: |
         pyinstaller ^
           --noconfirm ^
           --onefile ^
           --windowed ^
           --icon=logo.png ^
-          --add-data "image;image" ^
-          --add-data "icons;icons" ^
           --add-data "logo.png;." ^
+          --add-data "image;image" ^
           tela.py
 
-    - name: Fazer upload do executável
+    - name: 📤 Fazer upload do executável
       uses: actions/upload-artifact@v4
       with:
         name: Sistema-de-Controle-EXE
