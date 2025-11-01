@@ -6,6 +6,7 @@ from analise_segunda_ordem import AnalisadorSegundaOrdem, ErroValidacao as ErroV
 from controladores import JanelaControladores
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
+import platform
 
 # Configuração do tema
 ctk.set_appearance_mode("dark")
@@ -30,32 +31,114 @@ CORES = {
     "erro": "#dc2626"
 }
 
+class ResponsiveConfig:
+    """Classe para gerenciar configurações responsivas multiplataforma"""
+    
+    def __init__(self):
+        self.platform = platform.system()
+        self.is_windows = self.platform == "Windows"
+        self.is_linux = self.platform == "Linux"
+        
+    def get_screen_info(self, root):
+        """Obtém informações precisas da tela"""
+        try:
+            root.update_idletasks()
+            screen_width = root.winfo_screenwidth()
+            screen_height = root.winfo_screenheight()
+            
+            # Ajuste para diferentes DPIs
+            if self.is_windows:
+                try:
+                    import ctypes
+                    user32 = ctypes.windll.user32
+                    user32.SetProcessDPIAware()
+                    screen_width = user32.GetSystemMetrics(0)
+                    screen_height = user32.GetSystemMetrics(1)
+                except:
+                    pass
+            
+            return screen_width, screen_height
+        except:
+            return 1920, 1080  # Fallback
+    
+    def calculate_window_size(self, screen_width, screen_height, scale=0.8):
+        """Calcula tamanho ideal da janela baseado na resolução"""
+        # Tamanhos mínimos e máximos
+        min_width, min_height = 1200, 700
+        max_width, max_height = 1920, 1080
+        
+        # Calcular tamanho proporcional
+        window_width = int(screen_width * scale)
+        window_height = int(screen_height * scale)
+        
+        # Aplicar limites
+        window_width = max(min_width, min(window_width, max_width))
+        window_height = max(min_height, min(window_height, max_height))
+        
+        # Ajustes específicos para notebooks
+        if screen_height <= 768:  # Notebooks com tela pequena
+            window_height = min(window_height, 650)
+            scale = 0.75
+        elif screen_height <= 900:  # Notebooks médios
+            window_height = min(window_height, 800)
+            scale = 0.78
+        
+        return window_width, window_height
+    
+    def get_font_scale(self, screen_height):
+        """Retorna escala de fonte baseada na altura da tela"""
+        if screen_height <= 768:
+            return 0.85
+        elif screen_height <= 900:
+            return 0.9
+        elif screen_height <= 1080:
+            return 1.0
+        else:
+            return 1.1
+    
+    def get_padding_scale(self, screen_width):
+        """Retorna escala de padding baseada na largura da tela"""
+        if screen_width <= 1366:
+            return 0.7
+        elif screen_width <= 1600:
+            return 0.85
+        else:
+            return 1.0
+
 class SistemaTCC(ctk.CTk):
     def __init__(self):
         super().__init__()
         
+        # Inicializar configuração responsiva
+        self.config = ResponsiveConfig()
+        
         # Configuração da janela principal
         self.title("FERRAMENTA COMPUTACIONAL PARA ANÁLISE E CARACTERIZAÇÃO DE SISTEMAS DE CONTROLE")
         
-        # ✅ MELHORIA: Obter dimensões da tela para responsividade
-        self.screen_width = self.winfo_screenwidth()
-        self.screen_height = self.winfo_screenheight()
+        # Obter informações da tela
+        self.screen_width, self.screen_height = self.config.get_screen_info(self)
         
-        # ✅ MELHORIA: Calcular tamanho responsivo (80% da tela)
-        window_width = min(int(self.screen_width * 0.8), 1200)
-        window_height = min(int(self.screen_height * 0.8), 800)
+        # Calcular tamanho da janela
+        window_width, window_height = self.config.calculate_window_size(
+            self.screen_width, self.screen_height
+        )
         
+        # Definir geometria
         self.geometry(f"{window_width}x{window_height}")
         
         # Configurações de tamanho
         self.maxsize(width=self.screen_width, height=self.screen_height)
-        self.minsize(width=1200, height=700)
+        self.minsize(width=1000, height=600)
         
         # Aplicar cor de fundo
         self.configure(fg_color=CORES["fundo_escuro"])
         
-        # ✅ MELHORIA: Centralizar janela DEPOIS de definir geometria
+        # Centralizar janela
         self.centralizar_janela()
+        
+        # Obter escalas responsivas
+        self.font_scale = self.config.get_font_scale(self.screen_height)
+        self.padding_scale = self.config.get_padding_scale(self.screen_width)
         
         # Carregar imagens
         self.carregar_imagens()
@@ -70,52 +153,81 @@ class SistemaTCC(ctk.CTk):
         self.container.grid_columnconfigure(0, weight=1)
         self.container.grid_rowconfigure(0, weight=1)
         
-        # ✅ MELHORIA: Dicionário para rastrear janelas abertas
+        # Dicionário para rastrear janelas abertas
         self.janelas_abertas = {}
         
         # Criar tela principal
         self.tela_principal = TelaPrincipal(parent=self.container, controlador=self)
         self.tela_principal.grid(row=0, column=0, sticky="nsew")
         
-        # ✅ MELHORIA: Forçar foco na janela principal
+        # Garantir visibilidade
         self.lift()
         self.focus_force()
-        self.attributes('-topmost', True)
-        self.after(100, lambda: self.attributes('-topmost', False))
+        
+        # Bind para redimensionamento
+        self.bind("<Configure>", self.on_window_resize)
     
     def centralizar_janela(self):
-        """Centraliza a janela na tela"""
+        """Centraliza a janela na tela de forma robusta"""
         self.update_idletasks()
         largura = self.winfo_width()
         altura = self.winfo_height()
-        x = (self.winfo_screenwidth() // 2) - (largura // 2)
-        y = (self.winfo_screenheight() // 2) - (altura // 2)
+        
+        # Garantir valores válidos
+        if largura < 100:
+            largura = 1200
+        if altura < 100:
+            altura = 700
+        
+        x = max(0, (self.screen_width - largura) // 2)
+        y = max(0, (self.screen_height - altura) // 2)
+        
         self.geometry(f'{largura}x{altura}+{x}+{y}')
+    
+    def on_window_resize(self, event):
+        """Callback para redimensionamento da janela"""
+        # Atualizar escalas quando a janela for redimensionada
+        if event.widget == self:
+            pass  # Pode adicionar lógica adicional se necessário
     
     def carregar_imagens(self):
         """Carrega as imagens utilizadas no sistema"""
         self.foto_fundo = None
         self.logo_image = None
 
-        # Carregar Logo
+        # Carregar Logo com tamanho responsivo
         try:
             if os.path.exists("logo.png"):
                 img_pil = Image.open("logo.png").convert("RGBA")
-                max_h_logo = 60
+                
+                # Tamanho responsivo baseado na altura da tela
+                if self.screen_height <= 768:
+                    max_h_logo = 45
+                elif self.screen_height <= 900:
+                    max_h_logo = 50
+                else:
+                    max_h_logo = 60
+                
                 ratio = min(1.0, max_h_logo / img_pil.height)
                 new_size = (int(img_pil.width * ratio), int(img_pil.height * ratio))
                 img_pil_resized = img_pil.resize(new_size, Image.Resampling.LANCZOS)
-                self.logo_image = ctk.CTkImage(light_image=img_pil_resized, dark_image=img_pil_resized, size=new_size)
+                self.logo_image = ctk.CTkImage(light_image=img_pil_resized, 
+                                              dark_image=img_pil_resized, 
+                                              size=new_size)
         except Exception as e:
             print(f"Erro ao carregar logo.png: {e}")
             self.logo_image = None
-
+    
+    def scale_font(self, base_size):
+        """Retorna tamanho de fonte escalado"""
+        return int(base_size * self.font_scale)
+    
+    def scale_padding(self, base_padding):
+        """Retorna padding escalado"""
+        return int(base_padding * self.padding_scale)
     
     def abrir_janela(self, tipo_janela, titulo):
-        """
-        ✅ MELHORIA CRÍTICA: Abre uma nova janela com gerenciamento adequado
-        Garante que janelas filhas fiquem SEMPRE na frente
-        """
+        """Abre uma nova janela com gerenciamento adequado"""
         # Fechar janela anterior do mesmo tipo se existir
         if tipo_janela in self.janelas_abertas:
             try:
@@ -135,24 +247,20 @@ class SistemaTCC(ctk.CTk):
         else:
             return
         
-        # ✅ MELHORIA: Configurações para Windows
-        janela.transient(self)  # Define como janela filha
-        janela.grab_set()       # Foco modal suave
-        janela.lift()           # Trazer para frente
-        janela.focus_force()    # Forçar foco
-        
-        # ✅ MELHORIA: Garantir que fique sempre visível
-        janela.attributes('-topmost', True)
-        janela.after(200, lambda: janela.attributes('-topmost', False))
+        # Configurações para garantir visibilidade
+        janela.transient(self)
+        janela.grab_set()
+        janela.lift()
+        janela.focus_force()
         
         # Armazenar referência
         self.janelas_abertas[tipo_janela] = janela
         
-        # ✅ MELHORIA: Callback para limpar ao fechar
+        # Callback para limpar ao fechar
         def ao_fechar():
             self.janelas_abertas.pop(tipo_janela, None)
             janela.destroy()
-            self.lift()  # Retornar foco à janela principal
+            self.lift()
             self.focus_force()
         
         janela.protocol("WM_DELETE_WINDOW", ao_fechar)
@@ -170,31 +278,39 @@ class TelaPrincipal(ctk.CTkFrame):
         self.criar_rodape()
     
     def criar_cabecalho(self):
+        # Altura responsiva do cabeçalho
+        header_height = 120 if self.controlador.screen_height <= 768 else 140
+        
         frame_cabecalho = ctk.CTkFrame(
             self, 
             fg_color=CORES["acento"],
-            height=140,
+            height=header_height,
             corner_radius=0
         )
         frame_cabecalho.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
         frame_cabecalho.grid_columnconfigure(0, weight=1)
         frame_cabecalho.grid_rowconfigure(0, weight=1)
         
+        padding_h = self.controlador.scale_padding(20)
+        padding_v = self.controlador.scale_padding(15)
+        
         container_principal = ctk.CTkFrame(frame_cabecalho, fg_color="transparent")
-        container_principal.grid(row=0, column=0, sticky="nsew", padx=20, pady=15)
+        container_principal.grid(row=0, column=0, sticky="nsew", padx=padding_h, pady=padding_v)
         container_principal.grid_columnconfigure(0, weight=3)
         container_principal.grid_columnconfigure(1, weight=1)
         
-        # LADO ESQUERDO - TÍTULO E INFORMAÇÕES
+        # LADO ESQUERDO
         container_titulo = ctk.CTkFrame(container_principal, fg_color="transparent")
         container_titulo.grid(row=0, column=0, sticky="w", padx=0, pady=0)
         
-        # ✅ MELHORIA: Título responsivo com wraplength dinâmico
+        # Título responsivo
+        titulo_size = self.controlador.scale_font(16)
         titulo_width = min(600, int(self.controlador.screen_width * 0.5))
+        
         titulo_principal = ctk.CTkLabel(
             container_titulo,
             text="FERRAMENTA COMPUTACIONAL PARA ANÁLISE E CARACTERIZAÇÃO DE SISTEMAS DE CONTROLE",
-            font=("Segoe UI", 16, "bold"),
+            font=("Segoe UI", titulo_size, "bold"),
             text_color=CORES["texto_principal"],
             wraplength=titulo_width,
             justify="left"
@@ -207,12 +323,13 @@ class TelaPrincipal(ctk.CTkFrame):
             fg_color=CORES["primaria"],
             corner_radius=1
         )
-        linha_divisoria.pack(fill="x", pady=8)
+        linha_divisoria.pack(fill="x", pady=6)
         
+        subtitulo_size = self.controlador.scale_font(13)
         subtitulo = ctk.CTkLabel(
             container_titulo,
             text="Trabalho de Conclusão de Curso - Engenharia de Computação",
-            font=("Segoe UI", 13, "bold"),
+            font=("Segoe UI", subtitulo_size, "bold"),
             text_color=CORES["texto_secundario"]
         )
         subtitulo.pack(anchor="w", pady=(0, 5))
@@ -232,25 +349,24 @@ class TelaPrincipal(ctk.CTkFrame):
             )
             logo_label.pack(pady=(0, 5))
         
+        inst_size = self.controlador.scale_font(10)
         texto_institucional = ctk.CTkLabel(
             container_logo_interno,
             text="UFERSA\nUniversidade Federal Rural do Semi-Árido",
-            font=("Segoe UI", 10, "bold"),
+            font=("Segoe UI", inst_size, "bold"),
             text_color=CORES["texto_secundario"],
             justify="center"
         )
         texto_institucional.pack()
     
     def criar_conteudo_principal(self):
+        padding_h = self.controlador.scale_padding(40)
+        padding_v = self.controlador.scale_padding(30)
+        
         frame_principal = ctk.CTkFrame(self, fg_color="transparent")
-        frame_principal.grid(row=1, column=0, sticky="nsew", padx=40, pady=30)
+        frame_principal.grid(row=1, column=0, sticky="nsew", padx=padding_h, pady=padding_v)
         frame_principal.grid_columnconfigure(0, weight=1)
         frame_principal.grid_rowconfigure(1, weight=1)
-        
-        if self.controlador.foto_fundo:
-            label_fundo = ctk.CTkLabel(frame_principal, image=self.controlador.foto_fundo, text="")
-            label_fundo.place(relwidth=1, relheight=1)
-            label_fundo.lower()
         
         frame_botoes = ctk.CTkFrame(
             frame_principal, 
@@ -259,24 +375,30 @@ class TelaPrincipal(ctk.CTkFrame):
             border_width=2,
             border_color=CORES["borda"]
         )
-        frame_botoes.grid(row=0, column=0, pady=50, padx=20, sticky="n")
+        frame_botoes.grid(row=0, column=0, pady=self.controlador.scale_padding(50), 
+                         padx=self.controlador.scale_padding(20), sticky="n")
         
+        titulo_size = self.controlador.scale_font(16)
         ctk.CTkLabel(
             frame_botoes,
             text="MÓDULOS DO SISTEMA",
-            font=("Segoe UI", 16, "bold"),
+            font=("Segoe UI", titulo_size, "bold"),
             text_color=CORES["texto_principal"]
-        ).pack(pady=(20, 10))
+        ).pack(pady=(self.controlador.scale_padding(20), 10))
         
+        subtitulo_size = self.controlador.scale_font(12)
         ctk.CTkLabel(
             frame_botoes,
             text="Selecione o módulo desejado para análise",
-            font=("Segoe UI", 12),
+            font=("Segoe UI", subtitulo_size),
             text_color=CORES["texto_secundario"]
-        ).pack(pady=(0, 20))
+        ).pack(pady=(0, self.controlador.scale_padding(20)))
         
-        # ✅ MELHORIA: Botões com largura responsiva
+        # Botões responsivos
         button_width = min(400, int(self.controlador.screen_width * 0.3))
+        button_height = 60 if self.controlador.screen_height <= 768 else 65
+        button_font = self.controlador.scale_font(16)
+        button_padding = self.controlador.scale_padding(12)
         
         informacoes_botoes = [
             {
@@ -305,33 +427,38 @@ class TelaPrincipal(ctk.CTkFrame):
                 text=info["texto"],
                 command=info["comando"],
                 width=button_width,
-                height=65,
-                font=("Segoe UI", 16, "bold"),
+                height=button_height,
+                font=("Segoe UI", button_font, "bold"),
                 corner_radius=10,
                 fg_color=info["cor"],
                 hover_color=info["cor_hover"],
                 border_width=0,
                 anchor="center"
             )
-            botao.pack(pady=12, padx=30)
+            botao.pack(pady=button_padding, padx=self.controlador.scale_padding(30))
     
     def criar_rodape(self):
+        footer_height = 60 if self.controlador.screen_height <= 768 else 70
+        
         frame_rodape = ctk.CTkFrame(
             self, 
             fg_color=CORES["acento"],
-            height=70,
+            height=footer_height,
             corner_radius=0
         )
         frame_rodape.grid(row=2, column=0, sticky="ew", padx=0, pady=0)
         frame_rodape.grid_columnconfigure(0, weight=1)
         
+        padding = self.controlador.scale_padding(15)
         container_rodape = ctk.CTkFrame(frame_rodape, fg_color="transparent")
-        container_rodape.pack(fill="x", padx=20, pady=15)
+        container_rodape.pack(fill="x", padx=self.controlador.scale_padding(20), pady=padding)
+        
+        font_size = self.controlador.scale_font(11)
         
         informacao_aluno = ctk.CTkLabel(
             container_rodape,
             text="Aluno: Luís Fernando Alexandre dos Santos | Orientador: Prof. Dr. Cecilio Martins de Sousa Neto",
-            font=("Segoe UI", 11),
+            font=("Segoe UI", font_size),
             text_color=CORES["texto_secundario"]
         )
         informacao_aluno.pack(side="left")
@@ -339,13 +466,13 @@ class TelaPrincipal(ctk.CTkFrame):
         ano = ctk.CTkLabel(
             container_rodape,
             text="2025 - Universidade Federal Rural do Semi-Árido",
-            font=("Segoe UI", 11, "bold"),
+            font=("Segoe UI", font_size, "bold"),
             text_color=CORES["texto_secundario"]
         )
         ano.pack(side="right")
 
 class JanelaBase(ctk.CTkToplevel):
-    """✅ MELHORIA: Classe base otimizada para Windows"""
+    """Classe base otimizada para janelas secundárias"""
     def __init__(self, parent, titulo):
         super().__init__(parent)
         self.parent = parent
@@ -353,29 +480,31 @@ class JanelaBase(ctk.CTkToplevel):
         
         self.title(titulo)
         
-        # ✅ MELHORIA: Tamanho responsivo
-        screen_width = self.winfo_screenwidth()
-        screen_height = self.winfo_screenheight()
+        # Configuração responsiva
+        config = ResponsiveConfig()
+        screen_width, screen_height = config.get_screen_info(self)
         
-        window_width = min(int(screen_width * 0.85), 1400)
-        window_height = min(int(screen_height * 0.85), 900)
+        # Tamanho da janela secundária (um pouco maior que a principal)
+        window_width, window_height = config.calculate_window_size(
+            screen_width, screen_height, scale=0.88
+        )
         
         self.geometry(f"{window_width}x{window_height}")
         self.resizable(True, True)
         self.configure(fg_color=CORES["fundo_escuro"])
         
-        # ✅ MELHORIA: Configurações específicas para Windows
+        # Escalas
+        self.font_scale = config.get_font_scale(screen_height)
+        self.padding_scale = config.get_padding_scale(screen_width)
+        
+        # Centralizar
         self.centralizar_janela()
         
-        # ✅ CRÍTICO: Configurações de janela para Windows
-        self.transient(parent)  # Janela filha
-        self.lift()             # Trazer para frente
-        self.focus_force()      # Forçar foco
-        self.grab_set()         # Modal suave
-        
-        # ✅ CRÍTICO: Garantir visibilidade no Windows
-        self.attributes('-topmost', True)
-        self.after(300, lambda: self.attributes('-topmost', False))
+        # Configurações de janela
+        self.transient(parent)
+        self.lift()
+        self.focus_force()
+        self.grab_set()
         
         self.protocol("WM_DELETE_WINDOW", self.fechar_janela)
         
@@ -385,9 +514,16 @@ class JanelaBase(ctk.CTkToplevel):
         self.criar_cabecalho()
         self.criar_conteudo()
     
+    def scale_font(self, base_size):
+        return int(base_size * self.font_scale)
+    
+    def scale_padding(self, base_padding):
+        return int(base_padding * self.padding_scale)
+    
     def centralizar_janela(self):
-        """Centraliza a janela na tela"""
+        """Centraliza a janela secundária"""
         self.update_idletasks()
+        
         x_pai = self.parent.winfo_x()
         y_pai = self.parent.winfo_y()
         largura_pai = self.parent.winfo_width()
@@ -396,24 +532,32 @@ class JanelaBase(ctk.CTkToplevel):
         largura = self.winfo_width()
         altura = self.winfo_height()
         
+        if largura < 100:
+            largura = 1200
+        if altura < 100:
+            altura = 800
+        
         x = x_pai + (largura_pai - largura) // 2
         y = y_pai + (altura_pai - altura) // 2
         
-        # ✅ MELHORIA: Garantir que não saia da tela
         x = max(0, min(x, self.winfo_screenwidth() - largura))
         y = max(0, min(y, self.winfo_screenheight() - altura))
         
         self.geometry(f'{largura}x{altura}+{x}+{y}')
     
     def criar_cabecalho(self):
+        header_height = 65 if self.winfo_screenheight() <= 768 else 70
+        
         frame_cabecalho = ctk.CTkFrame(
             self, 
             fg_color=CORES["acento"],
-            height=70,
+            height=header_height,
             corner_radius=0
         )
         frame_cabecalho.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
         frame_cabecalho.grid_columnconfigure(1, weight=1)
+        
+        padding = self.scale_padding(20)
         
         botao_voltar = ctk.CTkButton(
             frame_cabecalho,
@@ -421,17 +565,17 @@ class JanelaBase(ctk.CTkToplevel):
             command=self.fechar_janela,
             width=110,
             height=38,
-            font=("Segoe UI", 12, "bold"),
+            font=("Segoe UI", self.scale_font(12), "bold"),
             fg_color=CORES["terciaria"],
             hover_color=CORES["terciaria_hover"],
             corner_radius=8
         )
-        botao_voltar.grid(row=0, column=0, sticky="w", padx=20, pady=15)
+        botao_voltar.grid(row=0, column=0, sticky="w", padx=padding, pady=15)
         
         label_titulo = ctk.CTkLabel(
             frame_cabecalho,
             text=self.titulo,
-            font=("Segoe UI", 22, "bold"),
+            font=("Segoe UI", self.scale_font(22), "bold"),
             text_color=CORES["texto_principal"]
         )
         label_titulo.grid(row=0, column=1, pady=15)
@@ -440,14 +584,13 @@ class JanelaBase(ctk.CTkToplevel):
         pass
     
     def fechar_janela(self):
-        """✅ MELHORIA: Fechar com limpeza adequada"""
+        """Fecha a janela com limpeza adequada"""
         try:
-            self.grab_release()  # Liberar grab
+            self.grab_release()
         except:
             pass
         self.destroy()
         
-        # ✅ MELHORIA: Retornar foco à janela principal
         try:
             self.parent.lift()
             self.parent.focus_force()
@@ -461,23 +604,29 @@ class JanelaCriterio(JanelaBase):
         self.denominador = []
     
     def criar_conteudo(self):
+        padding = self.scale_padding(20)
+        
         frame_conteudo = ctk.CTkFrame(self, fg_color=CORES["fundo_claro"])
-        frame_conteudo.grid(row=1, column=0, sticky="nsew", padx=20, pady=20)
+        frame_conteudo.grid(row=1, column=0, sticky="nsew", padx=padding, pady=padding)
         frame_conteudo.grid_columnconfigure(0, weight=1)
         frame_conteudo.grid_rowconfigure(2, weight=1)
         
+        # Frame de entrada
         frame_entrada = ctk.CTkFrame(
             frame_conteudo,
             fg_color=CORES["acento"],
             corner_radius=10
         )
-        frame_entrada.grid(row=0, column=0, sticky="ew", padx=20, pady=20)
+        frame_entrada.grid(row=0, column=0, sticky="ew", padx=padding, pady=padding)
         frame_entrada.grid_columnconfigure(1, weight=1)
+        
+        label_size = self.scale_font(14)
+        entry_height = 40 if self.winfo_screenheight() <= 768 else 42
         
         ctk.CTkLabel(
             frame_entrada, 
             text="Numerador:", 
-            font=("Segoe UI", 14, "bold"),
+            font=("Segoe UI", label_size, "bold"),
             text_color=CORES["texto_principal"]
         ).grid(row=0, column=0, sticky="w", pady=8, padx=15)
         
@@ -485,24 +634,24 @@ class JanelaCriterio(JanelaBase):
             frame_entrada, 
             placeholder_text="Ex: 1 3 (para s + 3)",
             width=350,
-            height=42,
-            font=("Segoe UI", 12),
+            height=entry_height,
+            font=("Segoe UI", self.scale_font(12)),
             fg_color=CORES["fundo_claro"],
             border_color=CORES["borda"]
         )
-        self.entrada_numerador.grid(row=0, column=1, sticky="w", padx=15, pady=8)
+        self.entrada_numerador.grid(row=0, column=1, sticky="ew", padx=15, pady=8)
         
         ctk.CTkLabel(
             frame_entrada, 
             text="Coeficientes separados por espaço (do maior para o menor grau)",
-            font=("Segoe UI", 10),
+            font=("Segoe UI", self.scale_font(10)),
             text_color=CORES["texto_secundario"]
         ).grid(row=1, column=1, sticky="w", padx=15, pady=(0, 8))
         
         ctk.CTkLabel(
             frame_entrada, 
             text="Denominador:", 
-            font=("Segoe UI", 14, "bold"),
+            font=("Segoe UI", label_size, "bold"),
             text_color=CORES["texto_principal"]
         ).grid(row=2, column=0, sticky="w", pady=8, padx=15)
         
@@ -510,30 +659,33 @@ class JanelaCriterio(JanelaBase):
             frame_entrada, 
             placeholder_text="Ex: 1 5 6 (para s² + 5s + 6)",
             width=350,
-            height=42,
-            font=("Segoe UI", 12),
+            height=entry_height,
+            font=("Segoe UI", self.scale_font(12)),
             fg_color=CORES["fundo_claro"],
             border_color=CORES["borda"]
         )
-        self.entrada_denominador.grid(row=2, column=1, sticky="w", padx=15, pady=8)
+        self.entrada_denominador.grid(row=2, column=1, sticky="ew", padx=15, pady=8)
         
         ctk.CTkLabel(
             frame_entrada, 
             text="Coeficientes separados por espaço (do maior para o menor grau)",
-            font=("Segoe UI", 10),
+            font=("Segoe UI", self.scale_font(10)),
             text_color=CORES["texto_secundario"]
         ).grid(row=3, column=1, sticky="w", padx=15, pady=(0, 15))
         
+        # Botões
         frame_botoes = ctk.CTkFrame(frame_conteudo, fg_color="transparent")
-        frame_botoes.grid(row=1, column=0, sticky="w", padx=20, pady=15)
+        frame_botoes.grid(row=1, column=0, sticky="w", padx=padding, pady=15)
+        
+        button_height = 46 if self.winfo_screenheight() <= 768 else 48
         
         ctk.CTkButton(
             frame_botoes, 
             text="Analisar Sistema Completo", 
             command=self.analisar_sistema_completo, 
             width=220,
-            height=48,
-            font=("Segoe UI", 13, "bold"),
+            height=button_height,
+            font=("Segoe UI", self.scale_font(13), "bold"),
             fg_color=CORES["primaria"],
             hover_color=CORES["primaria_hover"],
             corner_radius=8
@@ -544,32 +696,33 @@ class JanelaCriterio(JanelaBase):
             text="Critério Routh-Hurwitz", 
             command=self.analisar_routh_hurwitz, 
             width=200,
-            height=48,
-            font=("Segoe UI", 13, "bold"),
+            height=button_height,
+            font=("Segoe UI", self.scale_font(13), "bold"),
             fg_color=CORES["secundaria"],
             hover_color=CORES["secundaria_hover"],
             corner_radius=8
         ).pack(side="left", padx=5)
         
+        # Frame de resultados
         frame_resultados = ctk.CTkFrame(
             frame_conteudo,
             fg_color=CORES["acento"],
             corner_radius=10
         )
-        frame_resultados.grid(row=2, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        frame_resultados.grid(row=2, column=0, sticky="nsew", padx=padding, pady=(0, padding))
         frame_resultados.grid_columnconfigure(0, weight=1)
         frame_resultados.grid_rowconfigure(1, weight=1)
         
         ctk.CTkLabel(
             frame_resultados, 
             text="📋 Resultados da Análise:", 
-            font=("Segoe UI", 16, "bold"),
+            font=("Segoe UI", self.scale_font(16), "bold"),
             text_color=CORES["texto_principal"]
         ).grid(row=0, column=0, sticky="w", pady=12, padx=15)
         
         self.texto_resultados = ctk.CTkTextbox(
             frame_resultados, 
-            font=("Consolas", 11),
+            font=("Consolas", self.scale_font(11)),
             fg_color=CORES["fundo_claro"],
             border_color=CORES["borda"],
             border_width=1
@@ -685,16 +838,24 @@ class JanelaAnalise(JanelaBase):
         self.canvas_grafico = None
     
     def criar_conteudo(self):
+        padding = self.scale_padding(20)
+        
         container_principal = ctk.CTkFrame(self, fg_color="transparent")
-        container_principal.grid(row=1, column=0, sticky="nsew", padx=20, pady=20)
+        container_principal.grid(row=1, column=0, sticky="nsew", padx=padding, pady=padding)
         container_principal.grid_columnconfigure(0, weight=0)
         container_principal.grid_columnconfigure(1, weight=1)
         container_principal.grid_rowconfigure(0, weight=1)
         
-        # ✅ MELHORIA: Largura responsiva do painel esquerdo
-        panel_width = min(450, int(self.winfo_screenwidth() * 0.3))
+        # Largura responsiva do painel esquerdo
+        screen_width = self.winfo_screenwidth()
+        if screen_width <= 1366:
+            panel_width = 380
+        elif screen_width <= 1600:
+            panel_width = 420
+        else:
+            panel_width = 450
         
-        # LADO ESQUERDO
+        # PAINEL ESQUERDO
         frame_esquerdo = ctk.CTkFrame(
             container_principal, 
             fg_color=CORES["fundo_claro"],
@@ -706,16 +867,18 @@ class JanelaAnalise(JanelaBase):
         frame_esquerdo.grid_columnconfigure(0, weight=1)
         frame_esquerdo.grid_rowconfigure(1, weight=1)
         
+        # Cabeçalho esquerdo
         frame_cabecalho_esq = ctk.CTkFrame(frame_esquerdo, fg_color="transparent")
         frame_cabecalho_esq.grid(row=0, column=0, sticky="ew", padx=15, pady=15)
         
         ctk.CTkLabel(
             frame_cabecalho_esq,
             text="CONFIGURAÇÃO DO SISTEMA",
-            font=("Segoe UI", 16, "bold"),
+            font=("Segoe UI", self.scale_font(16), "bold"),
             text_color=CORES["texto_principal"]
         ).pack(anchor="w")
         
+        # Container scrollável
         scroll_container = ctk.CTkScrollableFrame(
             frame_esquerdo,
             fg_color="transparent",
@@ -724,6 +887,7 @@ class JanelaAnalise(JanelaBase):
         scroll_container.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
         scroll_container.grid_columnconfigure(0, weight=1)
         
+        # Frame de configurações
         frame_configuracoes = ctk.CTkFrame(
             scroll_container,
             fg_color=CORES["acento"],
@@ -740,7 +904,7 @@ class JanelaAnalise(JanelaBase):
         ctk.CTkLabel(
             frame_malha,
             text="🔄 Tipo de Sistema:",
-            font=("Segoe UI", 14, "bold"),
+            font=("Segoe UI", self.scale_font(14), "bold"),
             text_color=CORES["texto_principal"]
         ).pack(anchor="w", pady=(0, 8))
         
@@ -751,7 +915,7 @@ class JanelaAnalise(JanelaBase):
             text="Malha Fechada",
             variable=self.tipo_malha,
             value="fechada",
-            font=("Segoe UI", 12, "bold"),
+            font=("Segoe UI", self.scale_font(12), "bold"),
             text_color=CORES["texto_principal"],
             fg_color=CORES["secundaria"],
             hover_color=CORES["secundaria_hover"]
@@ -762,7 +926,7 @@ class JanelaAnalise(JanelaBase):
             text="Malha Aberta",
             variable=self.tipo_malha,
             value="aberta",
-            font=("Segoe UI", 12, "bold"),
+            font=("Segoe UI", self.scale_font(12), "bold"),
             text_color=CORES["texto_principal"],
             fg_color=CORES["secundaria"],
             hover_color=CORES["secundaria_hover"]
@@ -774,8 +938,8 @@ class JanelaAnalise(JanelaBase):
         
         ctk.CTkLabel(
             frame_entrada_tipo,
-            text="📥 Tipo de Entrada:",
-            font=("Segoe UI", 14, "bold"),
+            text="🔥 Tipo de Entrada:",
+            font=("Segoe UI", self.scale_font(14), "bold"),
             text_color=CORES["texto_principal"]
         ).pack(anchor="w", pady=(0, 8))
         
@@ -786,7 +950,7 @@ class JanelaAnalise(JanelaBase):
             text="Degrau Unitário",
             variable=self.tipo_entrada,
             value="degrau",
-            font=("Segoe UI", 12, "bold"),
+            font=("Segoe UI", self.scale_font(12), "bold"),
             text_color=CORES["texto_principal"],
             fg_color=CORES["primaria"],
             hover_color=CORES["primaria_hover"]
@@ -797,7 +961,7 @@ class JanelaAnalise(JanelaBase):
             text="Rampa Unitária",
             variable=self.tipo_entrada,
             value="rampa",
-            font=("Segoe UI", 12, "bold"),
+            font=("Segoe UI", self.scale_font(12), "bold"),
             text_color=CORES["texto_principal"],
             fg_color=CORES["primaria"],
             hover_color=CORES["primaria_hover"]
@@ -814,8 +978,8 @@ class JanelaAnalise(JanelaBase):
         
         ctk.CTkLabel(
             frame_entrada,
-            text="📝 Função de Transferência de 2ª Ordem:",
-            font=("Segoe UI", 14, "bold"),
+            text="📐 Função de Transferência de 2ª Ordem:",
+            font=("Segoe UI", self.scale_font(14), "bold"),
             text_color=CORES["texto_principal"]
         ).grid(row=0, column=0, sticky="w", pady=12, padx=15)
         
@@ -823,15 +987,17 @@ class JanelaAnalise(JanelaBase):
         ctk.CTkLabel(
             frame_entrada, 
             text="Numerador:", 
-            font=("Segoe UI", 12, "bold"),
+            font=("Segoe UI", self.scale_font(12), "bold"),
             text_color=CORES["texto_principal"]
         ).grid(row=1, column=0, sticky="w", pady=5, padx=15)
+        
+        entry_height = 34 if self.winfo_screenheight() <= 768 else 36
         
         self.entrada_numerador = ctk.CTkEntry(
             frame_entrada, 
             placeholder_text="Ex: 4",
-            height=36,
-            font=("Segoe UI", 11),
+            height=entry_height,
+            font=("Segoe UI", self.scale_font(11)),
             fg_color=CORES["fundo_claro"],
             border_color=CORES["borda"]
         )
@@ -841,15 +1007,15 @@ class JanelaAnalise(JanelaBase):
         ctk.CTkLabel(
             frame_entrada, 
             text="Denominador:", 
-            font=("Segoe UI", 12, "bold"),
+            font=("Segoe UI", self.scale_font(12), "bold"),
             text_color=CORES["texto_principal"]
         ).grid(row=3, column=0, sticky="w", pady=5, padx=15)
         
         self.entrada_denominador = ctk.CTkEntry(
             frame_entrada, 
             placeholder_text="Ex: 1 2 4",
-            height=36,
-            font=("Segoe UI", 11),
+            height=entry_height,
+            font=("Segoe UI", self.scale_font(11)),
             fg_color=CORES["fundo_claro"],
             border_color=CORES["borda"]
         )
@@ -859,13 +1025,15 @@ class JanelaAnalise(JanelaBase):
         frame_botoes = ctk.CTkFrame(frame_entrada, fg_color="transparent")
         frame_botoes.grid(row=5, column=0, pady=(5, 15), padx=15)
         
+        button_height = 43 if self.winfo_screenheight() <= 768 else 45
+        
         ctk.CTkButton(
             frame_botoes,
             text="▶ Analisar Sistema",
             command=self.analisar_sistema,
             width=180,
-            height=45,
-            font=("Segoe UI", 13, "bold"),
+            height=button_height,
+            font=("Segoe UI", self.scale_font(13), "bold"),
             fg_color=CORES["primaria"],
             hover_color=CORES["primaria_hover"],
             corner_radius=8
@@ -876,8 +1044,8 @@ class JanelaAnalise(JanelaBase):
             text="📊 Plotar Gráfico",
             command=self.plotar_grafico,
             width=160,
-            height=45,
-            font=("Segoe UI", 13, "bold"),
+            height=button_height,
+            font=("Segoe UI", self.scale_font(13), "bold"),
             fg_color=CORES["secundaria"],
             hover_color=CORES["secundaria_hover"],
             corner_radius=8
@@ -896,13 +1064,13 @@ class JanelaAnalise(JanelaBase):
         ctk.CTkLabel(
             frame_resultados,
             text="📊 Resultados da Análise:",
-            font=("Segoe UI", 14, "bold"),
+            font=("Segoe UI", self.scale_font(14), "bold"),
             text_color=CORES["texto_principal"]
         ).grid(row=0, column=0, sticky="w", pady=10, padx=15)
         
         self.texto_resultados = ctk.CTkTextbox(
             frame_resultados,
-            font=("Consolas", 10),
+            font=("Consolas", self.scale_font(10)),
             fg_color=CORES["fundo_claro"],
             border_color=CORES["borda"],
             border_width=1,
@@ -918,7 +1086,7 @@ class JanelaAnalise(JanelaBase):
         self.texto_resultados.insert("end", "3. Clique em 'Analisar Sistema'\n")
         self.texto_resultados.insert("end", "4. Clique em 'Plotar Gráfico' para visualizar\n")
         
-        # LADO DIREITO - Gráfico
+        # PAINEL DIREITO - Gráfico
         frame_direito = ctk.CTkFrame(
             container_principal,
             fg_color=CORES["acento"],
@@ -931,7 +1099,7 @@ class JanelaAnalise(JanelaBase):
         ctk.CTkLabel(
             frame_direito,
             text="📈 Gráfico da Resposta Temporal",
-            font=("Segoe UI", 16, "bold"),
+            font=("Segoe UI", self.scale_font(16), "bold"),
             text_color=CORES["texto_principal"]
         ).grid(row=0, column=0, sticky="w", pady=15, padx=20)
         
@@ -955,7 +1123,7 @@ class JanelaAnalise(JanelaBase):
         self.label_sem_grafico = ctk.CTkLabel(
             self.grafico_container,
             text="📊\n\nClique em 'Plotar Gráfico'\npara visualizar a resposta temporal",
-            font=("Segoe UI", 14),
+            font=("Segoe UI", self.scale_font(14)),
             text_color=CORES["texto_secundario"],
             justify="center"
         )
