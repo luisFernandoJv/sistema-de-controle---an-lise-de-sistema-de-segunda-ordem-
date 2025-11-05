@@ -33,7 +33,6 @@ jobs:
           --name "SistemaControle" `
           --icon=ico.png `
           --add-data "ico.png;." `
-          --add-data "logo.png;" `
           --add-data "criterios_estabilidade.py;." `
           --add-data "analise_segunda_ordem.py;." `
           --add-data "controladores.py;." `
