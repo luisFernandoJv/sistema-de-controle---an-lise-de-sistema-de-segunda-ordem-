@@ -36,6 +36,9 @@ jobs:
           --add-data "criterios_estabilidade.py;." `
           --add-data "analise_segunda_ordem.py;." `
           --add-data "controladores.py;." `
+          --add-data "utilidades_ui.py;." `
+          --add-data "logger_sistema.py;." `
+          --add-data "gerenciador_excecoes.py;." `
           --collect-all "customtkinter" `
           --collect-all "numpy" `
           --collect-all "scipy" `
