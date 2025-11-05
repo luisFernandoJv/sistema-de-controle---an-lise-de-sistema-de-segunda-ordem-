@@ -7,29 +7,216 @@ from controladores import JanelaControladores
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import platform
+import sys
+import json
+import threading
+import queue
+from logger_sistema import logger  # import logger
+from gerenciador_excecoes import gerenciador_excecoes, TipoErro, GerenciadorExcecoes  # import exception handler
+from utilidades_ui import GerenciadorResponsividade, UtiliadadesGraficos  # import UI utilities
 
-# Configuração do tema
-ctk.set_appearance_mode("dark")
+class GerenciadorTemas:
+    """Gerencia temas claro e escuro com persistência"""
+    
+    TEMAS = {
+        "dark": {
+            "mode": "dark",
+            "primaria": "#1a4d8f",
+            "primaria_hover": "#144173",
+            "secundaria": "#2e7d32",
+            "secundaria_hover": "#1b5e20",
+            "terciaria": "#c62828",
+            "terciaria_hover": "#8e0000",
+            "fundo_escuro": "#1a1a2e",
+            "fundo_claro": "#16213e",
+            "texto_principal": "#e4e4e4",
+            "texto_secundario": "#94a3b8",
+            "acento": "#0f3460",
+            "borda": "#2d3748",
+            "sucesso": "#059669",
+            "alerta": "#d97706",
+            "erro": "#dc2626"
+        },
+        "light": {
+            "mode": "light",
+            "primaria": "#2563eb",
+            "primaria_hover": "#1d4ed8",
+            "secundaria": "#16a34a",
+            "secundaria_hover": "#15803d",
+            "terciaria": "#dc2626",
+            "terciaria_hover": "#b91c1c",
+            "fundo_escuro": "#f8fafc",
+            "fundo_claro": "#ffffff",
+            "texto_principal": "#1e293b",
+            "texto_secundario": "#64748b",
+            "acento": "#e2e8f0",
+            "borda": "#cbd5e1",
+            "sucesso": "#10b981",
+            "alerta": "#f59e0b",
+            "erro": "#ef4444"
+        },
+        "high_contrast": {
+            "mode": "dark",
+            "primaria": "#0066ff",
+            "primaria_hover": "#0052cc",
+            "secundaria": "#00ff00",
+            "secundaria_hover": "#00cc00",
+            "terciaria": "#ff0000",
+            "terciaria_hover": "#cc0000",
+            "fundo_escuro": "#000000",
+            "fundo_claro": "#1a1a1a",
+            "texto_principal": "#ffffff",
+            "texto_secundario": "#ffff00",
+            "acento": "#333333",
+            "borda": "#ffffff",
+            "sucesso": "#00ff00",
+            "alerta": "#ffff00",
+            "erro": "#ff0000"
+        }
+    }
+    
+    def __init__(self):
+        self.tema_atual = "dark"
+        self.config_file = "config_tema.json"
+        self.carregar_configuracao()
+    
+    def carregar_configuracao(self):
+        """Carrega configuração salva"""
+        try:
+            if os.path.exists(self.config_file):
+                with open(self.config_file, 'r') as f:
+                    config = json.load(f)
+                    self.tema_atual = config.get('tema', 'dark')
+        except:
+            self.tema_atual = "dark"
+    
+    def salvar_configuracao(self):
+        """Salva configuração atual"""
+        try:
+            with open(self.config_file, 'w') as f:
+                json.dump({'tema': self.tema_atual}, f)
+        except:
+            pass
+    
+    def alternar_tema(self):
+        """Alterna entre temas"""
+        temas_disponiveis = list(self.TEMAS.keys())
+        idx_atual = temas_disponiveis.index(self.tema_atual)
+        idx_proximo = (idx_atual + 1) % len(temas_disponiveis)
+        self.tema_atual = temas_disponiveis[idx_proximo]
+        self.salvar_configuracao()
+        return self.tema_atual
+    
+    def definir_tema(self, nome_tema):
+        """Define um tema específico"""
+        if nome_tema in self.TEMAS:
+            self.tema_atual = nome_tema
+            self.salvar_configuracao()
+            return True
+        return False
+    
+    def obter_cores(self):
+        """Retorna as cores do tema atual"""
+        return self.TEMAS[self.tema_atual]
+    
+    def obter_nome_tema(self):
+        """Retorna nome amigável do tema"""
+        nomes = {
+            "dark": "Escuro",
+            "light": "Claro",
+            "high_contrast": "Alto Contraste"
+        }
+        return nomes.get(self.tema_atual, "Escuro")
+
+gerenciador_temas = GerenciadorTemas()
+CORES = gerenciador_temas.obter_cores()
+
+# Configuração do tema inicial
+ctk.set_appearance_mode(CORES["mode"])
 ctk.set_default_color_theme("blue")
 
 # Paleta de cores educacional profissional
-CORES = {
-    "primaria": "#1a4d8f",
-    "primaria_hover": "#144173",
-    "secundaria": "#2e7d32",
-    "secundaria_hover": "#1b5e20",
-    "terciaria": "#c62828",
-    "terciaria_hover": "#8e0000",
-    "fundo_escuro": "#1a1a2e",
-    "fundo_claro": "#16213e",
-    "texto_principal": "#e4e4e4",
-    "texto_secundario": "#94a3b8",
-    "acento": "#0f3460",
-    "borda": "#2d3748",
-    "sucesso": "#059669",
-    "alerta": "#d97706",
-    "erro": "#dc2626"
-}
+# CORES = {
+#     "primaria": "#1a4d8f",
+#     "primaria_hover": "#144173",
+#     "secundaria": "#2e7d32",
+#     "secundaria_hover": "#1b5e20",
+#     "terciaria": "#c62828",
+#     "terciaria_hover": "#8e0000",
+#     "fundo_escuro": "#1a1a2e",
+#     "fundo_claro": "#16213e",
+#     "texto_principal": "#e4e4e4",
+#     "texto_secundario": "#94a3b8",
+#     "acento": "#0f3460",
+#     "borda": "#2d3748",
+#     "sucesso": "#059669",
+#     "alerta": "#d97706",
+#     "erro": "#dc2626"
+# }
+
+
+class GerenciadorExcecoes:
+    """Novo sistema centralizado de tratamento de exceções"""
+    
+    def __init__(self):
+        self.historico_erros = []
+        self.max_historico = 100
+    
+    def registrar_erro(self, tipo, mensagem, contexto=None):
+        """Registra erro para debug e análise"""
+        import datetime
+        registro = {
+            "timestamp": datetime.datetime.now().isoformat(),
+            "tipo": tipo,
+            "mensagem": mensagem,
+            "contexto": contexto
+        }
+        self.historico_erros.append(registro)
+        if len(self.historico_erros) > self.max_historico:
+            self.historico_erros.pop(0)
+    
+    def obter_ultimo_erro(self):
+        """Retorna o último erro registrado"""
+        if self.historico_erros:
+            return self.historico_erros[-1]
+        return None
+    
+    def limpar_historico(self):
+        """Limpa histórico de erros"""
+        self.historico_erros = []
+
+gerenciador_excecoes = GerenciadorExcecoes()
+
+class TransicaoSuave:
+    """Sistema de transições suaves entre telas com efeitos visuais"""
+    
+    def __init__(self, duracao_ms=300):
+        self.duracao = duracao_ms
+        self.em_transicao = False
+    
+    def animar_entrada(self, widget, callback=None):
+        """Anima entrada de widget"""
+        if self.em_transicao:
+            return
+        
+        self.em_transicao = True
+        widget.configure(fg_color="transparent")
+        
+        passos = 10
+        delay = self.duracao // passos
+        
+        def animar(passo):
+            if passo < passos:
+                widget.update()
+                widget.after(delay, lambda: animar(passo + 1))
+            else:
+                self.em_transicao = False
+                if callback:
+                    callback()
+        
+        animar(0)
+
+transicao = TransicaoSuave()
 
 class ResponsiveConfig:
     """Classe para gerenciar configurações responsivas multiplataforma"""
@@ -38,7 +225,56 @@ class ResponsiveConfig:
         self.platform = platform.system()
         self.is_windows = self.platform == "Windows"
         self.is_linux = self.platform == "Linux"
+        self.is_mac = self.platform == "Darwin"
         
+        self.dpi_scale = self.get_dpi_scale()
+        self.scaling_factor = self.get_scaling_factor()
+        
+        self.config_acessibilidade = {
+            "tamanho_fonte_aumentado": False,
+            "alto_contraste": False,
+            "animacoes_reduzidas": False,
+            "leitor_tela": False
+        }
+    
+    def get_dpi_scale(self):
+        """Detecta o fator de escala DPI do sistema"""
+        try:
+            if self.is_windows:
+                from ctypes import windll
+                try:
+                    windll.shcore.SetProcessDPIAware()
+                    hdc = windll.user32.GetDC(0)
+                    dpi = windll.gdi32.GetDeviceCaps(hdc, 88)
+                    windll.user32.ReleaseDC(0, hdc)
+                    return dpi / 96.0
+                except:
+                    return 1.0
+            elif self.is_mac:
+                # macOS geralmente usa Retina (2x)
+                return 2.0 if 'retina' in str(sys.platform).lower() else 1.0
+            else:
+                # Linux - tentar detectar via Xrandr
+                try:
+                    import subprocess
+                    output = subprocess.check_output(['xrandr']).decode()
+                    if 'current' in output:
+                        return 1.0
+                except:
+                    pass
+        except:
+            pass
+        return 1.0
+    
+    def get_scaling_factor(self):
+        """Retorna fator de escala baseado no sistema"""
+        if self.is_mac:
+            return 1.2  # macOS precisa de ajuste
+        elif self.is_linux:
+            return 1.0
+        else:  # Windows
+            return 1.0 / self.dpi_scale if self.dpi_scale > 1 else 1.0
+    
     def get_screen_info(self, root):
         """Obtém informações precisas da tela"""
         try:
@@ -46,7 +282,6 @@ class ResponsiveConfig:
             screen_width = root.winfo_screenwidth()
             screen_height = root.winfo_screenheight()
             
-            # Ajuste para diferentes DPIs
             if self.is_windows:
                 try:
                     import ctypes
@@ -56,6 +291,13 @@ class ResponsiveConfig:
                     screen_height = user32.GetSystemMetrics(1)
                 except:
                     pass
+            elif self.is_mac:
+                # macOS Retina adjustment
+                screen_width = int(screen_width / self.dpi_scale)
+                screen_height = int(screen_height / self.dpi_scale)
+            elif self.is_linux:
+                # Linux - usar valores diretos do Tk
+                pass
             
             return screen_width, screen_height
         except:
@@ -63,9 +305,15 @@ class ResponsiveConfig:
     
     def calculate_window_size(self, screen_width, screen_height, scale=0.8):
         """Calcula tamanho ideal da janela baseado na resolução"""
-        # Tamanhos mínimos e máximos
-        min_width, min_height = 1200, 700
-        max_width, max_height = 1920, 1080
+        if self.is_mac:
+            min_width, min_height = 1100, 650
+            max_width, max_height = 2560, 1440
+        elif self.is_linux:
+            min_width, min_height = 1000, 600
+            max_width, max_height = 1920, 1080
+        else:  # Windows
+            min_width, min_height = 1200, 700
+            max_width, max_height = 1920, 1080
         
         # Calcular tamanho proporcional
         window_width = int(screen_width * scale)
@@ -75,26 +323,46 @@ class ResponsiveConfig:
         window_width = max(min_width, min(window_width, max_width))
         window_height = max(min_height, min(window_height, max_height))
         
-        # Ajustes específicos para notebooks
         if screen_height <= 768:  # Notebooks com tela pequena
             window_height = min(window_height, 650)
             scale = 0.75
         elif screen_height <= 900:  # Notebooks médios
             window_height = min(window_height, 800)
             scale = 0.78
+        elif screen_height <= 1080:  # Full HD
+            window_height = min(window_height, 950)
+            scale = 0.85
+        elif screen_height <= 1440:  # 2K
+            window_height = min(window_height, 1300)
+            scale = 0.88
+        else:  # 4K e superior
+            window_height = min(window_height, 1600)
+            scale = 0.90
         
         return window_width, window_height
     
     def get_font_scale(self, screen_height):
-        """Retorna escala de fonte baseada na altura da tela"""
+        """Retorna escala de fonte baseada na altura da tela e plataforma"""
+        base_scale = 1.0
+        
+        if self.is_mac:
+            base_scale = 0.95  # macOS tem fontes maiores
+        elif self.is_linux:
+            base_scale = 1.0
+        else:  # Windows
+            base_scale = 1.0
+        
+        # Ajuste por resolução
         if screen_height <= 768:
-            return 0.85
+            return 0.80 * base_scale
         elif screen_height <= 900:
-            return 0.9
+            return 0.85 * base_scale
         elif screen_height <= 1080:
-            return 1.0
+            return 0.95 * base_scale
+        elif screen_height <= 1440:
+            return 1.05 * base_scale
         else:
-            return 1.1
+            return 1.15 * base_scale
     
     def get_padding_scale(self, screen_width):
         """Retorna escala de padding baseada na largura da tela"""
@@ -102,18 +370,45 @@ class ResponsiveConfig:
             return 0.7
         elif screen_width <= 1600:
             return 0.85
-        else:
+        elif screen_width <= 1920:
             return 1.0
+        else:
+            return 1.1
+            
+    def aumentar_fonte(self, tamanho_base):
+        """Aumenta tamanho da fonte para acessibilidade"""
+        if self.config_acessibilidade["tamanho_fonte_aumentado"]:
+            return int(tamanho_base * 1.3)
+        return tamanho_base
+    
+    def alternar_tamanho_fonte(self):
+        """Alterna entre tamanho normal e aumentado"""
+        self.config_acessibilidade["tamanho_fonte_aumentado"] = not self.config_acessibilidade["tamanho_fonte_aumentado"]
+        return self.config_acessibilidade["tamanho_fonte_aumentado"]
 
 class SistemaTCC(ctk.CTk):
+    """Janela principal do sistema"""
+    
     def __init__(self):
         super().__init__()
         
-        # Inicializar configuração responsiva
+        logger.info("Iniciando aplicação SistemaTCC")
+        
         self.config = ResponsiveConfig()
+        self.gerenciador_temas = gerenciador_temas
+        
+        if self.config.is_windows:
+            try:
+                from ctypes import windll
+                windll.shcore.SetProcessDPIAwareness(1)
+            except:
+                pass
         
         # Configuração da janela principal
-        self.title("FERRAMENTA COMPUTACIONAL PARA ANÁLISE E CARACTERIZAÇÃO DE SISTEMAS DE CONTROLE")
+        self.title("ANÁLISE DE CONTROLADORES - Sistema de Controle")
+        # self.title("FERRAMENTA COMPUTACIONAL PARA ANÁLISE E CARACTERIZAÇÃO DE SISTEMAS DE CONTROLE")
+        
+        self.set_window_icon()
         
         # Obter informações da tela
         self.screen_width, self.screen_height = self.config.get_screen_info(self)
@@ -126,7 +421,6 @@ class SistemaTCC(ctk.CTk):
         # Definir geometria
         self.geometry(f"{window_width}x{window_height}")
         
-        # Configurações de tamanho
         self.maxsize(width=self.screen_width, height=self.screen_height)
         self.minsize(width=1000, height=600)
         
@@ -160,12 +454,132 @@ class SistemaTCC(ctk.CTk):
         self.tela_principal = TelaPrincipal(parent=self.container, controlador=self)
         self.tela_principal.grid(row=0, column=0, sticky="nsew")
         
+        self.configurar_atalhos()
+        
+        self.criar_menu_acessibilidade()
+        
         # Garantir visibilidade
         self.lift()
         self.focus_force()
         
         # Bind para redimensionamento
         self.bind("<Configure>", self.on_window_resize)
+        
+        self.protocol("WM_DELETE_WINDOW", self._on_closing)
+        # self.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        self.fila_operacoes = queue.Queue()
+        self.processando_fila = False
+        
+        self.thread_background = threading.Thread(target=self._processar_fila, daemon=True)
+        self.thread_background.start()
+    
+    def _processar_fila(self):
+        """Processa operações da fila de forma assíncrona"""
+        while True:
+            try:
+                operacao = self.fila_operacoes.get(timeout=1)
+                if operacao:
+                    funcao, args, kwargs = operacao
+                    try:
+                        funcao(*args, **kwargs)
+                    except Exception as e:
+                        gerenciador_excecoes.registrar_erro("background", str(e), "fila")
+            except queue.Empty:
+                continue
+            except Exception as e:
+                gerenciador_excecoes.registrar_erro("thread", str(e), "processamento")
+    
+    def agendar_operacao(self, funcao, *args, **kwargs):
+        """Agenda operação para execução em background"""
+        self.fila_operacoes.put((funcao, args, kwargs))
+    
+    def set_window_icon(self):
+        """Define o ícone da janela de forma multiplataforma"""
+        try:
+            if self.config.is_windows:
+                if os.path.exists("image/icons/papel.ico"):
+                    self.iconbitmap("image/icons/papel.ico")
+            elif self.config.is_linux:
+                if os.path.exists("image/icons/papel.png"):
+                    icon = Image.open("image/icons/papel.png")
+                    photo = ImageTk.PhotoImage(icon)
+                    self.iconphoto(True, photo)
+            elif self.config.is_mac:
+                # macOS usa o ícone do app bundle
+                pass
+        except Exception as e:
+            print(f"Aviso: Não foi possível carregar ícone: {e}")
+    
+    def configurar_atalhos(self):
+        """Configura atalhos de teclado multiplataforma"""
+        self.bind("<F11>", lambda e: self.toggle_fullscreen())
+        self.bind("<Escape>", lambda e: self.exit_fullscreen())
+        
+        # Atalhos específicos por plataforma
+        if self.config.is_mac:
+            self.bind("<Command-q>", lambda e: self._on_closing())
+            self.bind("<Command-w>", lambda e: self._on_closing())
+        else:
+            self.bind("<Control-q>", lambda e: self._on_closing())
+            self.bind("<Alt-F4>", lambda e: self._on_closing())
+            
+        # Atalhos de teclado para acessibilidade
+        self.bind("<Control-plus>", lambda e: self.aumentar_fonte())
+        self.bind("<Control-minus>", lambda e: self.diminuir_fonte())
+        self.bind("<Control-t>", lambda e: self.alternar_tema())
+        self.bind("<Control-h>", lambda e: self.mostrar_ajuda())
+        self.bind("<Control-c>", lambda e: self.toggle_alto_contraste())
+        self.bind("<F1>", lambda e: self.mostrar_ajuda())
+    
+    def toggle_fullscreen(self):
+        """Alterna tela cheia de forma multiplataforma"""
+        if not hasattr(self, '_fullscreen'):
+            self._fullscreen = False
+        
+        self._fullscreen = not self._fullscreen
+        
+        if self.config.is_windows:
+            if self._fullscreen:
+                self.state('zoomed')
+            else:
+                self.state('normal')
+        elif self.config.is_mac:
+            self.attributes('-fullscreen', self._fullscreen)
+        else:  # Linux
+            self.attributes('-zoomed', self._fullscreen)
+    
+    def exit_fullscreen(self):
+        """Sai do modo tela cheia"""
+        if hasattr(self, '_fullscreen') and self._fullscreen:
+            self._fullscreen = False
+            if self.config.is_windows:
+                self.state('normal')
+            elif self.config.is_mac:
+                self.attributes('-fullscreen', False)
+            else:
+                self.attributes('-zoomed', False)
+    
+    def _on_closing(self): # rename on_closing to _on_closing
+        """Fecha a aplicação de forma segura"""
+        logger.info("Fechando aplicação SistemaTCC")
+        try:
+            # Fechar todas as janelas abertas
+            for janela in list(self.janelas_abertas.values()):
+                try:
+                    janela.destroy()
+                except:
+                    pass
+            
+            # Limpar matplotlib
+            plt.close('all')
+            
+            # Destruir janela principal
+            self.destroy()
+            logger.info("Aplicação SistemaTCC encerrada com sucesso.")
+        except Exception as e:
+            logger.error(f"Erro ao fechar aplicação: {e}", exc_info=True)
+            self.destroy()
     
     def centralizar_janela(self):
         """Centraliza a janela na tela de forma robusta"""
@@ -195,18 +609,23 @@ class SistemaTCC(ctk.CTk):
         self.foto_fundo = None
         self.logo_image = None
 
-        # Carregar Logo com tamanho responsivo
         try:
             if os.path.exists("logo.png"):
                 img_pil = Image.open("logo.png").convert("RGBA")
                 
-                # Tamanho responsivo baseado na altura da tela
                 if self.screen_height <= 768:
-                    max_h_logo = 45
+                    max_h_logo = 40
                 elif self.screen_height <= 900:
-                    max_h_logo = 50
+                    max_h_logo = 45
+                elif self.screen_height <= 1080:
+                    max_h_logo = 55
+                elif self.screen_height <= 1440:
+                    max_h_logo = 65
                 else:
-                    max_h_logo = 60
+                    max_h_logo = 75
+                
+                if self.config.is_mac:
+                    max_h_logo = int(max_h_logo * 0.9)
                 
                 ratio = min(1.0, max_h_logo / img_pil.height)
                 new_size = (int(img_pil.width * ratio), int(img_pil.height * ratio))
@@ -264,6 +683,339 @@ class SistemaTCC(ctk.CTk):
             self.focus_force()
         
         janela.protocol("WM_DELETE_WINDOW", ao_fechar)
+    
+    def criar_menu_acessibilidade(self):
+        """Cria menu de acessibilidade e configurações"""
+        # Frame flutuante para configurações
+        self.frame_config = None
+        self.config_visivel = False
+        
+        # Atalhos de teclado para acessibilidade já configurados em configurar_atalhos
+    
+    def toggle_configuracoes(self):
+        """Mostra/oculta painel de configurações"""
+        if self.config_visivel:
+            if self.frame_config:
+                self.frame_config.destroy()
+                self.frame_config = None
+            self.config_visivel = False
+        else:
+            self.mostrar_painel_configuracoes()
+            self.config_visivel = True
+    
+    def mostrar_painel_configuracoes(self):
+        """Mostra painel de configurações flutuante"""
+        if self.frame_config:
+            self.frame_config.destroy()
+        
+        # Frame flutuante
+        self.frame_config = ctk.CTkFrame(
+            self,
+            fg_color=CORES["fundo_claro"],
+            corner_radius=15,
+            border_width=2,
+            border_color=CORES["primaria"]
+        )
+        self.frame_config.place(relx=0.5, rely=0.5, anchor="center")
+        
+        # Título
+        ctk.CTkLabel(
+            self.frame_config,
+            text="⚙️ CONFIGURAÇÕES E ACESSIBILIDADE",
+            font=("Segoe UI", self.scale_font(18), "bold"),
+            text_color=CORES["texto_principal"]
+        ).pack(pady=20, padx=30)
+        
+        # Seção de Temas
+        frame_temas = ctk.CTkFrame(self.frame_config, fg_color="transparent")
+        frame_temas.pack(fill="x", padx=30, pady=10)
+        
+        ctk.CTkLabel(
+            frame_temas,
+            text="🎨 Tema:",
+            font=("Segoe UI", self.scale_font(14), "bold"),
+            text_color=CORES["texto_principal"]
+        ).pack(anchor="w", pady=5)
+        
+        frame_botoes_tema = ctk.CTkFrame(frame_temas, fg_color="transparent")
+        frame_botoes_tema.pack(fill="x", pady=5)
+        
+        ctk.CTkButton(
+            frame_botoes_tema,
+            text="🌙 Escuro",
+            command=lambda: self.aplicar_tema("dark"),
+            width=120,
+            height=40,
+            font=("Segoe UI", self.scale_font(12), "bold"),
+            fg_color=CORES["primaria"],
+            hover_color=CORES["primaria_hover"]
+        ).pack(side="left", padx=5)
+        
+        ctk.CTkButton(
+            frame_botoes_tema,
+            text="☀️ Claro",
+            command=lambda: self.aplicar_tema("light"),
+            width=120,
+            height=40,
+            font=("Segoe UI", self.scale_font(12), "bold"),
+            fg_color=CORES["secundaria"],
+            hover_color=CORES["secundaria_hover"]
+        ).pack(side="left", padx=5)
+        
+        ctk.CTkButton(
+            frame_botoes_tema,
+            text="🔆 Alto Contraste",
+            command=lambda: self.aplicar_tema("high_contrast"),
+            width=150,
+            height=40,
+            font=("Segoe UI", self.scale_font(12), "bold"),
+            fg_color=CORES["terciaria"],
+            hover_color=CORES["terciaria_hover"]
+        ).pack(side="left", padx=5)
+        
+        # Seção de Acessibilidade
+        frame_acess = ctk.CTkFrame(self.frame_config, fg_color="transparent")
+        frame_acess.pack(fill="x", padx=30, pady=10)
+        
+        ctk.CTkLabel(
+            frame_acess,
+            text="♿ Acessibilidade:",
+            font=("Segoe UI", self.scale_font(14), "bold"),
+            text_color=CORES["texto_principal"]
+        ).pack(anchor="w", pady=5)
+        
+        ctk.CTkButton(
+            frame_acess,
+            text="🔤 Aumentar Fonte (Ctrl++)",
+            command=self.aumentar_fonte,
+            width=250,
+            height=40,
+            font=("Segoe UI", self.scale_font(12), "bold"),
+            fg_color=CORES["primaria"],
+            hover_color=CORES["primaria_hover"]
+        ).pack(pady=5)
+        
+        ctk.CTkButton(
+            frame_acess,
+            text="🔡 Diminuir Fonte (Ctrl+-)",
+            command=self.diminuir_fonte,
+            width=250,
+            height=40,
+            font=("Segoe UI", self.scale_font(12), "bold"),
+            fg_color=CORES["primaria"],
+            hover_color=CORES["primaria_hover"]
+        ).pack(pady=5)
+        
+        # Atalhos
+        frame_atalhos = ctk.CTkFrame(self.frame_config, fg_color=CORES["acento"], corner_radius=10)
+        frame_atalhos.pack(fill="x", padx=30, pady=15)
+        
+        ctk.CTkLabel(
+            frame_atalhos,
+            text="⌨️ Atalhos de Teclado:",
+            font=("Segoe UI", self.scale_font(13), "bold"),
+            text_color=CORES["texto_principal"]
+        ).pack(anchor="w", padx=15, pady=(10, 5))
+        
+        atalhos_texto = """
+        F1 - Ajuda
+        F11 - Tela Cheia
+        Ctrl+T - Alternar Tema
+        Ctrl++ - Aumentar Fonte
+        Ctrl+- - Diminuir Fonte
+        Ctrl+H - Ajuda
+        ESC - Sair Tela Cheia
+        """
+        
+        ctk.CTkLabel(
+            frame_atalhos,
+            text=atalhos_texto,
+            font=("Consolas", self.scale_font(10)),
+            text_color=CORES["texto_secundario"],
+            justify="left"
+        ).pack(anchor="w", padx=15, pady=(0, 10))
+        
+        # Botão fechar
+        ctk.CTkButton(
+            self.frame_config,
+            text="✖ Fechar",
+            command=self.toggle_configuracoes,
+            width=200,
+            height=45,
+            font=("Segoe UI", self.scale_font(13), "bold"),
+            fg_color=CORES["terciaria"],
+            hover_color=CORES["terciaria_hover"]
+        ).pack(pady=20)
+    
+    def aplicar_tema(self, nome_tema):
+        """Aplica um tema específico"""
+        global CORES
+        self.gerenciador_temas.definir_tema(nome_tema)
+        CORES = self.gerenciador_temas.obter_cores()
+        ctk.set_appearance_mode(CORES["mode"])
+        
+        # Recriar interface
+        self.recriar_interface()
+    
+    def alternar_tema(self):
+        """Alterna entre temas disponíveis"""
+        global CORES
+        novo_tema = self.gerenciador_temas.alternar_tema()
+        CORES = self.gerenciador_temas.obter_cores()
+        ctk.set_appearance_mode(CORES["mode"])
+        
+        # Recriar interface
+        self.recriar_interface()
+    
+    def toggle_alto_contraste(self):
+        """Ativa/desativa modo alto contraste"""
+        if self.gerenciador_temas.tema_atual == "high_contrast":
+            self.aplicar_tema("dark")
+        else:
+            self.aplicar_tema("high_contrast")
+    
+    def aumentar_fonte(self):
+        """Aumenta tamanho das fontes"""
+        aumentado = self.config.alternar_tamanho_fonte()
+        if aumentado:
+            self.font_scale *= 1.3
+        else:
+            self.font_scale /= 1.3
+        self.recriar_interface()
+    
+    def diminuir_fonte(self):
+        """Diminui tamanho das fontes"""
+        if self.config.config_acessibilidade["tamanho_fonte_aumentado"]:
+            self.config.alternar_tamanho_fonte()
+            self.font_scale /= 1.3
+            self.recriar_interface()
+    
+    def mostrar_ajuda(self):
+        """Mostra janela de ajuda"""
+        janela_ajuda = ctk.CTkToplevel(self)
+        janela_ajuda.title("Ajuda - Sistema de Controle")
+        janela_ajuda.geometry("700x600")
+        janela_ajuda.configure(fg_color=CORES["fundo_escuro"])
+        
+        # Centralizar
+        janela_ajuda.update_idletasks()
+        x = (self.winfo_screenwidth() - 700) // 2
+        y = (self.winfo_screenheight() - 600) // 2
+        janela_ajuda.geometry(f"700x600+{x}+{y}")
+        
+        # Conteúdo
+        frame_scroll = ctk.CTkScrollableFrame(
+            janela_ajuda,
+            fg_color=CORES["fundo_claro"]
+        )
+        frame_scroll.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        ctk.CTkLabel(
+            frame_scroll,
+            text="📚 GUIA DE USO DO SISTEMA",
+            font=("Segoe UI", 20, "bold"),
+            text_color=CORES["texto_principal"]
+        ).pack(pady=15)
+        
+        ajuda_texto = """
+        MÓDULOS DISPONÍVEIS:
+        
+        1. ANÁLISE DE ESTABILIDADE
+           • Critério de Routh-Hurwitz
+           • Análise de polos e zeros
+           • Determinação de estabilidade
+        
+        2. ANÁLISE DE SISTEMA 2ª ORDEM
+           • Resposta ao degrau e rampa
+           • Cálculo de parâmetros (ωn, ζ, K)
+           • Características temporais
+           • Gráficos de resposta
+        
+        3. ANÁLISE DE CONTROLADORES
+           • Controladores PI, PD e PID
+           • Lugar das raízes
+           • Resposta temporal comparativa
+           • Diagrama de polos e zeros
+        
+        ACESSIBILIDADE:
+        
+        • Temas: Escuro, Claro e Alto Contraste
+        • Ajuste de tamanho de fonte
+        • Atalhos de teclado
+        • Interface responsiva
+        
+        ATALHOS DE TECLADO:
+        
+        F1 - Ajuda
+        F11 - Tela Cheia
+        Ctrl+T - Alternar Tema
+        Ctrl++ - Aumentar Fonte
+        Ctrl+- - Diminuir Fonte
+        Ctrl+H - Ajuda
+        ESC - Sair Tela Cheia
+        
+        COMO USAR:
+        
+        1. Selecione o módulo desejado
+        2. Insira os coeficientes da função de transferência
+        3. Configure os parâmetros necessários
+        4. Clique em "Analisar" ou "Plotar"
+        5. Visualize os resultados e gráficos
+        
+        FORMATO DE ENTRADA:
+        
+        • Coeficientes separados por espaço
+        • Do maior para o menor grau
+        • Use ponto (.) para decimais
+        • Exemplo: 1 2 4 (para s² + 2s + 4)
+        
+        SUPORTE:
+        
+        Para mais informações, consulte a documentação
+        ou entre em contato com o desenvolvedor.
+        """
+        
+        ctk.CTkLabel(
+            frame_scroll,
+            text=ajuda_texto,
+            font=("Segoe UI", 12),
+            text_color=CORES["texto_secundario"],
+            justify="left"
+        ).pack(pady=10, padx=20)
+        
+        ctk.CTkButton(
+            janela_ajuda,
+            text="Fechar",
+            command=janela_ajuda.destroy,
+            width=150,
+            height=40,
+            font=("Segoe UI", 13, "bold"),
+            fg_color=CORES["primaria"],
+            hover_color=CORES["primaria_hover"]
+        ).pack(pady=15)
+    
+    def recriar_interface(self):
+        """Recria a interface com novo tema"""
+        # Destruir container atual
+        if hasattr(self, 'container'):
+            self.container.destroy()
+        
+        # Reconfigurar cor de fundo
+        self.configure(fg_color=CORES["fundo_escuro"])
+        
+        # Recriar container
+        self.container = ctk.CTkFrame(self, corner_radius=0, fg_color=CORES["fundo_escuro"])
+        self.container.grid(row=0, column=0, sticky="nsew")
+        self.container.grid_columnconfigure(0, weight=1)
+        self.container.grid_rowconfigure(0, weight=1)
+        
+        # Recriar tela principal
+        self.tela_principal = TelaPrincipal(parent=self.container, controlador=self)
+        self.tela_principal.grid(row=0, column=0, sticky="nsew")
+        
+        # Fechar painel de configurações se estiver aberto
+        if self.config_visivel:
+            self.toggle_configuracoes()
 
 class TelaPrincipal(ctk.CTkFrame):
     def __init__(self, parent, controlador):
@@ -298,6 +1050,8 @@ class TelaPrincipal(ctk.CTkFrame):
         container_principal.grid(row=0, column=0, sticky="nsew", padx=padding_h, pady=padding_v)
         container_principal.grid_columnconfigure(0, weight=3)
         container_principal.grid_columnconfigure(1, weight=1)
+        # Adicionar coluna para o botão de configurações
+        container_principal.grid_columnconfigure(2, weight=0)
         
         # LADO ESQUERDO
         container_titulo = ctk.CTkFrame(container_principal, fg_color="transparent")
@@ -358,6 +1112,20 @@ class TelaPrincipal(ctk.CTkFrame):
             justify="center"
         )
         texto_institucional.pack()
+        
+        # Botão de configurações (lado direito)
+        botao_config = ctk.CTkButton(
+            container_principal,
+            text="⚙️",
+            command=self.controlador.toggle_configuracoes,
+            width=50,
+            height=50,
+            font=("Segoe UI", 20),
+            fg_color=CORES["secundaria"],
+            hover_color=CORES["secundaria_hover"],
+            corner_radius=25
+        )
+        botao_config.grid(row=0, column=2, sticky="e", padx=(10, 0))
     
     def criar_conteudo_principal(self):
         padding_h = self.controlador.scale_padding(40)
@@ -893,7 +1661,7 @@ class JanelaAnalise(JanelaBase):
             fg_color=CORES["acento"],
             corner_radius=10
         )
-        frame_configuracoes.grid(row=0, column=0, sticky="ew", pady=(0, 15))
+        frame_configuracoes.grid(row=0, column=0, sticky="ew", pady=15)
         frame_configuracoes.grid_columnconfigure(0, weight=1)
         frame_configuracoes.grid_columnconfigure(1, weight=1)
         
@@ -1077,7 +1845,7 @@ class JanelaAnalise(JanelaBase):
             wrap="word",
             height=300
         )
-        self.texto_resultados.grid(row=1, column=0, sticky="nsew", pady=(0, 12), padx=12)
+        self.texto_resultados.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
         self.texto_resultados.insert("1.0", "📝 INSTRUÇÕES:\n\n")
         self.texto_resultados.insert("end", "1. Configure o tipo de malha e entrada\n")
         self.texto_resultados.insert("end", "2. Digite os coeficientes:\n")
@@ -1274,7 +2042,23 @@ class JanelaAnalise(JanelaBase):
         self.texto_resultados.insert("end", "• Denominador: 1 2 4\n")
         self.texto_resultados.insert("end", "  (representa: G(s) = 4 / (s² + 2s + 4))\n")
 
-# Executar a aplicação
 if __name__ == "__main__":
-    app = SistemaTCC()
-    app.mainloop()
+    try:
+        # Configurar DPI awareness antes de criar a janela
+        if platform.system() == "Windows":
+            try:
+                from ctypes import windll
+                windll.shcore.SetProcessDPIAwareness(1)
+            except:
+                pass
+        
+        app = SistemaTCC()
+        app.mainloop()
+    except KeyboardInterrupt:
+        print("\nAplicação encerrada pelo usuário")
+        sys.exit(0)
+    except Exception as e:
+        print(f"Erro fatal: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

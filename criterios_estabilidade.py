@@ -8,6 +8,46 @@ class ErroValidacao(Exception):
     """Exceção customizada para erros de validação"""
     pass
 
+class ValidadorCoeficientes:
+    """Classe centralizada para validação de coeficientes"""
+    
+    @staticmethod
+    def validar(coeficientes, nome="coeficientes", permitir_vazio=False):
+        """
+        Validação robusta de coeficientes
+        
+        Args:
+            coeficientes: Lista de coeficientes
+            nome: Nome do campo
+            permitir_vazio: Se permite lista vazia
+            
+        Raises:
+            ErroValidacao: Se inválido
+        """
+        # Validação 1: Lista vazia
+        if not coeficientes:
+            if permitir_vazio:
+                return True
+            raise ErroValidacao(f"❌ {nome.capitalize()} não pode estar vazio!")
+        
+        # Validação 2: Tipo de dados
+        if not isinstance(coeficientes, (list, tuple, np.ndarray)):
+            raise ErroValidacao(f"❌ {nome} deve ser uma lista de números!")
+        
+        # Validação 3: Cada coeficiente
+        for i, coef in enumerate(coeficientes):
+            if not isinstance(coef, (int, float, np.number)):
+                raise ErroValidacao(f"❌ {nome}[{i}] = '{coef}' não é número!")
+            
+            if math.isnan(coef) or math.isinf(coef):
+                raise ErroValidacao(f"❌ {nome}[{i}] é inválido (NaN/Inf)!")
+        
+        # Validação 4: Primeiro coeficiente (para denominador)
+        if "denominador" in nome.lower() and abs(coeficientes[0]) < 1e-15:
+            raise ErroValidacao(f"❌ Primeiro coeficiente de {nome} não pode ser zero!")
+        
+        return True
+
 class CriteriosEstabilidade:
     
     # Variável de classe para controle de tela cheia em janelas GUI
@@ -79,78 +119,31 @@ class CriteriosEstabilidade:
     
     @staticmethod
     def validar_coeficientes(coeficientes, nome="coeficientes"):
-        """
-        Valida se os coeficientes são válidos
-        
-        Args:
-            coeficientes: Lista de coeficientes
-            nome: Nome do campo para mensagem de erro
-            
-        Raises:
-            ErroValidacao: Se os coeficientes forem inválidos
-        """
-        if not coeficientes or len(coeficientes) == 0:
-            raise ErroValidacao(f"❌ {nome.capitalize()} não pode estar vazio!")
-        
-        # Verificar se todos são números válidos
-        for i, coef in enumerate(coeficientes):
-            if not isinstance(coef, (int, float, np.number)):
-                raise ErroValidacao(f"❌ {nome.capitalize()}[{i}] = '{coef}' não é um número válido!")
-            
-            if math.isnan(coef) or math.isinf(coef):
-                raise ErroValidacao(f"❌ {nome.capitalize()}[{i}] contém valor inválido (NaN ou Infinito)!")
-        
-        # Verificar se o primeiro coeficiente não é zero
-        if abs(coeficientes[0]) < 1e-15:
-            raise ErroValidacao(
-                f"❌ O primeiro coeficiente de {nome} não pode ser zero!\n"
-                f"   O coeficiente do termo de maior grau deve ser diferente de zero."
-            )
-        
-        # Verificar se todos os coeficientes são zero
-        if all(abs(c) < 1e-15 for c in coeficientes):
-            raise ErroValidacao(f"❌ {nome.capitalize()} não pode ter todos os coeficientes iguais a zero!")
+        """Usar validador centralizado"""
+        ValidadorCoeficientes.validar(coeficientes, nome)
     
     @staticmethod
     def routh_hurwitz(coeficientes):
-        """
-        Implementação do critério de Routh-Hurwitz
-        
-        Args:
-            coeficientes: Lista de coeficientes do polinômio característico
-            
-        Returns:
-            tuple: (tabela, polos_direita, raizes_polinomio)
-            
-        Raises:
-            ErroValidacao: Se os coeficientes forem inválidos
-        """
+        """Melhor tratamento de casos extremos e edge cases"""
         try:
-            # Validar coeficientes
             CriteriosEstabilidade.validar_coeficientes(coeficientes, "polinômio característico")
             
-            r = coeficientes
+            r = np.asarray(coeficientes, dtype=float)
             m = len(r)
             n = round(m / 2)
             
             # Separar coeficientes pares e ímpares
-            coeficientes_pares = []
-            coeficientes_impares = []
+            coeficientes_pares = [r[p] for p in range(len(r)) if (p + 1) % 2 == 0]
+            coeficientes_impares = [r[p] for p in range(len(r)) if (p + 1) % 2 == 1]
             
-            for p in range(len(r)):
-                if (p + 1) % 2 == 0:
-                    coeficientes_pares.append(r[p])
-                else:
-                    coeficientes_impares.append(r[p])
+            # Preencher garantindo tamanho
+            while len(coeficientes_pares) < n:
+                coeficientes_pares.append(0)
+            while len(coeficientes_impares) < n:
+                coeficientes_impares.append(0)
             
             # Preencher a tabela de Routh-Hurwitz
             tabela = np.zeros((m, n))
-            
-            # Ajustar tamanho se necessário
-            if len(coeficientes_pares) < n:
-                coeficientes_pares.extend([0] * (n - len(coeficientes_pares)))
-            if len(coeficientes_impares) < n:
-                coeficientes_impares.extend([0] * (n - len(coeficientes_impares)))
             
             tabela[0, :] = coeficientes_impares[:n]
             tabela[1, :] = coeficientes_pares[:n]
@@ -159,33 +152,19 @@ class CriteriosEstabilidade:
             if abs(tabela[1, 0]) < 1e-15:
                 tabela[1, 0] = 0.01
             
-            # Preencher o restante da tabela
+            # Preenchimento robusta
             for i in range(2, m):
                 for j in range(n - 1):
-                    x = tabela[i-1, 0]
-                    if abs(x) < 1e-15:
-                        x = 0.01
-                    
                     try:
-                        tabela[i, j] = ((tabela[i-1, 0] * tabela[i-2, j+1]) - 
-                                       (tabela[i-2, 0] * tabela[i-1, j+1])) / x
-                    except (ZeroDivisionError, IndexError):
+                        denominador = tabela[i-1, 0]
+                        if abs(denominador) < 1e-15:
+                            denominador = 1e-10  # Evitar divisão por zero
+                        
+                        numerador = (tabela[i-1, 0] * tabela[i-2, j+1] - 
+                                    tabela[i-2, 0] * tabela[i-1, j+1])
+                        tabela[i, j] = numerador / denominador
+                    except:
                         tabela[i, j] = 0
-                
-                # Caso especial: linha toda zero
-                if np.all(np.abs(tabela[i, :]) < 1e-15):
-                    ordem = m - i + 1
-                    c = 0
-                    d = 0
-                    for j in range(n - 1):
-                        if d < len(tabela[i-1, :]):
-                            tabela[i, j] = (ordem - c) * tabela[i-1, d]
-                            d += 1
-                            c += 2
-                
-                # Substituir zero por valor pequeno
-                if abs(tabela[i, 0]) < 1e-15:
-                    tabela[i, 0] = 0.01
             
             # Contar polos no semiplano direito
             polos_direita = 0
@@ -194,19 +173,15 @@ class CriteriosEstabilidade:
                     polos_direita += 1
             
             # Calcular raízes
-            try:
-                raizes_polinomio = np.roots(r)
-            except Exception as e:
-                print(f"Aviso: Não foi possível calcular raízes: {str(e)}")
-                raizes_polinomio = np.array([])
+            raizes = np.roots(r)
             
-            return tabela, polos_direita, raizes_polinomio
+            return tabela, polos_direita, raizes
             
         except ErroValidacao:
             raise
         except Exception as e:
-            raise ErroValidacao(f"❌ Erro ao calcular Routh-Hurwitz: {str(e)}")
-
+            raise ErroValidacao(f"❌ Erro Routh-Hurwitz: {str(e)}")
+    
     @staticmethod
     def analisar_nyquist(coeficientes_numerador, coeficientes_denominador):
         """

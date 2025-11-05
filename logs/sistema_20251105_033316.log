@@ -1,0 +1,19 @@
+2025-11-05 03:33:16 - SistemaControle - INFO - [logger_sistema.py:63] - Logger iniciado com sucesso
+2025-11-05 03:33:16 - SistemaControle - INFO - [logger_sistema.py:71] - ======================================================================
+2025-11-05 03:33:16 - SistemaControle - INFO - [logger_sistema.py:71] - INICIALIZAÇÃO DO SISTEMA
+2025-11-05 03:33:16 - SistemaControle - INFO - [logger_sistema.py:71] - ======================================================================
+2025-11-05 03:33:16 - SistemaControle - INFO - [logger_sistema.py:71] - Python 3.12.3 detectado
+2025-11-05 03:33:16 - SistemaControle - INFO - [logger_sistema.py:71] - Dependência encontrada: customtkinter
+2025-11-05 03:33:16 - SistemaControle - INFO - [logger_sistema.py:71] - Dependência encontrada: PIL
+2025-11-05 03:33:17 - SistemaControle - INFO - [logger_sistema.py:71] - Dependência encontrada: numpy
+2025-11-05 03:33:17 - SistemaControle - INFO - [logger_sistema.py:71] - Dependência encontrada: scipy
+2025-11-05 03:33:17 - SistemaControle - INFO - [logger_sistema.py:71] - Dependência encontrada: matplotlib
+2025-11-05 03:33:18 - SistemaControle - INFO - [logger_sistema.py:71] - Dependência encontrada: control
+2025-11-05 03:33:18 - SistemaControle - INFO - [logger_sistema.py:71] - SO detectado: Linux 6.14.0-34-generic
+2025-11-05 03:33:18 - SistemaControle - INFO - [logger_sistema.py:71] - Usando DPI awareness nativo do Linux
+2025-11-05 03:33:18 - SistemaControle - INFO - [logger_sistema.py:71] - Iniciando interface gráfica...
+2025-11-05 03:33:18 - SistemaControle - INFO - [logger_sistema.py:71] - Iniciando aplicação SistemaTCC
+2025-11-05 03:33:18 - SistemaControle - INFO - [logger_sistema.py:71] - Aplicação iniciada com sucesso
+2025-11-05 03:33:45 - SistemaControle - INFO - [logger_sistema.py:71] - Fechando aplicação SistemaTCC
+2025-11-05 03:33:45 - SistemaControle - INFO - [logger_sistema.py:71] - Aplicação SistemaTCC encerrada com sucesso.
+2025-11-05 03:33:45 - SistemaControle - INFO - [logger_sistema.py:71] - Aplicação encerrada normalmente

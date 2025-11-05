@@ -10,6 +10,28 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib
 matplotlib.use('TkAgg')
 
+try:
+    from tela import gerenciador_temas, CORES
+except ImportError:
+    class GerenciadorTemasFallback:
+        def __init__(self):
+            self.tema_atual = "dark"
+        
+        def obter_cores(self):
+            return {
+                "primaria": "#1a4d8f",
+                "fundo_escuro": "#1a1a2e",
+                "fundo_claro": "#16213e",
+                "texto_principal": "#e4e4e4",
+                "texto_secundario": "#94a3b8",
+                "sucesso": "#059669",
+                "erro": "#dc2626",
+                "mode": "dark",
+                "tema_atual": "dark"
+            }
+    gerenciador_temas = GerenciadorTemasFallback()
+    CORES = gerenciador_temas.obter_cores()
+
 class ErroValidacao(Exception):
     """Exceção customizada para erros de validação"""
     pass
@@ -28,137 +50,131 @@ class AnalisadorSegundaOrdem:
         self.tipo_entrada = None
         self.numerador = None
         self.denominador = None
+        self.cache_respostas = {}
     
     @staticmethod
     def validar_coeficientes(coeficientes, nome="coeficientes"):
-        """
-        Valida se os coeficientes são válidos
-        
-        Args:
-            coeficientes: Lista de coeficientes
-            nome: Nome do campo para mensagem de erro
-            
-        Raises:
-            ErroValidacao: Se os coeficientes forem inválidos
-        """
+        """Validação consolidada"""
         if not coeficientes or len(coeficientes) == 0:
             raise ErroValidacao(f"❌ {nome.capitalize()} não pode estar vazio!")
         
-        # Verificar se todos são números válidos
         for i, coef in enumerate(coeficientes):
             if not isinstance(coef, (int, float, np.number)):
-                raise ErroValidacao(f"❌ {nome.capitalize()}[{i}] = '{coef}' não é um número válido!")
-            
+                raise ErroValidacao(f"❌ {nome}[{i}] não é número: {coef}")
             if math.isnan(coef) or math.isinf(coef):
-                raise ErroValidacao(f"❌ {nome.capitalize()}[{i}] contém valor inválido (NaN ou Infinito)!")
-    
-    @staticmethod
-    def validar_denominador(denominador):
-        """
-        Valida especificamente o denominador
-        
-        Args:
-            denominador: Lista de coeficientes do denominador
-            
-        Raises:
-            ErroValidacao: Se o denominador for inválido
-        """
-        AnalisadorSegundaOrdem.validar_coeficientes(denominador, "denominador")
-        
-        # Verificar se o primeiro coeficiente (maior grau) não é zero
-        if abs(denominador[0]) < 1e-15:
-            raise ErroValidacao("❌ O primeiro coeficiente do denominador não pode ser zero!\n"
-                              "   (O coeficiente de s² deve ser diferente de zero)")
-        
-        # Verificar se todos os coeficientes são zero
-        if all(abs(c) < 1e-15 for c in denominador):
-            raise ErroValidacao("❌ O denominador não pode ter todos os coeficientes iguais a zero!")
+                raise ErroValidacao(f"❌ {nome}[{i}] = NaN ou Inf")
     
     def extrair_parametros_de_funcao(self, numerador, denominador, tipo_malha='fechada'):
-        """
-        Extrai os parâmetros ωn, ζ e K a partir dos coeficientes da função de transferência
-        
-        Args:
-            numerador: Lista de coeficientes do numerador
-            denominador: Lista de coeficientes do denominador (deve ter 3 elementos)
-            tipo_malha: 'fechada' ou 'aberta'
-            
-        Returns:
-            tuple: (wn, zeta, ganho)
-            
-        Raises:
-            ErroValidacao: Se os parâmetros forem inválidos
-        """
-        # Validar entradas
+        """Extração com melhor tratamento de erros"""
+        # Validações
         self.validar_coeficientes(numerador, "numerador")
-        self.validar_denominador(denominador)
+        self.validar_coeficientes(denominador, "denominador")
         
         if len(denominador) != 3:
             raise ErroValidacao(
-                f"❌ Sistema não é de segunda ordem!\n"
-                f"   O denominador deve ter 3 coeficientes (a₀s² + a₁s + a₂)\n"
-                f"   Você forneceu {len(denominador)} coeficiente(s): {denominador}\n"
-                f"   Grau do sistema: {len(denominador)-1}"
+                f"❌ Sistema deve ser 2ª ordem!\n"
+                f"   Denominador: {len(denominador)} coeficientes (esperado: 3)"
             )
         
-        a0 = denominador[0]  # Coeficiente de s²
-        a1 = denominador[1]  # Coeficiente de s
-        a2 = denominador[2]  # Termo constante
+        a0, a1, a2 = float(denominador[0]), float(denominador[1]), float(denominador[2])
         
         if abs(a0) < 1e-15:
-            raise ErroValidacao("❌ Coeficiente de s² (a₀) não pode ser zero!\n"
-                              "   Isto resultaria em sistema de ordem menor que 2.")
+            raise ErroValidacao("❌ Coeficiente a₀ (s²) não pode ser zero!")
         
-        # Normalizar
-        try:
-            a1_norm = a1 / a0
-            a2_norm = a2 / a0
-        except ZeroDivisionError:
-            raise ErroValidacao("❌ Erro ao normalizar coeficientes. Verifique os valores inseridos.")
+        if abs(a2) < 1e-15:
+            raise ErroValidacao("❌ Termo constante (a₂) não pode ser zero!")
         
-        if a2_norm < -1e-10:
-            raise ErroValidacao(
-                f"❌ Sistema instável ou não-físico!\n"
-                f"   O termo constante normalizado (ωn²) deve ser positivo.\n"
-                f"   Valor calculado: {a2_norm:.6f}\n"
-                f"   Verifique os sinais dos coeficientes."
-            )
+        # Cálculos normalizados
+        a1_norm = a1 / a0
+        a2_norm = a2 / a0
         
-        if abs(a2_norm) < 1e-15:
-            raise ErroValidacao(
-                "❌ Frequência natural não pode ser zero!\n"
-                "   O termo constante do denominador (a₂) deve ser diferente de zero."
-            )
-        
-        wn = math.sqrt(abs(a2_norm))
-        
-        if abs(wn) < 1e-15:
-            raise ErroValidacao("❌ Frequência natural calculada é zero ou inválida!")
+        if a2_norm < 0:
+            raise ErroValidacao("❌ Sistema não-físico: ωn² negativo!")
         
         try:
-            zeta = a1_norm / (2 * wn)
-        except ZeroDivisionError:
-            raise ErroValidacao("❌ Erro ao calcular coeficiente de amortecimento.")
+            wn = math.sqrt(a2_norm)
+            zeta = a1_norm / (2 * wn) if wn > 0 else 0
+            ganho = numerador[-1] / a2 if a2 != 0 else 1.0
+            
+            return wn, zeta, ganho
+            
+        except (ValueError, ZeroDivisionError) as e:
+            raise ErroValidacao(f"❌ Erro cálculo: {str(e)}")
+    
+    def calcular_resposta_temporal(self, tempo_final=None, num_pontos=1000):
+        """Cálculo com verificação de cache"""
+        # Criar chave de cache
+        cache_key = (self.wn, self.zeta, self.ganho, self.tipo_entrada, tempo_final, num_pontos)
         
-        # Validar zeta
-        if math.isnan(zeta) or math.isinf(zeta):
-            raise ErroValidacao("❌ Coeficiente de amortecimento calculado é inválido (NaN ou Infinito)!")
+        if cache_key in self.cache_respostas:
+            return self.cache_respostas[cache_key]
         
-        # Calcular ganho
+        # Cálculo original
         try:
-            if len(numerador) > 0 and abs(a2) > 1e-15:
-                ganho_num = numerador[-1]
-                ganho = ganho_num / a2
-            else:
-                ganho = 1.0
-        except (ZeroDivisionError, IndexError):
-            ganho = 1.0
-        
-        # Validar ganho
-        if math.isnan(ganho) or math.isinf(ganho):
-            raise ErroValidacao("❌ Ganho calculado é inválido!")
-        
-        return wn, zeta, ganho
+            if self.zeta < 0:
+                return None, None
+            
+            if self.wn <= 0:
+                return None, None
+            
+            # Determinar tempo final
+            if tempo_final is None:
+                if self.zeta > 0:
+                    ts = 4 / (self.zeta * self.wn)
+                    tempo_final = max(ts * 1.5, 5)
+                else:
+                    tempo_final = 10
+            
+            t = np.linspace(0, tempo_final, num_pontos)
+            
+            if self.tipo_entrada == 'degrau':
+                if self.zeta == 0:
+                    y = self.ganho * (1 - np.cos(self.wn * t))
+                elif 0 < self.zeta < 1:
+                    wd = self.wn * np.sqrt(np.maximum(1 - self.zeta**2, 0))
+                    if wd > 0:
+                        sigma = self.zeta * self.wn
+                        phi = np.arctan(wd / (self.zeta * self.wn + 1e-10))
+                        y = self.ganho * (1 - (np.exp(-sigma * t) / (np.sqrt(1 - self.zeta**2) + 1e-10)) * 
+                                         np.sin(wd * t + phi))
+                    else:
+                        y = self.ganho * np.ones_like(t)
+                elif self.zeta == 1:
+                    y = self.ganho * (1 - np.exp(-self.wn * t) * (1 + self.wn * t))
+                else:
+                    discriminante = self.zeta**2 - 1
+                    if discriminante > 0:
+                        sqrt_disc = np.sqrt(discriminante)
+                        s1 = -self.zeta * self.wn + self.wn * sqrt_disc
+                        s2 = -self.zeta * self.wn - self.wn * sqrt_disc
+                        A = s1 / (s1 - s2 + 1e-10)
+                        B = -s2 / (s1 - s2 + 1e-10)
+                        y = self.ganho * (1 - A * np.exp(np.maximum(s2 * t, -100)) - B * np.exp(np.maximum(s1 * t, -100)))
+                    else:
+                        y = self.ganho * np.ones_like(t)
+            else:  # rampa
+                if self.tipo_malha == 'fechada' and self.zeta > 0:
+                    kv = self.ganho * self.wn * self.wn
+                    erro_ss = 1 / (kv + 1e-10)
+                    
+                    if 0 < self.zeta < 1:
+                        wd = self.wn * np.sqrt(np.maximum(1 - self.zeta**2, 0))
+                        sigma = self.zeta * self.wn
+                        y = t - erro_ss - (2 * self.zeta / (self.wn * np.sqrt(np.maximum(1 - self.zeta**2, 1e-10)))) * np.exp(-sigma * t) * np.sin(wd * t)
+                    else:
+                        y = t - erro_ss * (1 - np.exp(-self.wn * t))
+                else:
+                    y = t * 0.5
+            
+            # Salvar em cache
+            resultado = (t, y)
+            self.cache_respostas[cache_key] = resultado
+            
+            return resultado
+            
+        except Exception as e:
+            print(f"Erro cálculo temporal: {str(e)}")
+            return None, None
     
     def analisar_de_funcao_transferencia(self, numerador, denominador, tipo_malha='fechada', tipo_entrada='degrau'):
         """
@@ -577,76 +593,9 @@ class AnalisadorSegundaOrdem:
         
         return resultado
     
-    def calcular_resposta_temporal(self, tempo_final=None, num_pontos=1000):
-        """
-        Calcula a resposta temporal do sistema para plotagem
-        
-        Args:
-            tempo_final: Tempo final da simulação (s)
-            num_pontos: Número de pontos da simulação
-            
-        Returns:
-            tuple: (vetor_tempo, vetor_resposta)
-        """
-        try:
-            if self.zeta < 0:
-                return None, None
-            
-            # Validações
-            if self.wn <= 0:
-                return None, None
-            
-            # Determinar tempo final adequado
-            if tempo_final is None:
-                if self.zeta > 0:
-                    ts = 4 / (self.zeta * self.wn)
-                    tempo_final = max(ts * 1.5, 5)
-                else:
-                    tempo_final = 10
-            
-            t = np.linspace(0, tempo_final, num_pontos)
-            
-            if self.tipo_entrada == 'degrau':
-                if self.zeta == 0:
-                    y = self.ganho * (1 - np.cos(self.wn * t))
-                elif 0 < self.zeta < 1:
-                    wd = self.wn * math.sqrt(1 - self.zeta**2)
-                    sigma = self.zeta * self.wn
-                    phi = math.atan(math.sqrt(1 - self.zeta**2) / self.zeta)
-                    y = self.ganho * (1 - (np.exp(-sigma * t) / math.sqrt(1 - self.zeta**2)) * 
-                                     np.sin(wd * t + phi))
-                elif self.zeta == 1:
-                    y = self.ganho * (1 - np.exp(-self.wn * t) * (1 + self.wn * t))
-                else:
-                    s1 = -self.zeta * self.wn + self.wn * math.sqrt(self.zeta**2 - 1)
-                    s2 = -self.zeta * self.wn - self.wn * math.sqrt(self.zeta**2 - 1)
-                    A = s1 / (s1 - s2)
-                    B = -s2 / (s1 - s2)
-                    y = self.ganho * (1 - A * np.exp(s2 * t) - B * np.exp(s1 * t))
-            else:  # rampa
-                if self.tipo_malha == 'fechada' and self.zeta > 0:
-                    kv = self.ganho * self.wn * self.wn
-                    erro_ss = 1 / kv if kv != 0 else 0
-                    
-                    if 0 < self.zeta < 1:
-                        wd = self.wn * math.sqrt(1 - self.zeta**2)
-                        sigma = self.zeta * self.wn
-                        
-                        y = t - erro_ss - (2 * self.zeta / (self.wn * math.sqrt(1 - self.zeta**2))) * np.exp(-sigma * t) * np.sin(wd * t)
-                    else:
-                        y = t - erro_ss * (1 - np.exp(-self.wn * t))
-                else:
-                    y = t * 0.5
-            
-            return t, y
-            
-        except Exception as e:
-            print(f"Erro ao calcular resposta temporal: {str(e)}")
-            return None, None
-    
     def plotar_resposta(self, frame_grafico=None):
         """
-        Plota a resposta temporal do sistema com estilo profissional
+        Plota a resposta temporal do sistema com estilo profissional e tema dinâmico
         
         Args:
             frame_grafico: Frame opcional para embedding (não usado nesta versão)
@@ -660,17 +609,57 @@ class AnalisadorSegundaOrdem:
             if t is None or y is None:
                 return None
             
-            # Configurar o gráfico com tema escuro profissional
+            cores_tema = gerenciador_temas.obter_cores()
+            modo_tema = cores_tema.get("mode", "dark")
+            tema_atual = getattr(gerenciador_temas, 'tema_atual', 'dark')
+            
+            if modo_tema == "light":
+                bg_color = '#ffffff'
+                fg_color = '#f8f9fa'
+                text_color = '#000000'
+                grid_color = '#cccccc'
+                line_color = '#1f77b4'
+                ref_color = '#ff7f0e'
+                stable_color = '#2ca02c'
+                peak_color = '#d62728'
+                settling_color = '#9467bd'
+                tolerance_color = '#ff9896'
+            elif tema_atual == "high_contrast":
+                # Alto contraste
+                bg_color = '#000000'
+                fg_color = '#1a1a1a'
+                text_color = '#ffffff'
+                grid_color = '#666666'
+                line_color = '#00ffff'
+                ref_color = '#ffff00'
+                stable_color = '#00ff00'
+                peak_color = '#ff0000'
+                settling_color = '#ff00ff'
+                tolerance_color = '#ff6666'
+            else:
+                # Tema escuro padrão
+                bg_color = cores_tema["fundo_claro"]
+                fg_color = cores_tema["fundo_escuro"]
+                text_color = cores_tema["texto_principal"]
+                grid_color = '#444444'
+                line_color = '#00bcd4'
+                ref_color = '#ffc107'
+                stable_color = cores_tema["sucesso"]
+                peak_color = cores_tema["erro"]
+                settling_color = '#ff9800'
+                tolerance_color = '#ff6b6b'
+            
+            # Configurar o gráfico com tema
             fig, ax = plt.subplots(figsize=(10, 6))
-            fig.patch.set_facecolor('#16213e')
-            ax.set_facecolor('#1a1a2e')
+            fig.patch.set_facecolor(fg_color)
+            ax.set_facecolor(bg_color)
             
             # Plotar resposta
-            ax.plot(t, y, 'cyan', linewidth=2.5, label='Resposta do Sistema', zorder=3)
+            ax.plot(t, y, line_color, linewidth=2.5, label='Resposta do Sistema', zorder=3)
             
             # Plotar entrada
             if self.tipo_entrada == 'degrau':
-                ax.plot(t, np.ones_like(t) * self.ganho, 'yellow', 
+                ax.plot(t, np.ones_like(t) * self.ganho, ref_color, 
                        linewidth=1.5, linestyle='--', label='Entrada (Degrau)', alpha=0.7, zorder=2)
                 
                 # Marcar características para malha fechada
@@ -681,29 +670,30 @@ class AnalisadorSegundaOrdem:
                         tp = math.pi / wd
                         mp_valor = self.ganho * (1 + math.exp(-math.pi * self.zeta / math.sqrt(1 - self.zeta**2)))
                         
-                        ax.plot(tp, mp_valor, 'ro', markersize=8, label=f'Pico (Tp={tp:.3f}s)', zorder=4)
-                        ax.axhline(y=mp_valor, color='red', linestyle=':', alpha=0.5, linewidth=1)
+                        ax.plot(tp, mp_valor, 'o', color=peak_color, markersize=8, 
+                               label=f'Pico (Tp={tp:.3f}s)', zorder=4)
+                        ax.axhline(y=mp_valor, color=peak_color, linestyle=':', alpha=0.5, linewidth=1)
                         ax.text(tp, mp_valor + 0.05 * self.ganho, f'Mp={((mp_valor/self.ganho - 1)*100):.1f}%', 
-                               color='red', fontsize=9, ha='center', fontweight='bold')
+                               color=peak_color, fontsize=9, ha='center', fontweight='bold')
                     
                     # Banda de ±2% e ±5%
-                    ax.axhline(y=self.ganho * 1.02, color='orange', linestyle=':', 
+                    ax.axhline(y=self.ganho * 1.02, color=tolerance_color, linestyle=':', 
                               alpha=0.5, linewidth=1, label='±2%', zorder=1)
-                    ax.axhline(y=self.ganho * 0.98, color='orange', linestyle=':', 
+                    ax.axhline(y=self.ganho * 0.98, color=tolerance_color, linestyle=':', 
                               alpha=0.5, linewidth=1, zorder=1)
-                    ax.axhline(y=self.ganho * 1.05, color='lime', linestyle=':', 
+                    ax.axhline(y=self.ganho * 1.05, color=stable_color, linestyle=':', 
                               alpha=0.4, linewidth=1, label='±5%', zorder=1)
-                    ax.axhline(y=self.ganho * 0.95, color='lime', linestyle=':', 
+                    ax.axhline(y=self.ganho * 0.95, color=stable_color, linestyle=':', 
                               alpha=0.4, linewidth=1, zorder=1)
                     
                     # Marcar tempo de acomodação (2%)
                     if self.zeta > 0:
                         ts = 4 / (self.zeta * self.wn)
                         if ts < t[-1]:
-                            ax.axvline(x=ts, color='orange', linestyle='--', 
+                            ax.axvline(x=ts, color=settling_color, linestyle='--', 
                                       alpha=0.6, linewidth=1.5, label=f'Ts(2%)={ts:.2f}s', zorder=1)
             else:  # rampa
-                ax.plot(t, t, 'yellow', linewidth=1.5, linestyle='--', 
+                ax.plot(t, t, ref_color, linewidth=1.5, linestyle='--', 
                        label='Entrada (Rampa)', alpha=0.7, zorder=2)
                 
                 # Mostrar erro de regime se aplicável
@@ -711,34 +701,33 @@ class AnalisadorSegundaOrdem:
                     kv = self.ganho * self.wn * self.wn
                     erro_ss = 1 / kv if kv != 0 else 0
                     if erro_ss > 0 and erro_ss < 10:
-                        # Linha do erro de regime
-                        ax.plot(t, t - erro_ss, 'green', linewidth=1.5, 
+                        ax.plot(t, t - erro_ss, stable_color, linewidth=1.5, 
                                linestyle=':', alpha=0.6, label=f'Entrada - e_ss ({erro_ss:.3f})', zorder=1)
             
             # Configurações do gráfico
-            ax.set_xlabel('Tempo (s)', color='white', fontsize=12, fontweight='bold')
-            ax.set_ylabel('Amplitude', color='white', fontsize=12, fontweight='bold')
+            ax.set_xlabel('Tempo (s)', color=text_color, fontsize=12, fontweight='bold')
+            ax.set_ylabel('Amplitude', color=text_color, fontsize=12, fontweight='bold')
             
             titulo = f'Resposta do Sistema - {self.tipo_malha.upper()} - Entrada: {self.tipo_entrada.upper()}'
-            ax.set_title(titulo, color='white', fontsize=14, fontweight='bold', pad=20)
+            ax.set_title(titulo, color=text_color, fontsize=14, fontweight='bold', pad=20)
             
             # Grade
-            ax.grid(True, alpha=0.3, color='gray', linestyle='--', linewidth=0.5)
+            ax.grid(True, alpha=0.3, color=grid_color, linestyle='--', linewidth=0.5)
             ax.set_axisbelow(True)
             
             # Legenda
-            legend = ax.legend(loc='best', facecolor='#16213e', edgecolor='white', 
+            legend = ax.legend(loc='best', facecolor=bg_color, edgecolor=text_color, 
                               fontsize=10, framealpha=0.9)
             for text in legend.get_texts():
-                text.set_color('white')
+                text.set_color(text_color)
             
             # Colorir labels dos eixos
-            ax.tick_params(axis='x', colors='white', labelsize=10)
-            ax.tick_params(axis='y', colors='white', labelsize=10)
+            ax.tick_params(axis='x', colors=text_color, labelsize=10)
+            ax.tick_params(axis='y', colors=text_color, labelsize=10)
             
             # Colorir bordas
             for spine in ax.spines.values():
-                spine.set_edgecolor('white')
+                spine.set_edgecolor(text_color)
                 spine.set_linewidth(1.5)
             
             # Ajustar limites do eixo Y para melhor visualização
@@ -755,18 +744,21 @@ class AnalisadorSegundaOrdem:
             
             # Adicionar informações do sistema no gráfico
             info_text = f'ωn = {self.wn:.3f} rad/s | ζ = {self.zeta:.3f} | K = {self.ganho:.3f}'
+            info_bg = bg_color if modo_tema == "light" else '#000000'
+            info_edge = stable_color
             ax.text(0.02, 0.98, info_text, transform=ax.transAxes, 
-                   fontsize=10, verticalalignment='top', color='lightgreen',
-                   bbox=dict(boxstyle='round,pad=0.5', facecolor='black', alpha=0.7, edgecolor='lightgreen'),
+                   fontsize=10, verticalalignment='top', color=stable_color,
+                   bbox=dict(boxstyle='round,pad=0.5', facecolor=info_bg, alpha=0.7, edgecolor=info_edge),
                    fontweight='bold')
             
             # Adicionar classificação do sistema
             classificacao = self.classificar_sistema().split(' - ')[0]
             classificacao_limpa = classificacao.replace('📉', '').replace('⚡', '').replace('📈', '').replace('🔄', '').replace('⚠️', '').strip()
+            class_color = ref_color
             ax.text(0.98, 0.98, classificacao_limpa, transform=ax.transAxes, 
                    fontsize=9, verticalalignment='top', horizontalalignment='right',
-                   color='yellow', fontweight='bold',
-                   bbox=dict(boxstyle='round,pad=0.4', facecolor='black', alpha=0.7, edgecolor='yellow'))
+                   color=class_color, fontweight='bold',
+                   bbox=dict(boxstyle='round,pad=0.4', facecolor=info_bg, alpha=0.7, edgecolor=class_color))
             
             plt.tight_layout()
             
@@ -775,7 +767,6 @@ class AnalisadorSegundaOrdem:
         except Exception as e:
             print(f"Erro ao plotar gráfico: {str(e)}")
             return None
-
 
 # Funções auxiliares para uso direto
 def analisar_sistema(numerador, denominador, tipo_malha='fechada', tipo_entrada='degrau'):

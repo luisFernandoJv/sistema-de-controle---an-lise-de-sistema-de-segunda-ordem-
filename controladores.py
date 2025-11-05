@@ -10,37 +10,48 @@ from matplotlib.patches import Circle
 import tkinter as tk
 import platform
 
-# Configuração do tema
-ctk.set_appearance_mode("dark")
+try:
+    from tela import gerenciador_temas, CORES
+except ImportError:
+    class GerenciadorTemasFallback:
+        def __init__(self):
+            self.tema_atual = "dark"  # Default theme
+        
+        def obter_cores(self):
+            return {
+                "primaria": "#1a4d8f",
+                "primaria_hover": "#144173",
+                "secundaria": "#2e7d32",
+                "secundaria_hover": "#1b5e20",
+                "terciaria": "#c62828",
+                "terciaria_hover": "#8e0000",
+                "fundo_escuro": "#1a1a2e",
+                "fundo_claro": "#16213e",
+                "texto_principal": "#e4e4e4",
+                "texto_secundario": "#94a3b8",
+                "acento": "#0f3460",
+                "borda": "#2d3748",
+                "sucesso": "#059669",
+                "alerta": "#d97706",
+                "erro": "#dc2626",
+                "mode": "dark"
+            }
+    gerenciador_temas = GerenciadorTemasFallback()
+    CORES = gerenciador_temas.obter_cores()
+
+ctk.set_appearance_mode(gerenciador_temas.obter_cores().get("mode", "dark"))
 ctk.set_default_color_theme("blue")
 
-# Paleta de cores
-CORES = {
-    "primaria": "#1a4d8f",
-    "primaria_hover": "#144173",
-    "secundaria": "#2e7d32",
-    "secundaria_hover": "#1b5e20",
-    "terciaria": "#c62828",
-    "terciaria_hover": "#8e0000",
-    "fundo_escuro": "#1a1a2e",
-    "fundo_claro": "#16213e",
-    "texto_principal": "#e4e4e4",
-    "texto_secundario": "#94a3b8",
-    "acento": "#0f3460",
-    "borda": "#2d3748",
-    "sucesso": "#059669",
-    "alerta": "#d97706",
-    "erro": "#dc2626"
-}
-
 class JanelaControladores(ctk.CTkToplevel):
-    """Janela de análise de controladores - Otimizada para Windows"""
+    """Janela de análise de controladores com tema dinâmico"""
     
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
         
-        # Detectar configurações do Windows
+        self.atualizar_cores_tema()
+        
+        # Detectar configurações do sistema
         self.is_windows = platform.system() == "Windows"
         self.dpi_scale = self.detectar_dpi_scale()
         
@@ -48,7 +59,7 @@ class JanelaControladores(ctk.CTkToplevel):
         self.title("ANÁLISE DE CONTROLADORES")
         self.configurar_tamanho_janela()
         self.resizable(True, True)
-        self.configure(fg_color=CORES["fundo_escuro"])
+        self.configure(fg_color=self.cores["fundo_escuro"])
         
         # Opção para tela cheia (descomente a linha abaixo para ativar)
         # self.state('zoomed')  # Windows
@@ -69,23 +80,7 @@ class JanelaControladores(ctk.CTkToplevel):
             except:
                 pass
         
-        # Cores para gráficos
-        self.graph_colors = {
-            'primary': '#1f77b4',
-            'secondary': '#ff7f0e', 
-            'tertiary': '#2ca02c',
-            'quaternary': '#d62728',
-            'background': '#ffffff',
-            'grid': '#e0e0e0',
-            'reference': '#ff4444',
-            'input': '#6666ff',
-            'stable': '#28a745',
-            'unstable': '#dc3545',
-            'zeros': '#6f42c1',
-            'tolerance': '#ff6b6b',
-            'settling': '#00b894',
-            'peak': '#6c5ce7'
-        }
+        self.configurar_cores_graficos()
         
         # Configurar estilo matplotlib com ajuste de DPI
         self.configurar_matplotlib()
@@ -107,7 +102,11 @@ class JanelaControladores(ctk.CTkToplevel):
         
         # Ajustar após criar interface
         self.update_idletasks()
-        
+    
+    def atualizar_cores_tema(self):
+        """Atualiza as cores baseado no tema atual"""
+        self.cores = gerenciador_temas.obter_cores()
+    
     def detectar_dpi_scale(self):
         """Detecta o fator de escala DPI do Windows"""
         try:
@@ -143,7 +142,7 @@ class JanelaControladores(ctk.CTkToplevel):
         
         # Configurar tamanho mínimo
         self.minsize(min_width, min_height)
-        
+    
     def ativar_tela_cheia(self):
         """Ativa o modo tela cheia"""
         if self.is_windows:
@@ -159,7 +158,7 @@ class JanelaControladores(ctk.CTkToplevel):
             self.attributes('-fullscreen', False)
         
     def configurar_matplotlib(self):
-        """Configura matplotlib para renderização otimizada no Windows"""
+        """Configura matplotlib para renderização otimizada com tema"""
         # Ajustar DPI baseado na escala do sistema
         base_dpi = 100
         adjusted_dpi = int(base_dpi / self.dpi_scale) if self.dpi_scale > 1 else base_dpi
@@ -167,13 +166,21 @@ class JanelaControladores(ctk.CTkToplevel):
         plt.rcParams['figure.dpi'] = adjusted_dpi
         plt.rcParams['savefig.dpi'] = adjusted_dpi
         
-        # Configurações de fonte
         plt.rcParams['font.size'] = 9
         plt.rcParams['axes.titlesize'] = 11
         plt.rcParams['axes.labelsize'] = 10
         plt.rcParams['legend.fontsize'] = 8
         plt.rcParams['figure.titlesize'] = 12
         plt.rcParams['font.family'] = 'sans-serif'
+        
+        # Cores do tema
+        plt.rcParams['text.color'] = self.graph_colors['text']
+        plt.rcParams['axes.labelcolor'] = self.graph_colors['axes']
+        plt.rcParams['xtick.color'] = self.graph_colors['axes']
+        plt.rcParams['ytick.color'] = self.graph_colors['axes']
+        plt.rcParams['axes.edgecolor'] = self.graph_colors['axes']
+        plt.rcParams['figure.facecolor'] = self.graph_colors['background']
+        plt.rcParams['axes.facecolor'] = self.graph_colors['background']
         
         # Backend otimizado para Windows
         if self.is_windows:
@@ -201,7 +208,7 @@ class JanelaControladores(ctk.CTkToplevel):
         """Cria o cabeçalho"""
         frame_cabecalho = ctk.CTkFrame(
             self, 
-            fg_color=CORES["acento"],
+            fg_color=self.cores["acento"],
             height=70,
             corner_radius=0
         )
@@ -217,8 +224,8 @@ class JanelaControladores(ctk.CTkToplevel):
             width=110,
             height=38,
             font=("Segoe UI", 12, "bold"),
-            fg_color=CORES["terciaria"],
-            hover_color=CORES["terciaria_hover"],
+            fg_color=self.cores["terciaria"],
+            hover_color=self.cores["terciaria_hover"],
             corner_radius=8
         )
         botao_voltar.grid(row=0, column=0, sticky="w", padx=20, pady=15)
@@ -231,8 +238,8 @@ class JanelaControladores(ctk.CTkToplevel):
             width=130,
             height=38,
             font=("Segoe UI", 11, "bold"),
-            fg_color=CORES["secundaria"],
-            hover_color=CORES["secundaria_hover"],
+            fg_color=self.cores["secundaria"],
+            hover_color=self.cores["secundaria_hover"],
             corner_radius=8
         )
         self.botao_fullscreen.grid(row=0, column=2, sticky="e", padx=20, pady=15)
@@ -243,13 +250,13 @@ class JanelaControladores(ctk.CTkToplevel):
             frame_cabecalho,
             text="ANÁLISE DE CONTROLADORES PI, PD E PID",
             font=("Segoe UI", 22, "bold"),
-            text_color=CORES["texto_principal"]
+            text_color=self.cores["texto_principal"]
         )
         label_titulo.grid(row=0, column=1, pady=15)
     
     def criar_conteudo(self):
         """Cria o conteúdo principal"""
-        frame_conteudo = ctk.CTkFrame(self, fg_color=CORES["fundo_claro"])
+        frame_conteudo = ctk.CTkFrame(self, fg_color=self.cores["fundo_claro"])
         frame_conteudo.grid(row=1, column=0, sticky="nsew", padx=20, pady=20)
         frame_conteudo.grid_columnconfigure(1, weight=1)
         frame_conteudo.grid_rowconfigure(0, weight=1)
@@ -282,7 +289,7 @@ class JanelaControladores(ctk.CTkToplevel):
         """Frame de configuração do sistema"""
         frame = ctk.CTkFrame(
             parent,
-            fg_color=CORES["acento"],
+            fg_color=self.cores["acento"],
             corner_radius=10
         )
         frame.pack(fill="x", pady=(0, 15))
@@ -292,7 +299,7 @@ class JanelaControladores(ctk.CTkToplevel):
             frame,
             text="FUNÇÃO DE TRANSFERÊNCIA",
             font=("Segoe UI", 14, "bold"),
-            text_color=CORES["texto_principal"]
+            text_color=self.cores["texto_principal"]
         ).pack(anchor="w", padx=20, pady=(15, 10))
         
         # Numerador
@@ -300,7 +307,7 @@ class JanelaControladores(ctk.CTkToplevel):
             frame,
             text="Numerador:",
             font=("Segoe UI", 12, "bold"),
-            text_color=CORES["texto_principal"]
+            text_color=self.cores["texto_principal"]
         ).pack(anchor="w", padx=20, pady=(5, 5))
         
         self.entrada_numerador = ctk.CTkEntry(
@@ -308,8 +315,8 @@ class JanelaControladores(ctk.CTkToplevel):
             placeholder_text="Ex: 4",
             height=40,
             font=("Segoe UI", 11),
-            fg_color=CORES["fundo_claro"],
-            border_color=CORES["borda"]
+            fg_color=self.cores["fundo_claro"],
+            border_color=self.cores["borda"]
         )
         self.entrada_numerador.pack(fill="x", padx=20, pady=(0, 5))
         self.entrada_numerador.insert(0, "4")
@@ -318,7 +325,7 @@ class JanelaControladores(ctk.CTkToplevel):
             frame,
             text="Coeficientes separados por espaço",
             font=("Segoe UI", 9),
-            text_color=CORES["texto_secundario"]
+            text_color=self.cores["texto_secundario"]
         ).pack(anchor="w", padx=20, pady=(0, 10))
         
         # Denominador
@@ -326,7 +333,7 @@ class JanelaControladores(ctk.CTkToplevel):
             frame,
             text="Denominador:",
             font=("Segoe UI", 12, "bold"),
-            text_color=CORES["texto_principal"]
+            text_color=self.cores["texto_principal"]
         ).pack(anchor="w", padx=20, pady=(5, 5))
         
         self.entrada_denominador = ctk.CTkEntry(
@@ -334,8 +341,8 @@ class JanelaControladores(ctk.CTkToplevel):
             placeholder_text="Ex: 1 0.8 4",
             height=40,
             font=("Segoe UI", 11),
-            fg_color=CORES["fundo_claro"],
-            border_color=CORES["borda"]
+            fg_color=self.cores["fundo_claro"],
+            border_color=self.cores["borda"]
         )
         self.entrada_denominador.pack(fill="x", padx=20, pady=(0, 5))
         self.entrada_denominador.insert(0, "1 0.8 4")
@@ -344,7 +351,7 @@ class JanelaControladores(ctk.CTkToplevel):
             frame,
             text="Coeficientes separados por espaço",
             font=("Segoe UI", 9),
-            text_color=CORES["texto_secundario"]
+            text_color=self.cores["texto_secundario"]
         ).pack(anchor="w", padx=20, pady=(0, 15))
         
         # Informação sobre o sistema padrão
@@ -355,21 +362,21 @@ class JanelaControladores(ctk.CTkToplevel):
             info_frame,
             text="📊 Sistema padrão: G(s) = 4/(s² + 0.8s + 4)",
             font=("Segoe UI", 10, "bold"),
-            text_color=CORES["sucesso"]
+            text_color=self.cores["sucesso"]
         ).pack(anchor="w")
         
         ctk.CTkLabel(
             info_frame,
             text="ωn = 2 rad/s, ζ = 0.2 (Subamortecido)",
             font=("Segoe UI", 9),
-            text_color=CORES["texto_secundario"]
+            text_color=self.cores["texto_secundario"]
         ).pack(anchor="w")
     
     def criar_frame_entrada(self, parent):
         """Frame de seleção do tipo de entrada"""
         frame = ctk.CTkFrame(
             parent,
-            fg_color=CORES["acento"],
+            fg_color=self.cores["acento"],
             corner_radius=10
         )
         frame.pack(fill="x", pady=(0, 15))
@@ -378,7 +385,7 @@ class JanelaControladores(ctk.CTkToplevel):
             frame,
             text="⚡ TIPO DE ENTRADA",
             font=("Segoe UI", 14, "bold"),
-            text_color=CORES["texto_principal"]
+            text_color=self.cores["texto_principal"]
         ).pack(anchor="w", padx=20, pady=(15, 10))
         
         self.tipo_entrada = ctk.StringVar(value="Degrau Unitário")
@@ -389,9 +396,9 @@ class JanelaControladores(ctk.CTkToplevel):
             variable=self.tipo_entrada,
             value="Degrau Unitário",
             font=("Segoe UI", 11),
-            text_color=CORES["texto_principal"],
-            fg_color=CORES["primaria"],
-            hover_color=CORES["primaria_hover"]
+            text_color=self.cores["texto_principal"],
+            fg_color=self.cores["primaria"],
+            hover_color=self.cores["primaria_hover"]
         ).pack(anchor="w", padx=20, pady=5)
         
         ctk.CTkRadioButton(
@@ -400,16 +407,16 @@ class JanelaControladores(ctk.CTkToplevel):
             variable=self.tipo_entrada,
             value="Rampa Unitária",
             font=("Segoe UI", 11),
-            text_color=CORES["texto_principal"],
-            fg_color=CORES["primaria"],
-            hover_color=CORES["primaria_hover"]
+            text_color=self.cores["texto_principal"],
+            fg_color=self.cores["primaria"],
+            hover_color=self.cores["primaria_hover"]
         ).pack(anchor="w", padx=20, pady=(5, 15))
     
     def criar_frame_controlador(self, parent):
         """Frame de configuração do controlador"""
         frame = ctk.CTkFrame(
             parent,
-            fg_color=CORES["acento"],
+            fg_color=self.cores["acento"],
             corner_radius=10
         )
         frame.pack(fill="x", pady=(0, 15))
@@ -418,14 +425,14 @@ class JanelaControladores(ctk.CTkToplevel):
             frame,
             text="🎮 CONTROLADOR",
             font=("Segoe UI", 14, "bold"),
-            text_color=CORES["texto_principal"]
+            text_color=self.cores["texto_principal"]
         ).pack(anchor="w", padx=20, pady=(15, 10))
         
         ctk.CTkLabel(
             frame,
             text="Tipo:",
             font=("Segoe UI", 11, "bold"),
-            text_color=CORES["texto_principal"]
+            text_color=self.cores["texto_principal"]
         ).pack(anchor="w", padx=20, pady=(5, 5))
         
         self.tipo_controlador = ctk.CTkComboBox(
@@ -433,10 +440,10 @@ class JanelaControladores(ctk.CTkToplevel):
             values=["PI", "PD", "PID"],
             height=38,
             font=("Segoe UI", 11),
-            fg_color=CORES["fundo_claro"],
-            button_color=CORES["primaria"],
-            button_hover_color=CORES["primaria_hover"],
-            border_color=CORES["borda"],
+            fg_color=self.cores["fundo_claro"],
+            button_color=self.cores["primaria"],
+            button_hover_color=self.cores["primaria_hover"],
+            border_color=self.cores["borda"],
             command=self.atualizar_parametros_controlador
         )
         self.tipo_controlador.pack(fill="x", padx=20, pady=(0, 15))
@@ -471,7 +478,7 @@ class JanelaControladores(ctk.CTkToplevel):
             frame_campo,
             text=label,
             font=("Segoe UI", 11, "bold"),
-            text_color=CORES["texto_principal"],
+            text_color=self.cores["texto_principal"],
             width=40
         ).pack(side="left")
         
@@ -479,8 +486,8 @@ class JanelaControladores(ctk.CTkToplevel):
             frame_campo,
             height=35,
             font=("Segoe UI", 11),
-            fg_color=CORES["fundo_claro"],
-            border_color=CORES["borda"]
+            fg_color=self.cores["fundo_claro"],
+            border_color=self.cores["borda"]
         )
         entrada.pack(side="left", fill="x", expand=True, padx=(10, 0))
         entrada.insert(0, valor_padrao)
@@ -495,8 +502,8 @@ class JanelaControladores(ctk.CTkToplevel):
             command=self.gerar_analise,
             height=50,
             font=("Segoe UI", 13, "bold"),
-            fg_color=CORES["primaria"],
-            hover_color=CORES["primaria_hover"],
+            fg_color=self.cores["primaria"],
+            hover_color=self.cores["primaria_hover"],
             corner_radius=8
         ).pack(fill="x", pady=(10, 10))
         
@@ -506,14 +513,14 @@ class JanelaControladores(ctk.CTkToplevel):
             command=self.limpar_tudo,
             height=45,
             font=("Segoe UI", 12, "bold"),
-            fg_color=CORES["terciaria"],
-            hover_color=CORES["terciaria_hover"],
+            fg_color=self.cores["terciaria"],
+            hover_color=self.cores["terciaria_hover"],
             corner_radius=8
         ).pack(fill="x")
     
     def criar_area_graficos(self, parent):
         """Cria a área de gráficos com tamanho responsivo"""
-        frame_graficos = ctk.CTkFrame(parent, fg_color=CORES["acento"], corner_radius=10)
+        frame_graficos = ctk.CTkFrame(parent, fg_color=self.cores["acento"], corner_radius=10)
         frame_graficos.grid(row=0, column=1, sticky="nsew", pady=0)
         frame_graficos.grid_columnconfigure(0, weight=1)
         frame_graficos.grid_rowconfigure(0, weight=1)
@@ -523,10 +530,10 @@ class JanelaControladores(ctk.CTkToplevel):
         
         self.notebook = ctk.CTkTabview(
             frame_graficos, 
-            fg_color=CORES["fundo_claro"],
-            segmented_button_fg_color=CORES["primaria"],
-            segmented_button_selected_color=CORES["primaria_hover"],
-            segmented_button_selected_hover_color=CORES["primaria_hover"],
+            fg_color=self.cores["fundo_claro"],
+            segmented_button_fg_color=self.cores["primaria"],
+            segmented_button_selected_color=self.cores["primaria_hover"],
+            segmented_button_selected_hover_color=self.cores["primaria_hover"],
             width=notebook_width
         )
         self.notebook.pack(fill="both", expand=True, padx=10, pady=10)
@@ -554,7 +561,7 @@ class JanelaControladores(ctk.CTkToplevel):
         graph_dpi = max(70, int(90 / self.dpi_scale))
         
         # Gráfico sem controlador
-        frame_sem = ctk.CTkFrame(container, fg_color=CORES["acento"], corner_radius=8)
+        frame_sem = ctk.CTkFrame(container, fg_color=self.cores["acento"], corner_radius=8)
         frame_sem.grid(row=0, column=0, sticky="nsew", padx=(0, 5), pady=(0, 5))
         frame_sem.grid_columnconfigure(0, weight=1)
         frame_sem.grid_rowconfigure(1, weight=1)
@@ -564,7 +571,7 @@ class JanelaControladores(ctk.CTkToplevel):
             frame_sem,
             text="📈 SEM CONTROLADOR",
             font=("Segoe UI", 12, "bold"),
-            text_color=CORES["texto_principal"]
+            text_color=self.cores["texto_principal"]
         ).grid(row=0, column=0, pady=(8, 5), sticky="w", padx=10)
         
         self.fig_resp_sem = plt.Figure(figsize=(6, 4), dpi=graph_dpi)
@@ -580,7 +587,7 @@ class JanelaControladores(ctk.CTkToplevel):
         self.configurar_toolbar(toolbar_sem)
         
         # Gráfico com controlador
-        frame_com = ctk.CTkFrame(container, fg_color=CORES["acento"], corner_radius=8)
+        frame_com = ctk.CTkFrame(container, fg_color=self.cores["acento"], corner_radius=8)
         frame_com.grid(row=0, column=1, sticky="nsew", padx=(5, 0), pady=(0, 5))
         frame_com.grid_columnconfigure(0, weight=1)
         frame_com.grid_rowconfigure(1, weight=1)
@@ -590,7 +597,7 @@ class JanelaControladores(ctk.CTkToplevel):
             frame_com,
             text="📊 COM CONTROLADOR",
             font=("Segoe UI", 12, "bold"),
-            text_color=CORES["texto_principal"]
+            text_color=self.cores["texto_principal"]
         ).grid(row=0, column=0, pady=(8, 5), sticky="w", padx=10)
         
         self.fig_resp_com = plt.Figure(figsize=(6, 4), dpi=graph_dpi)
@@ -606,14 +613,14 @@ class JanelaControladores(ctk.CTkToplevel):
         self.configurar_toolbar(toolbar_com)
 
         # Frame de informações
-        frame_info = ctk.CTkFrame(container, fg_color=CORES["acento"], corner_radius=8)
+        frame_info = ctk.CTkFrame(container, fg_color=self.cores["acento"], corner_radius=8)
         frame_info.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(5, 0))
         
         self.label_info_resposta = ctk.CTkLabel(
             frame_info,
             text="🔎 Use os botões ⤭ (Zoom) e ✥ (Pan) para explorar os gráficos.",
             font=("Segoe UI", 10),
-            text_color=CORES["texto_secundario"]
+            text_color=self.cores["texto_secundario"]
         )
         self.label_info_resposta.pack(pady=8)
     
@@ -630,7 +637,7 @@ class JanelaControladores(ctk.CTkToplevel):
         graph_dpi = max(70, int(90 / self.dpi_scale))
         
         # LGR sem controlador
-        frame_sem = ctk.CTkFrame(container, fg_color=CORES["acento"], corner_radius=8)
+        frame_sem = ctk.CTkFrame(container, fg_color=self.cores["acento"], corner_radius=8)
         frame_sem.grid(row=0, column=0, sticky="nsew", padx=(0, 5), pady=0)
         frame_sem.grid_columnconfigure(0, weight=1)
         frame_sem.grid_rowconfigure(1, weight=1)
@@ -640,7 +647,7 @@ class JanelaControladores(ctk.CTkToplevel):
             frame_sem,
             text="🔍 SEM CONTROLADOR",
             font=("Segoe UI", 12, "bold"),
-            text_color=CORES["texto_principal"]
+            text_color=self.cores["texto_principal"]
         ).grid(row=0, column=0, pady=(8, 5), sticky="w", padx=10)
         
         self.fig_lgr_sem = plt.Figure(figsize=(6, 4), dpi=graph_dpi)
@@ -656,7 +663,7 @@ class JanelaControladores(ctk.CTkToplevel):
         self.configurar_toolbar(toolbar_lgr_sem)
 
         # LGR com controlador
-        frame_com = ctk.CTkFrame(container, fg_color=CORES["acento"], corner_radius=8)
+        frame_com = ctk.CTkFrame(container, fg_color=self.cores["acento"], corner_radius=8)
         frame_com.grid(row=0, column=1, sticky="nsew", padx=(5, 0), pady=0)
         frame_com.grid_columnconfigure(0, weight=1)
         frame_com.grid_rowconfigure(1, weight=1)
@@ -666,7 +673,7 @@ class JanelaControladores(ctk.CTkToplevel):
             frame_com,
             text="🎯 COM CONTROLADOR",
             font=("Segoe UI", 12, "bold"),
-            text_color=CORES["texto_principal"]
+            text_color=self.cores["texto_principal"]
         ).grid(row=0, column=0, pady=(8, 5), sticky="w", padx=10)
         
         self.fig_lgr_com = plt.Figure(figsize=(6, 4), dpi=graph_dpi)
@@ -695,7 +702,7 @@ class JanelaControladores(ctk.CTkToplevel):
         graph_dpi = max(70, int(90 / self.dpi_scale))
         
         # Gráfico
-        frame_grafico = ctk.CTkFrame(container, fg_color=CORES["acento"], corner_radius=8)
+        frame_grafico = ctk.CTkFrame(container, fg_color=self.cores["acento"], corner_radius=8)
         frame_grafico.grid(row=0, column=0, sticky="nsew", pady=(0, 5))
         frame_grafico.grid_columnconfigure(0, weight=1)
         frame_grafico.grid_rowconfigure(1, weight=1)
@@ -704,7 +711,7 @@ class JanelaControladores(ctk.CTkToplevel):
             frame_grafico,
             text="🎯 DIAGRAMA DE POLOS E ZEROS (COM CONTROLADOR)",
             font=("Segoe UI", 12, "bold"),
-            text_color=CORES["texto_principal"]
+            text_color=self.cores["texto_principal"]
         ).grid(row=0, column=0, pady=(8, 5), sticky="w", padx=10)
         
         self.fig_pz = plt.Figure(figsize=(8, 5), dpi=graph_dpi)
@@ -721,7 +728,7 @@ class JanelaControladores(ctk.CTkToplevel):
         self.configurar_toolbar(toolbar_pz)
 
         # Informações
-        frame_info = ctk.CTkFrame(container, fg_color=CORES["acento"], corner_radius=8)
+        frame_info = ctk.CTkFrame(container, fg_color=self.cores["acento"], corner_radius=8)
         frame_info.grid(row=2, column=0, sticky="nsew", pady=(5, 0))
         frame_info.grid_columnconfigure(0, weight=1)
         frame_info.grid_rowconfigure(1, weight=1)
@@ -730,14 +737,14 @@ class JanelaControladores(ctk.CTkToplevel):
             frame_info,
             text="📋 INFORMAÇÕES DETALHADAS",
             font=("Segoe UI", 12, "bold"),
-            text_color=CORES["texto_principal"]
+            text_color=self.cores["texto_principal"]
         ).grid(row=0, column=0, pady=(8, 5), sticky="w", padx=10)
         
         self.texto_info = ctk.CTkTextbox(
             frame_info,
             font=("Consolas", 9),
-            fg_color=CORES["fundo_claro"],
-            border_color=CORES["borda"],
+            fg_color=self.cores["fundo_claro"],
+            border_color=self.cores["borda"],
             border_width=1,
             height=120
         )
@@ -746,43 +753,108 @@ class JanelaControladores(ctk.CTkToplevel):
     
     def configurar_toolbar(self, toolbar):
         """Configura a toolbar do matplotlib para o tema dark"""
-        toolbar.config(background=CORES["acento"])
+        toolbar.config(background=self.cores["acento"])
         toolbar._message_label.config(
-            background=CORES["acento"], 
-            foreground=CORES["texto_principal"]
+            background=self.cores["acento"], 
+            foreground=self.cores["texto_principal"]
         )
         
         for widget in toolbar.winfo_children():
             if isinstance(widget, (tk.Button, tk.Checkbutton)):
                 widget.config(
-                    background=CORES["fundo_claro"], 
+                    background=self.cores["fundo_claro"], 
                     relief="flat", 
-                    fg=CORES["texto_principal"], 
-                    activeforeground=CORES["texto_principal"], 
-                    activebackground=CORES["primaria"]
+                    fg=self.cores["texto_principal"], 
+                    activeforeground=self.cores["texto_principal"], 
+                    activebackground=self.cores["primaria"]
                 )
         
         toolbar.update()
     
-    def setup_plot_style(self, ax):
-        """Configura o estilo dos gráficos para o tema dark"""
-        ax.set_facecolor(CORES["fundo_claro"])
-        ax.figure.set_facecolor(CORES["acento"])
+    def configurar_cores_graficos(self):
+        """Configura cores dos gráficos baseado no tema"""
+        tema_atual = getattr(gerenciador_temas, 'tema_atual', 'dark')
+        mode = self.cores.get("mode", "dark")
         
-        ax.tick_params(axis='both', which='major', colors=CORES["texto_principal"], labelsize=9)
-        ax.title.set_color(CORES["texto_principal"])
-        ax.xaxis.label.set_color(CORES["texto_principal"])
-        ax.yaxis.label.set_color(CORES["texto_principal"])
+        if mode == "light":
+            self.graph_colors = {
+                'primary': '#1f77b4',
+                'secondary': '#ff7f0e', 
+                'tertiary': '#2ca02c',
+                'quaternary': '#d62728',
+                'background': '#ffffff',
+                'grid': '#cccccc',
+                'reference': '#ff4444',
+                'input': '#6666ff',
+                'stable': '#28a745',
+                'unstable': '#dc3545',
+                'zeros': '#6f42c1',
+                'tolerance': '#ff6b6b',
+                'settling': '#00b894',
+                'peak': '#6c5ce7',
+                'text': '#000000',
+                'axes': '#333333'
+            }
+        elif tema_atual == "high_contrast":
+            # Alto contraste
+            self.graph_colors = {
+                'primary': '#00ffff',
+                'secondary': '#ffff00', 
+                'tertiary': '#00ff00',
+                'quaternary': '#ff0000',
+                'background': '#000000',
+                'grid': '#666666',
+                'reference': '#ff0000',
+                'input': '#0000ff',
+                'stable': '#00ff00',
+                'unstable': '#ff0000',
+                'zeros': '#ff00ff',
+                'tolerance': '#ff6666',
+                'settling': '#00ffaa',
+                'peak': '#ffaa00',
+                'text': '#ffffff',
+                'axes': '#ffffff'
+            }
+        else:
+            # Tema escuro padrão
+            self.graph_colors = {
+                'primary': '#1f77b4',
+                'secondary': '#ff7f0e', 
+                'tertiary': '#2ca02c',
+                'quaternary': '#d62728',
+                'background': self.cores["fundo_claro"],
+                'grid': '#444444',
+                'reference': '#ff4444',
+                'input': '#6666ff',
+                'stable': '#28a745',
+                'unstable': '#dc3545',
+                'zeros': '#6f42c1',
+                'tolerance': '#ff6b6b',
+                'settling': '#00b894',
+                'peak': '#6c5ce7',
+                'text': self.cores["texto_principal"],
+                'axes': self.cores["texto_principal"]
+            }
+    
+    def setup_plot_style(self, ax):
+        """Configura o estilo dos gráficos para o tema atual"""
+        ax.set_facecolor(self.graph_colors['background'])
+        ax.figure.set_facecolor(self.cores["acento"])
+        
+        ax.tick_params(axis='both', which='major', colors=self.graph_colors['text'], labelsize=9)
+        ax.title.set_color(self.graph_colors['text'])
+        ax.xaxis.label.set_color(self.graph_colors['text'])
+        ax.yaxis.label.set_color(self.graph_colors['text'])
         ax.xaxis.label.set_fontweight('bold')
         ax.yaxis.label.set_fontweight('bold')
         ax.title.set_fontweight('bold')
         
         for spine in ax.spines.values():
-            spine.set_color(CORES["texto_secundario"])
+            spine.set_color(self.graph_colors['axes'])
             spine.set_linewidth(1.2)
         
         ax.grid(True, which='both', linestyle=':', linewidth=0.5, 
-                color=CORES["texto_secundario"], alpha=0.3)
+                color=self.graph_colors['grid'], alpha=0.5)
         
         ax.xaxis.set_minor_locator(AutoMinorLocator())
         ax.yaxis.set_minor_locator(AutoMinorLocator())
@@ -874,59 +946,64 @@ class JanelaControladores(ctk.CTkToplevel):
         return metricas
     
     def plotar_resposta_completa(self, ax, t, y, metricas, titulo, cor, y_lim_top=None):
-        """Plota o gráfico de resposta completo"""
+        """Plota o gráfico de resposta completo com cores do tema"""
         m = metricas
         zeta = m.get('Zeta', 0)
         ganho_k = m.get('y_final', 0)
 
-        cor_plot = 'cyan' if cor == self.graph_colors['primary'] else 'orange'
+        cor_plot = self.graph_colors['primary'] if cor == self.graph_colors['primary'] else self.graph_colors['secondary']
         label_saida = f"Saída (Mp: {m.get('Mp', 0):.1f}%)"
         ax.plot(t, y, color=cor_plot, linewidth=2.5, label=label_saida, zorder=3)
 
-        ax.plot(t, np.ones_like(t), color='yellow',
+        ax.plot(t, np.ones_like(t), color=self.graph_colors['reference'],
                    linewidth=1.5, linestyle='--', label='Referência', alpha=0.7, zorder=2)
 
         label_vf = f'Valor Final (K={ganho_k:.3f})'
-        ax.axhline(y=m['y_final'], color='lime', linestyle=':',
+        ax.axhline(y=m['y_final'], color=self.graph_colors['stable'], linestyle=':',
                    linewidth=1.5, label=label_vf, alpha=0.8, zorder=2)
 
         if zeta >= 0 and m['y_final'] > 1e-6:
             y_sup_2 = m['y_final'] * 1.02
             y_inf_2 = m['y_final'] * 0.98
-            ax.axhline(y=y_sup_2, color='orange', linestyle=':',
+            ax.axhline(y=y_sup_2, color=self.graph_colors['tolerance'], linestyle=':',
                       alpha=0.4, linewidth=0.8, label='Faixa ±2%', zorder=1)
-            ax.axhline(y=y_inf_2, color='orange', linestyle=':',
+            ax.axhline(y=y_inf_2, color=self.graph_colors['tolerance'], linestyle=':',
                       alpha=0.4, linewidth=0.8, zorder=1)
 
         if 0 <= zeta < 1 and m.get('Mp', 0) > 0.1:
             tp = m.get('Tp', 0)
             y_pico = m.get('y_pico', m['y_final'])
-            ax.plot(tp, y_pico, 'ro', markersize=7, label=f'Pico (Tp={tp:.3f}s)', zorder=4)
-            ax.axhline(y=y_pico, color='red', linestyle=':', alpha=0.5, linewidth=1, zorder=1)
+            ax.plot(tp, y_pico, 'o', color=self.graph_colors['peak'], markersize=7, 
+                   label=f'Pico (Tp={tp:.3f}s)', zorder=4)
+            ax.axhline(y=y_pico, color=self.graph_colors['peak'], linestyle=':', alpha=0.5, linewidth=1, zorder=1)
             ax.text(tp, y_pico * 1.02, f'Mp={m.get("Mp", 0):.1f}%',
-                   color='red', fontsize=9, ha='center', va='bottom', fontweight='bold', zorder=5)
+                   color=self.graph_colors['peak'], fontsize=9, ha='center', va='bottom', fontweight='bold', zorder=5)
 
         ts_2 = m.get('Ts', 0)
         if ts_2 > 0 and zeta >= 0:
             y_ts2 = m.get('y_Ts', m['y_final'])
-            ax.plot(ts_2, y_ts2, 'o', color='orange', markersize=7, label=f'Ts(2%)={ts_2:.2f}s', zorder=4)
-            ax.axvline(x=ts_2, color='orange', linestyle='--',
+            ax.plot(ts_2, y_ts2, 'o', color=self.graph_colors['settling'], markersize=7, 
+                   label=f'Ts(2%)={ts_2:.2f}s', zorder=4)
+            ax.axvline(x=ts_2, color=self.graph_colors['settling'], linestyle='--',
                        alpha=0.6, linewidth=1.5, zorder=1)
 
-        ax.set_title(titulo, fontsize=11, pad=10)
-        ax.set_xlabel('Tempo (s)', fontsize=10, color=CORES["texto_principal"])
-        ax.set_ylabel('Amplitude', fontsize=10, color=CORES["texto_principal"])
+        ax.set_title(titulo, fontsize=11, pad=10, color=self.graph_colors['text'])
+        ax.set_xlabel('Tempo (s)', fontsize=10, color=self.graph_colors['text'])
+        ax.set_ylabel('Amplitude', fontsize=10, color=self.graph_colors['text'])
 
-        legend = ax.legend(loc='best', fontsize=9, facecolor=CORES["fundo_claro"],
-                           edgecolor=CORES["texto_secundario"], labelcolor=CORES["texto_principal"])
-        if legend: legend.get_frame().set_alpha(0.85)
+        legend = ax.legend(loc='best', fontsize=9, facecolor=self.graph_colors['background'],
+                           edgecolor=self.graph_colors['axes'])
+        if legend: 
+            legend.get_frame().set_alpha(0.85)
+            for text in legend.get_texts():
+                text.set_color(self.graph_colors['text'])
 
         y_top_limit = y_lim_top if y_lim_top is not None else max(1.1, m.get('y_pico', 1.0) * 1.15 if m.get('Mp',0) > 0.1 else 1.5)
         y_bottom_limit = min(0, np.min(y) * 1.1 if len(y) > 0 and np.min(y) < -1e-3 else 0)
         ax.set_ylim(bottom=y_bottom_limit, top=y_top_limit)
         ax.set_xlim(left=0, right=t[-1] if len(t) > 0 else 10)
 
-        ax.grid(True, alpha=0.3)
+        ax.grid(True, alpha=0.3, color=self.graph_colors['grid'])
         ax.set_axisbelow(True)
     
     def gerar_analise(self):
@@ -949,7 +1026,7 @@ class JanelaControladores(ctk.CTkToplevel):
             self.mostrar_erro(str(e))
     
     def gerar_resposta_temporal(self, G, Gc):
-        """Gera os gráficos de resposta temporal"""
+        """Gera os gráficos de resposta temporal com cores do tema"""
         tipo_entrada = self.tipo_entrada.get()
 
         try:
@@ -1007,36 +1084,38 @@ class JanelaControladores(ctk.CTkToplevel):
                 y_max_global_rampa = max(t_final_rampa, y_max_rampa_sem, y_max_rampa_com) * 1.1
 
                 self.ax_resp_sem.plot(t_sem, y_sem, linewidth=2.5, color=self.graph_colors['primary'], label='Saída')
-                self.ax_resp_sem.plot(t_sem, u, '--', linewidth=1.5, color=CORES["texto_secundario"],
+                self.ax_resp_sem.plot(t_sem, u, '--', linewidth=1.5, color=self.graph_colors['reference'],
                                     alpha=0.8, label='Entrada (Rampa)')
-                self.ax_resp_sem.set_title('Resposta à Rampa - Sistema Original (Malha Aberta)', fontsize=11)
-                self.ax_resp_sem.set_xlabel('Tempo (s)', fontsize=10)
-                self.ax_resp_sem.set_ylabel('Amplitude', fontsize=10)
+                self.ax_resp_sem.set_title('Resposta à Rampa - Sistema Original (Malha Aberta)', 
+                                          fontsize=11, color=self.graph_colors['text'])
+                self.ax_resp_sem.set_xlabel('Tempo (s)', fontsize=10, color=self.graph_colors['text'])
+                self.ax_resp_sem.set_ylabel('Amplitude', fontsize=10, color=self.graph_colors['text'])
                 self.ax_resp_sem.set_ylim(bottom=0, top=y_max_global_rampa)
                 self.ax_resp_sem.set_xlim(left=0, right=t_final_rampa)
 
                 legend_sem = self.ax_resp_sem.legend(fontsize=9, loc='lower right')
-                legend_sem.get_frame().set_facecolor(CORES["fundo_claro"])
-                legend_sem.get_frame().set_edgecolor(CORES["texto_secundario"])
-                legend_sem.get_frame().set_alpha(0.75)
+                legend_sem.get_frame().set_facecolor(self.graph_colors['background'])
+                legend_sem.get_frame().set_edgecolor(self.graph_colors['axes'])
+                legend_sem.get_frame().set_alpha(0.85)
                 for text in legend_sem.get_texts():
-                    text.set_color(CORES["texto_principal"])
+                    text.set_color(self.graph_colors['text'])
 
                 self.ax_resp_com.plot(t_com, y_com, linewidth=2.5, color=self.graph_colors['secondary'], label='Saída')
-                self.ax_resp_com.plot(t_com, u, '--', linewidth=1.5, color=CORES["texto_secundario"],
+                self.ax_resp_com.plot(t_com, u, '--', linewidth=1.5, color=self.graph_colors['reference'],
                                     alpha=0.8, label='Entrada (Rampa)')
-                self.ax_resp_com.set_title('Resposta à Rampa - Com Controlador (Malha Fechada)', fontsize=11)
-                self.ax_resp_com.set_xlabel('Tempo (s)', fontsize=10)
-                self.ax_resp_com.set_ylabel('Amplitude', fontsize=10)
+                self.ax_resp_com.set_title('Resposta à Rampa - Com Controlador (Malha Fechada)', 
+                                          fontsize=11, color=self.graph_colors['text'])
+                self.ax_resp_com.set_xlabel('Tempo (s)', fontsize=10, color=self.graph_colors['text'])
+                self.ax_resp_com.set_ylabel('Amplitude', fontsize=10, color=self.graph_colors['text'])
                 self.ax_resp_com.set_ylim(bottom=0, top=y_max_global_rampa)
                 self.ax_resp_com.set_xlim(left=0, right=t_final_rampa)
 
                 legend_com = self.ax_resp_com.legend(fontsize=9, loc='lower right')
-                legend_com.get_frame().set_facecolor(CORES["fundo_claro"])
-                legend_com.get_frame().set_edgecolor(CORES["texto_secundario"])
-                legend_com.get_frame().set_alpha(0.75)
+                legend_com.get_frame().set_facecolor(self.graph_colors['background'])
+                legend_com.get_frame().set_edgecolor(self.graph_colors['axes'])
+                legend_com.get_frame().set_alpha(0.85)
                 for text in legend_com.get_texts():
-                    text.set_color(CORES["texto_principal"])
+                    text.set_color(self.graph_colors['text'])
 
             self.setup_plot_style(self.ax_resp_sem)
             self.setup_plot_style(self.ax_resp_com)
@@ -1051,13 +1130,13 @@ class JanelaControladores(ctk.CTkToplevel):
             self.canvas_resp_com.draw()
 
         except Exception as e:
-            print(f"Erro ao gerar resposta temporal: {e}")
+            print(f"Erro ao plotar gráfico: {e}")
             for ax in [self.ax_resp_sem, self.ax_resp_com]:
                 ax.clear()
                 self.setup_plot_style(ax)
                 ax.text(0.5, 0.5, f'Erro: {str(e)}',
                        ha='center', va='center', transform=ax.transAxes,
-                       fontsize=10, color=CORES["erro"])
+                       fontsize=10, color=self.cores["erro"])
             self.canvas_resp_sem.draw()
             self.canvas_resp_com.draw()
     
@@ -1098,7 +1177,7 @@ class JanelaControladores(ctk.CTkToplevel):
         self.canvas_lgr_com.draw()
     
     def gerar_polos_zeros(self, G, Gc):
-        """Gera o gráfico de polos e zeros"""
+        """Gera o gráfico de polos e zeros com cores do tema"""
         try:
             sys_com = feedback(G * Gc, 1)
             poles_com = control.poles(sys_com)
@@ -1127,14 +1206,16 @@ class JanelaControladores(ctk.CTkToplevel):
                               markeredgewidth=2, fillstyle='none', 
                               color=self.graph_colors['zeros'], label='Zeros')
             
-            self.ax_pz.axhline(0, color='black', linewidth=1, alpha=0.8)
-            self.ax_pz.axvline(0, color='black', linewidth=1, alpha=0.8)
+            self.ax_pz.axhline(0, color=self.graph_colors['axes'], linewidth=1, alpha=0.8)
+            self.ax_pz.axvline(0, color=self.graph_colors['axes'], linewidth=1, alpha=0.8)
             
             xlim = self.ax_pz.get_xlim()
             ylim = self.ax_pz.get_ylim()
             
             if xlim[1] > 0:
-                self.ax_pz.axvspan(0.001, xlim[1], color='#f8d7da', alpha=0.3, label='Região Instável')
+                # Região instável com cor adaptada ao tema
+                instavel_color = '#ffcccc' if self.cores.get("mode") == "light" else '#3d1a1a'
+                self.ax_pz.axvspan(0.001, xlim[1], color=instavel_color, alpha=0.3, label='Região Instável')
             
             margin_x = max(0.5, (xlim[1] - xlim[0]) * 0.1)
             margin_y = max(0.5, (ylim[1] - ylim[0]) * 0.1)
@@ -1142,18 +1223,22 @@ class JanelaControladores(ctk.CTkToplevel):
             self.ax_pz.set_ylim(ylim[0] - margin_y, ylim[1] + margin_y)
             
             self.ax_pz.set_title('Diagrama de Polos e Zeros - Sistema Controlado', 
-                               fontsize=11, fontweight='bold')
-            self.ax_pz.set_xlabel('Parte Real', fontsize=10, fontweight='bold')
-            self.ax_pz.set_ylabel('Parte Imaginária', fontsize=10, fontweight='bold')
+                               fontsize=11, fontweight='bold', color=self.graph_colors['text'])
+            self.ax_pz.set_xlabel('Parte Real', fontsize=10, fontweight='bold', color=self.graph_colors['text'])
+            self.ax_pz.set_ylabel('Parte Imaginária', fontsize=10, fontweight='bold', color=self.graph_colors['text'])
             
             if poles_com.size > 0 or zeros_com.size > 0:
-                self.ax_pz.legend(fontsize=9, loc='best')
+                legend = self.ax_pz.legend(fontsize=9, loc='best')
+                legend.get_frame().set_facecolor(self.graph_colors['background'])
+                legend.get_frame().set_edgecolor(self.graph_colors['axes'])
+                for text in legend.get_texts():
+                    text.set_color(self.graph_colors['text'])
             
-            circle = Circle((0, 0), 1, fill=False, color='#6c757d', 
+            circle = Circle((0, 0), 1, fill=False, color=self.graph_colors['grid'], 
                           linestyle='--', alpha=0.4, linewidth=1)
             self.ax_pz.add_patch(circle)
             
-            self.ax_pz.grid(True, alpha=0.3)
+            self.ax_pz.grid(True, alpha=0.3, color=self.graph_colors['grid'])
             
             self.setup_plot_style(self.ax_pz)
             
