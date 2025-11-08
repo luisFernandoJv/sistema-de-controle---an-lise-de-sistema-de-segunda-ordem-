@@ -228,13 +228,13 @@ class AnalisadorSegundaOrdem:
         self.tipo_entrada = tipo_entrada
         
         resultado = []
-        resultado.append("=" * 80)
-        resultado.append("ANÁLISE COMPLETA DE SISTEMA DE SEGUNDA ORDEM".center(80))
-        resultado.append("=" * 80)
+        resultado.append("-" * 57)
+        resultado.append("ANÁLISE COMPLETA DE SISTEMA DE SEGUNDA ORDEM".center(50))
+        resultado.append("-" * 57)
         resultado.append("")
         
         resultado.append("📋 PARÂMETROS DO SISTEMA:")
-        resultado.append("-" * 80)
+        resultado.append("-" * 57)
         resultado.append(f"   Tipo de Malha: {tipo_malha.upper()}")
         resultado.append(f"   Tipo de Entrada: {tipo_entrada.upper()}")
         
@@ -249,7 +249,7 @@ class AnalisadorSegundaOrdem:
         resultado.append("")
         
         resultado.append("📐 FUNÇÃO DE TRANSFERÊNCIA:")
-        resultado.append("-" * 80)
+        resultado.append("-" * 57)
         if tipo_malha == 'fechada':
             resultado.append(f"   G(s) = {ganho * wn**2:.4f} / (s² + {2*zeta*wn:.4f}s + {wn**2:.4f})")
             resultado.append(f"   Forma padrão: G(s) = {ganho}·ωn² / (s² + 2ζωn·s + ωn²)")
@@ -259,13 +259,13 @@ class AnalisadorSegundaOrdem:
         resultado.append("")
         
         resultado.append("🔎 CLASSIFICAÇÃO DO SISTEMA:")
-        resultado.append("-" * 80)
+        resultado.append("-" * 57)
         classificacao = self.classificar_sistema()
         resultado.append(f"   {classificacao}")
         resultado.append("")
         
         resultado.append("📍 POLOS DO SISTEMA:")
-        resultado.append("-" * 80)
+        resultado.append("-" * 57)
         try:
             polos = self.calcular_polos()
             resultado.extend(polos)
@@ -273,15 +273,15 @@ class AnalisadorSegundaOrdem:
             resultado.append(f"   ⚠️ Erro ao calcular polos: {str(e)}")
         resultado.append("")
         
-        resultado.append("=" * 80)
-        resultado.append("🎯 CARACTERIZAÇÃO DA RESPOSTA".center(80))
-        resultado.append("=" * 80)
+        resultado.append("-" * 57)
+        resultado.append("🎯 CARACTERIZAÇÃO DA RESPOSTA".center(50))
+        resultado.append("-" * 57)
         resultado.append("")
         
         try:
             if tipo_malha == 'aberta':
                 resultado.append("📊 MALHA ABERTA - PARÂMETROS PRINCIPAIS:")
-                resultado.append("-" * 80)
+                resultado.append("-" * 57)
                 resultado.append(f"   ζ (Coeficiente de Amortecimento): {zeta:.4f}")
                 resultado.append(f"   ωn (Frequência Natural): {wn:.4f} rad/s")
                 resultado.append("")
@@ -293,7 +293,7 @@ class AnalisadorSegundaOrdem:
                 
             else:  # Malha fechada
                 resultado.append("📊 MALHA FECHADA - CARACTERÍSTICAS TEMPORAIS:")
-                resultado.append("-" * 80)
+                resultado.append("-" * 57)
                 
                 if 0 < zeta < 1:
                     wd = wn * math.sqrt(1 - zeta**2)
@@ -355,7 +355,7 @@ class AnalisadorSegundaOrdem:
             resultado.append("")
         
         resultado.append("⏱️ CARACTERÍSTICAS TEMPORAIS ADICIONAIS:")
-        resultado.append("-" * 80)
+        resultado.append("-" * 57)
         try:
             caracteristicas = self.calcular_caracteristicas_temporais()
             resultado.extend(caracteristicas)
@@ -364,7 +364,7 @@ class AnalisadorSegundaOrdem:
         resultado.append("")
         
         resultado.append("✅ ANÁLISE DE ESTABILIDADE:")
-        resultado.append("-" * 80)
+        resultado.append("-" * 57)
         try:
             estabilidade = self.analisar_estabilidade()
             resultado.extend(estabilidade)
@@ -373,7 +373,7 @@ class AnalisadorSegundaOrdem:
         resultado.append("")
         
         resultado.append("💡 RECOMENDAÇÕES E OBSERVAÇÕES:")
-        resultado.append("-" * 80)
+        resultado.append("-" * 57)
         try:
             recomendacoes = self.gerar_recomendacoes()
             resultado.extend(recomendacoes)
@@ -381,9 +381,9 @@ class AnalisadorSegundaOrdem:
             resultado.append(f"   ⚠️ Erro: {str(e)}")
         resultado.append("")
         
-        resultado.append("=" * 80)
-        resultado.append("RESUMO EXECUTIVO".center(80))
-        resultado.append("=" * 80)
+        resultado.append("=" * 57)
+        resultado.append("RESUMO EXECUTIVO".center(50))
+        resultado.append("=" * 57)
         try:
             resumo = self.gerar_resumo()
             resultado.extend(resumo)
@@ -391,9 +391,9 @@ class AnalisadorSegundaOrdem:
             resultado.append(f"⚠️ Erro ao gerar resumo: {str(e)}")
         resultado.append("")
         
-        resultado.append("=" * 80)
-        resultado.append("FIM DA ANÁLISE".center(80))
-        resultado.append("=" * 80)
+        resultado.append("=" * 57)
+        resultado.append("FIM DA ANÁLISE".center(50))
+        resultado.append("=" * 57)
         
         return "\n".join(resultado)
     
@@ -613,46 +613,21 @@ class AnalisadorSegundaOrdem:
             modo_tema = cores_tema.get("mode", "dark")
             tema_atual = getattr(gerenciador_temas, 'tema_atual', 'dark')
             
-            if modo_tema == "light":
-                bg_color = '#ffffff'
-                fg_color = '#f8f9fa'
-                text_color = '#000000'
-                grid_color = '#cccccc'
-                line_color = '#1f77b4'
-                ref_color = '#ff7f0e'
-                stable_color = '#2ca02c'
-                peak_color = '#d62728'
-                settling_color = '#9467bd'
-                tolerance_color = '#ff9896'
-            elif tema_atual == "high_contrast":
-                # Alto contraste
-                bg_color = '#000000'
-                fg_color = '#1a1a1a'
-                text_color = '#ffffff'
-                grid_color = '#666666'
-                line_color = '#00ffff'
-                ref_color = '#ffff00'
-                stable_color = '#00ff00'
-                peak_color = '#ff0000'
-                settling_color = '#ff00ff'
-                tolerance_color = '#ff6666'
-            else:
-                # Tema escuro padrão
-                bg_color = cores_tema["fundo_claro"]
-                fg_color = cores_tema["fundo_escuro"]
-                text_color = cores_tema["texto_principal"]
-                grid_color = '#444444'
-                line_color = '#00bcd4'
-                ref_color = '#ffc107'
-                stable_color = cores_tema["sucesso"]
-                peak_color = cores_tema["erro"]
-                settling_color = '#ff9800'
-                tolerance_color = '#ff6b6b'
+            bg_color = '#ffffff'
+            fg_color = '#f8f9fa'
+            text_color = '#000000'
+            grid_color = '#898989'
+            line_color = '#1f77b4'
+            ref_color = '#ff7f0e'
+            stable_color = '#2ca02c'
+            peak_color = '#d62728'
+            settling_color = '#9467bd'
+            tolerance_color = '#ff9896'
             
-            # Configurar o gráfico com tema
-            fig, ax = plt.subplots(figsize=(10, 6))
-            fig.patch.set_facecolor(fg_color)
-            ax.set_facecolor(bg_color)
+            # Configurar o gráfico com fundo branco
+            fig, ax = plt.subplots(figsize=(8, 4))
+            fig.patch.set_facecolor('white')
+            ax.set_facecolor('white')
             
             # Plotar resposta
             ax.plot(t, y, line_color, linewidth=2.5, label='Resposta do Sistema', zorder=3)
@@ -705,19 +680,19 @@ class AnalisadorSegundaOrdem:
                                linestyle=':', alpha=0.6, label=f'Entrada - e_ss ({erro_ss:.3f})', zorder=1)
             
             # Configurações do gráfico
-            ax.set_xlabel('Tempo (s)', color=text_color, fontsize=12, fontweight='bold')
-            ax.set_ylabel('Amplitude', color=text_color, fontsize=12, fontweight='bold')
+            ax.set_xlabel('Tempo (s)', color=text_color, fontsize=10, fontweight='bold')
+            ax.set_ylabel('Amplitude', color=text_color, fontsize=10, fontweight='bold')
             
             titulo = f'Resposta do Sistema - {self.tipo_malha.upper()} - Entrada: {self.tipo_entrada.upper()}'
-            ax.set_title(titulo, color=text_color, fontsize=14, fontweight='bold', pad=20)
+            ax.set_title(titulo, color=text_color, fontsize=12, fontweight='bold', pad=20)
             
             # Grade
             ax.grid(True, alpha=0.3, color=grid_color, linestyle='--', linewidth=0.5)
             ax.set_axisbelow(True)
             
             # Legenda
-            legend = ax.legend(loc='best', facecolor=bg_color, edgecolor=text_color, 
-                              fontsize=10, framealpha=0.9)
+            legend = ax.legend(loc='best', facecolor='white', edgecolor=text_color, 
+                              fontsize=8, framealpha=0.9)
             for text in legend.get_texts():
                 text.set_color(text_color)
             
@@ -744,11 +719,11 @@ class AnalisadorSegundaOrdem:
             
             # Adicionar informações do sistema no gráfico
             info_text = f'ωn = {self.wn:.3f} rad/s | ζ = {self.zeta:.3f} | K = {self.ganho:.3f}'
-            info_bg = bg_color if modo_tema == "light" else '#000000'
+            info_bg = 'white'
             info_edge = stable_color
             ax.text(0.02, 0.98, info_text, transform=ax.transAxes, 
-                   fontsize=10, verticalalignment='top', color=stable_color,
-                   bbox=dict(boxstyle='round,pad=0.5', facecolor=info_bg, alpha=0.7, edgecolor=info_edge),
+                   fontsize=7, verticalalignment='bottom', color=stable_color,
+                   bbox=dict(boxstyle='round,pad=0.4', facecolor=info_bg, alpha=0.9, edgecolor=info_edge),
                    fontweight='bold')
             
             # Adicionar classificação do sistema
@@ -756,9 +731,9 @@ class AnalisadorSegundaOrdem:
             classificacao_limpa = classificacao.replace('📉', '').replace('⚡', '').replace('📈', '').replace('🔄', '').replace('⚠️', '').strip()
             class_color = ref_color
             ax.text(0.98, 0.98, classificacao_limpa, transform=ax.transAxes, 
-                   fontsize=9, verticalalignment='top', horizontalalignment='right',
+                   fontsize=7, verticalalignment='bottom', horizontalalignment='right',
                    color=class_color, fontweight='bold',
-                   bbox=dict(boxstyle='round,pad=0.4', facecolor=info_bg, alpha=0.7, edgecolor=class_color))
+                   bbox=dict(boxstyle='round,pad=0.4', facecolor=info_bg, alpha=0.9, edgecolor=class_color))
             
             plt.tight_layout()
             

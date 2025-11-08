@@ -429,9 +429,9 @@ class CriteriosEstabilidade:
         try:
             tabela, polos_direita, raizes = CriteriosEstabilidade.routh_hurwitz(coeficientes)
             
-            relatorio = "╔" * 60 + "\n"
+            relatorio = "-" * 60 + "\n"
             relatorio += "         ANÁLISE DE ESTABILIDADE - ROUTH-HURWITZ\n"
-            relatorio += "╔" * 60 + "\n\n"
+            relatorio += "-" * 60 + "\n\n"
             
             relatorio += "POLINÔMIO CARACTERÍSTICO:\n"
             relatorio += f"  {CriteriosEstabilidade.formatar_equacao_caracteristica(coeficientes)}\n\n"
@@ -487,9 +487,9 @@ class CriteriosEstabilidade:
             CriteriosEstabilidade.validar_coeficientes(numerador, "numerador")
             CriteriosEstabilidade.validar_coeficientes(denominador, "denominador")
             
-            resultado = "╔" * 70 + "\n"
+            resultado = "-" * 70 + "\n"
             resultado += "              ANÁLISE COMPLETA DO SISTEMA\n"
-            resultado += "╔" * 70 + "\n\n"
+            resultado += "-" * 70 + "\n\n"
             
             # Função de transferência
             resultado += "FUNÇÃO DE TRANSFERÊNCIA:\n"

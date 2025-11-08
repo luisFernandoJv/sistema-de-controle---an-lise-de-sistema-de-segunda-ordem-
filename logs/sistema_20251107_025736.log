@@ -1,0 +1,7 @@
+2025-11-07 02:57:36 - SistemaControle - INFO - [logger_sistema.py:63] - Logger iniciado com sucesso
+2025-11-07 02:57:36 - SistemaControle - ERROR - [logger_sistema.py:83] - Exceção não tratada:
+Traceback (most recent call last):
+  File "/home/luis-fernando-a-dos-santos/Documentos/projeto de sistema de controle /tela.py", line 18, in <module>
+    from logica_controladores import AnalisadorControladores
+ModuleNotFoundError: No module named 'logica_controladores'
+

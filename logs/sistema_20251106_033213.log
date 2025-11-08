@@ -1,0 +1,31 @@
+2025-11-06 03:32:13 - SistemaControle - INFO - [logger_sistema.py:63] - Logger iniciado com sucesso
+2025-11-06 03:32:13 - SistemaControle - INFO - [logger_sistema.py:71] - Iniciando aplicação SistemaTCC com interface unificada
+2025-11-06 03:32:14 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: inicio
+2025-11-06 03:32:18 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: estabilidade
+2025-11-06 03:32:19 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: segunda_ordem
+2025-11-06 03:32:21 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: controladores
+2025-11-06 03:32:26 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: segunda_ordem
+2025-11-06 03:33:14 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: controladores
+2025-11-06 03:33:16 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: estabilidade
+2025-11-06 03:33:28 - SistemaControle - ERROR - [logger_sistema.py:83] - Erro na análise: 'CriteriosEstabilidade' object has no attribute 'analisar_polinomio'
+2025-11-06 03:33:33 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: inicio
+2025-11-06 03:33:34 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: estabilidade
+2025-11-06 03:33:35 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: inicio
+2025-11-06 03:33:38 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: segunda_ordem
+2025-11-06 03:33:39 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: inicio
+2025-11-06 03:33:40 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: controladores
+2025-11-06 03:33:42 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: inicio
+2025-11-06 03:33:43 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: estabilidade
+2025-11-06 03:33:45 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: segunda_ordem
+2025-11-06 03:33:54 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: segunda_ordem
+2025-11-06 03:33:54 - SistemaControle - INFO - [logger_sistema.py:71] - Tema alterado para: light
+2025-11-06 03:34:01 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: segunda_ordem
+2025-11-06 03:34:01 - SistemaControle - INFO - [logger_sistema.py:71] - Tema alterado para: high_contrast
+2025-11-06 03:34:02 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: segunda_ordem
+2025-11-06 03:34:02 - SistemaControle - INFO - [logger_sistema.py:71] - Tema alterado para: dark
+2025-11-06 03:34:02 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: segunda_ordem
+2025-11-06 03:34:02 - SistemaControle - INFO - [logger_sistema.py:71] - Tema alterado para: light
+2025-11-06 03:34:04 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: inicio
+2025-11-06 03:34:06 - SistemaControle - INFO - [logger_sistema.py:71] - Navegação para painel: segunda_ordem
+2025-11-06 03:34:09 - SistemaControle - INFO - [logger_sistema.py:71] - Fechando aplicação SistemaTCC
+2025-11-06 03:34:09 - SistemaControle - INFO - [logger_sistema.py:71] - Aplicação SistemaTCC encerrada com sucesso.

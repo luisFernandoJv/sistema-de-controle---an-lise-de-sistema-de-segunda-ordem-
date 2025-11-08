@@ -166,11 +166,11 @@ class JanelaControladores(ctk.CTkToplevel):
         plt.rcParams['figure.dpi'] = adjusted_dpi
         plt.rcParams['savefig.dpi'] = adjusted_dpi
         
-        plt.rcParams['font.size'] = 9
+        plt.rcParams['font.size'] = 8
         plt.rcParams['axes.titlesize'] = 11
-        plt.rcParams['axes.labelsize'] = 10
+        plt.rcParams['axes.labelsize'] = 8
         plt.rcParams['legend.fontsize'] = 8
-        plt.rcParams['figure.titlesize'] = 12
+        plt.rcParams['figure.titlesize'] = 10
         plt.rcParams['font.family'] = 'sans-serif'
         
         # Cores do tema
@@ -270,7 +270,7 @@ class JanelaControladores(ctk.CTkToplevel):
     def criar_painel_controle(self, parent):
         """Cria o painel de controle lateral"""
         # Ajustar largura baseado no DPI
-        panel_width = int(380 * self.dpi_scale)
+        panel_width = int(280 * self.dpi_scale)  # Aumentado para acomodar sliders
         
         frame_scroll = ctk.CTkScrollableFrame(
             parent,
@@ -297,7 +297,7 @@ class JanelaControladores(ctk.CTkToplevel):
         # Título
         ctk.CTkLabel(
             frame,
-            text="FUNÇÃO DE TRANSFERÊNCIA",
+            text="⚙ FUNÇÃO DE TRANSFERÊNCIA",
             font=("Segoe UI", 14, "bold"),
             text_color=self.cores["texto_principal"]
         ).pack(anchor="w", padx=20, pady=(15, 10))
@@ -314,7 +314,7 @@ class JanelaControladores(ctk.CTkToplevel):
             frame,
             placeholder_text="Ex: 4",
             height=40,
-            font=("Segoe UI", 11),
+            font=("Segoe UI", 12),
             fg_color=self.cores["fundo_claro"],
             border_color=self.cores["borda"]
         )
@@ -340,7 +340,7 @@ class JanelaControladores(ctk.CTkToplevel):
             frame,
             placeholder_text="Ex: 1 0.8 4",
             height=40,
-            font=("Segoe UI", 11),
+            font=("Segoe UI", 12),
             fg_color=self.cores["fundo_claro"],
             border_color=self.cores["borda"]
         )
@@ -353,24 +353,6 @@ class JanelaControladores(ctk.CTkToplevel):
             font=("Segoe UI", 9),
             text_color=self.cores["texto_secundario"]
         ).pack(anchor="w", padx=20, pady=(0, 15))
-        
-        # Informação sobre o sistema padrão
-        info_frame = ctk.CTkFrame(frame, fg_color="transparent")
-        info_frame.pack(fill="x", padx=20, pady=(0, 10))
-        
-        ctk.CTkLabel(
-            info_frame,
-            text="📊 Sistema padrão: G(s) = 4/(s² + 0.8s + 4)",
-            font=("Segoe UI", 10, "bold"),
-            text_color=self.cores["sucesso"]
-        ).pack(anchor="w")
-        
-        ctk.CTkLabel(
-            info_frame,
-            text="ωn = 2 rad/s, ζ = 0.2 (Subamortecido)",
-            font=("Segoe UI", 9),
-            text_color=self.cores["texto_secundario"]
-        ).pack(anchor="w")
     
     def criar_frame_entrada(self, parent):
         """Frame de seleção do tipo de entrada"""
@@ -383,7 +365,7 @@ class JanelaControladores(ctk.CTkToplevel):
         
         ctk.CTkLabel(
             frame,
-            text="⚡ TIPO DE ENTRADA",
+            text="📥 TIPO DE ENTRADA",
             font=("Segoe UI", 14, "bold"),
             text_color=self.cores["texto_principal"]
         ).pack(anchor="w", padx=20, pady=(15, 10))
@@ -470,38 +452,129 @@ class JanelaControladores(ctk.CTkToplevel):
             self.criar_campo_parametro(self.frame_parametros, "Kd:", "0.1", "kd")
     
     def criar_campo_parametro(self, parent, label, valor_padrao, nome):
-        """Cria um campo de parâmetro"""
+        """Cria um campo de parâmetro com slider e entrada direta"""
         frame_campo = ctk.CTkFrame(parent, fg_color="transparent")
-        frame_campo.pack(fill="x", pady=5)
+        frame_campo.pack(fill="x", pady=8)
         
+        # Frame para label e entrada
+        frame_superior = ctk.CTkFrame(frame_campo, fg_color="transparent")
+        frame_superior.pack(fill="x", pady=(0, 8))
+        
+        # Label
         ctk.CTkLabel(
-            frame_campo,
+            frame_superior,
             text=label,
             font=("Segoe UI", 11, "bold"),
             text_color=self.cores["texto_principal"],
             width=40
         ).pack(side="left")
         
+        # Entrada direta
         entrada = ctk.CTkEntry(
-            frame_campo,
+            frame_superior,
             height=35,
+            width=80,
             font=("Segoe UI", 11),
             fg_color=self.cores["fundo_claro"],
-            border_color=self.cores["borda"]
+            border_color=self.cores["borda"],
+            justify="center"
         )
-        entrada.pack(side="left", fill="x", expand=True, padx=(10, 0))
+        entrada.pack(side="right", padx=(10, 0))
         entrada.insert(0, valor_padrao)
         
+        # Frame para slider
+        frame_slider = ctk.CTkFrame(frame_campo, fg_color="transparent")
+        frame_slider.pack(fill="x")
+        
+        # Determinar limites do slider baseado no parâmetro
+        if nome == "kp":
+            min_val, max_val, step = 0.1, 10.0, 0.1
+        elif nome == "ki":
+            min_val, max_val, step = 0.01, 5.0, 0.05
+        elif nome == "kd":
+            min_val, max_val, step = 0.01, 2.0, 0.05
+        else:
+            min_val, max_val, step = 0.1, 10.0, 0.1
+        
+        # Slider
+        slider = ctk.CTkSlider(
+            frame_slider,
+            from_=min_val,
+            to=max_val,
+            number_of_steps=int((max_val - min_val) / step),
+            height=20,
+            width=200,
+            button_color=self.cores["primaria"],
+            button_hover_color=self.cores["primaria_hover"],
+            progress_color=self.cores["primaria"]
+        )
+        slider.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        
+        # Label do valor do slider
+        valor_label = ctk.CTkLabel(
+            frame_slider,
+            text=valor_padrao,
+            font=("Segoe UI", 10),
+            text_color=self.cores["texto_secundario"],
+            width=50
+        )
+        valor_label.pack(side="right")
+        
+        # Configurar valor inicial do slider
+        try:
+            slider.set(float(valor_padrao))
+        except ValueError:
+            slider.set(min_val)
+        
+        # Função para sincronizar slider e entrada
+        def atualizar_do_slider(value):
+            """Atualiza entrada quando slider muda"""
+            valor_formatado = f"{value:.2f}"
+            entrada.delete(0, "end")
+            entrada.insert(0, valor_formatado)
+            valor_label.configure(text=valor_formatado)
+        
+        def atualizar_do_entrada(event=None):
+            """Atualiza slider quando entrada muda"""
+            try:
+                valor = float(entrada.get())
+                if min_val <= valor <= max_val:
+                    slider.set(valor)
+                    valor_label.configure(text=f"{valor:.2f}")
+                else:
+                    # Se valor fora do range, ajustar para o mais próximo
+                    if valor < min_val:
+                        entrada.delete(0, "end")
+                        entrada.insert(0, f"{min_val:.2f}")
+                        slider.set(min_val)
+                    else:
+                        entrada.delete(0, "end")
+                        entrada.insert(0, f"{max_val:.2f}")
+                        slider.set(max_val)
+                    valor_label.configure(text=entrada.get())
+            except ValueError:
+                # Se valor inválido, restaurar último valor válido
+                entrada.delete(0, "end")
+                entrada.insert(0, f"{slider.get():.2f}")
+        
+        # Conectar eventos
+        slider.configure(command=atualizar_do_slider)
+        entrada.bind("<Return>", atualizar_do_entrada)
+        entrada.bind("<FocusOut>", atualizar_do_entrada)
+        
+        # Armazenar referências
         setattr(self, f"entrada_{nome}", entrada)
+        setattr(self, f"slider_{nome}", slider)
+        setattr(self, f"label_{nome}", valor_label)
     
     def criar_botoes_acao(self, parent):
         """Cria os botões de ação"""
         ctk.CTkButton(
             parent,
-            text="▶ GERAR ANÁLISE COMPLETA",
+            text="▷ Gerar Análise Completa",
             command=self.gerar_analise,
             height=50,
-            font=("Segoe UI", 13, "bold"),
+            font=("Segoe UI", 12, "bold"),
             fg_color=self.cores["primaria"],
             hover_color=self.cores["primaria_hover"],
             corner_radius=8
@@ -595,7 +668,7 @@ class JanelaControladores(ctk.CTkToplevel):
 
         ctk.CTkLabel(
             frame_com,
-            text="📊 COM CONTROLADOR",
+            text="📈🎮 COM CONTROLADOR",
             font=("Segoe UI", 12, "bold"),
             text_color=self.cores["texto_principal"]
         ).grid(row=0, column=0, pady=(8, 5), sticky="w", padx=10)
@@ -622,7 +695,7 @@ class JanelaControladores(ctk.CTkToplevel):
             font=("Segoe UI", 10),
             text_color=self.cores["texto_secundario"]
         )
-        self.label_info_resposta.pack(pady=8)
+        self.label_info_resposta.pack(pady=5)
     
     def criar_aba_lgr(self):
         """Cria a aba de Lugar das Raízes"""
@@ -746,7 +819,7 @@ class JanelaControladores(ctk.CTkToplevel):
             fg_color=self.cores["fundo_claro"],
             border_color=self.cores["borda"],
             border_width=1,
-            height=120
+            height=160
         )
         self.texto_info.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
         self.texto_info.insert("1.0", "Informações sobre polos e zeros aparecerão aqui...")
@@ -772,74 +845,30 @@ class JanelaControladores(ctk.CTkToplevel):
         toolbar.update()
     
     def configurar_cores_graficos(self):
-        """Configura cores dos gráficos baseado no tema"""
-        tema_atual = getattr(gerenciador_temas, 'tema_atual', 'dark')
-        mode = self.cores.get("mode", "dark")
-        
-        if mode == "light":
-            self.graph_colors = {
-                'primary': '#1f77b4',
-                'secondary': '#ff7f0e', 
-                'tertiary': '#2ca02c',
-                'quaternary': '#d62728',
-                'background': '#ffffff',
-                'grid': '#cccccc',
-                'reference': '#ff4444',
-                'input': '#6666ff',
-                'stable': '#28a745',
-                'unstable': '#dc3545',
-                'zeros': '#6f42c1',
-                'tolerance': '#ff6b6b',
-                'settling': '#00b894',
-                'peak': '#6c5ce7',
-                'text': '#000000',
-                'axes': '#333333'
-            }
-        elif tema_atual == "high_contrast":
-            # Alto contraste
-            self.graph_colors = {
-                'primary': '#00ffff',
-                'secondary': '#ffff00', 
-                'tertiary': '#00ff00',
-                'quaternary': '#ff0000',
-                'background': '#000000',
-                'grid': '#666666',
-                'reference': '#ff0000',
-                'input': '#0000ff',
-                'stable': '#00ff00',
-                'unstable': '#ff0000',
-                'zeros': '#ff00ff',
-                'tolerance': '#ff6666',
-                'settling': '#00ffaa',
-                'peak': '#ffaa00',
-                'text': '#ffffff',
-                'axes': '#ffffff'
-            }
-        else:
-            # Tema escuro padrão
-            self.graph_colors = {
-                'primary': '#1f77b4',
-                'secondary': '#ff7f0e', 
-                'tertiary': '#2ca02c',
-                'quaternary': '#d62728',
-                'background': self.cores["fundo_claro"],
-                'grid': '#444444',
-                'reference': '#ff4444',
-                'input': '#6666ff',
-                'stable': '#28a745',
-                'unstable': '#dc3545',
-                'zeros': '#6f42c1',
-                'tolerance': '#ff6b6b',
-                'settling': '#00b894',
-                'peak': '#6c5ce7',
-                'text': self.cores["texto_principal"],
-                'axes': self.cores["texto_principal"]
-            }
+        """Configura cores dos gráficos sempre com fundo branco para melhor visibilidade"""
+        self.graph_colors = {
+            'primary': '#005AB5',        # Azul profissional - Excelente contraste
+            'secondary': '#DC267F',      # Magenta vibrante - Melhor distinção do azul
+            'tertiary': '#008450',       # Verde escuro - Ótimo para dados positivos
+            'quaternary': '#FF9500',     # Laranja - Alta visibilidade
+            'background': '#FFFFFF',     # Fundo branco puro
+            'grid': "#A9A6A6",           # Cinza mais claro - Menos intrusivo
+            'reference': '#6A3D9A',      # Roxo - Destaque para referências
+            'input': '#0072B2',          # Azul médio - Bom para entradas
+            'stable': '#009E73',         # Verde - Claramente positivo
+            'unstable': '#D55E00',       # Laranja/vermelho - Alerta visual
+            'zeros': '#882E72',          # Roxo profundo - Diferenciação clara
+            'tolerance': '#F0E442',      # Amarelo - Atenção para tolerância
+            'settling': '#66B7E6',       # Azul claro - Suave para áreas
+            'peak': '#E60000',           # Vermelho - Máxima atenção para picos
+            'text': '#000000',           # Preto puro - Máximo contraste (WCAG AAA)
+            'axes': '#333333'            # Cinza escuro - Eixos bem definidos
+        }
     
     def setup_plot_style(self, ax):
-        """Configura o estilo dos gráficos para o tema atual"""
-        ax.set_facecolor(self.graph_colors['background'])
-        ax.figure.set_facecolor(self.cores["acento"])
+        """Configura o estilo dos gráficos com fundo branco"""
+        ax.set_facecolor('#ffffff')
+        ax.figure.set_facecolor('white')
         
         ax.tick_params(axis='both', which='major', colors=self.graph_colors['text'], labelsize=9)
         ax.title.set_color(self.graph_colors['text'])
@@ -1258,9 +1287,9 @@ class JanelaControladores(ctk.CTkToplevel):
         """Atualiza as informações textuais de polos e zeros"""
         self.texto_info.delete("1.0", "end")
         
-        self.texto_info.insert("end", "=" * 65 + "\n")
+        self.texto_info.insert("end", "-" * 65 + "\n")
         self.texto_info.insert("end", "ANÁLISE DO SISTEMA COM CONTROLADOR\n")
-        self.texto_info.insert("end", "=" * 65 + "\n\n")
+        self.texto_info.insert("end", "-" * 65 + "\n\n")
         
         self.texto_info.insert("end", "🎯 POLOS DO SISTEMA:\n")
         self.texto_info.insert("end", "-" * 65 + "\n")

@@ -1,0 +1,11 @@
+2025-11-07 02:38:21 - SistemaControle - INFO - [logger_sistema.py:63] - Logger iniciado com sucesso
+2025-11-07 02:38:21 - SistemaControle - ERROR - [logger_sistema.py:83] - Exceção não tratada:
+Traceback (most recent call last):
+  File "/home/luis-fernando-a-dos-santos/Documentos/projeto de sistema de controle /tela.py", line 132, in <module>
+    CORES = gerenciador_temas.obter_cores()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/luis-fernando-a-dos-santos/Documentos/projeto de sistema de controle /tela.py", line 120, in obter_cores
+    return self.TEMAS[self.tema_atual]
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+KeyError: 'cyber_dark'
+

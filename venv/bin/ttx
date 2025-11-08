@@ -1,4 +1,6 @@
-#!/home/luis-fernando-a-dos-santos/Documentos/tcc-novatela/venv/bin/python3
+#!/bin/sh
+'''exec' "/home/luis-fernando-a-dos-santos/Documentos/projeto de sistema de controle /venv/bin/python3" "$0" "$@"
+' '''
 # -*- coding: utf-8 -*-
 import re
 import sys
