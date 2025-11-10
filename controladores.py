@@ -571,10 +571,10 @@ class JanelaControladores(ctk.CTkToplevel):
         """Cria os botões de ação"""
         ctk.CTkButton(
             parent,
-            text="▷ Gerar Análise Completa",
+            text="🔧 Gerar Análise Completa",
             command=self.gerar_analise,
             height=50,
-            font=("Segoe UI", 12, "bold"),
+            font=("Segoe UI", 14, "bold"),
             fg_color=self.cores["primaria"],
             hover_color=self.cores["primaria_hover"],
             corner_radius=8
@@ -585,7 +585,7 @@ class JanelaControladores(ctk.CTkToplevel):
             text="🗑️ Limpar Tudo",
             command=self.limpar_tudo,
             height=45,
-            font=("Segoe UI", 12, "bold"),
+            font=("Segoe UI", 14, "bold"),
             fg_color=self.cores["terciaria"],
             hover_color=self.cores["terciaria_hover"],
             corner_radius=8

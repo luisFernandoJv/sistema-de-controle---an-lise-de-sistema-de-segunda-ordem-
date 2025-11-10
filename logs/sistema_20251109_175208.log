@@ -1,0 +1,4 @@
+2025-11-09 17:52:08 - SistemaControle - INFO - [logger_sistema.py:63] - Logger iniciado com sucesso
+2025-11-09 17:52:08 - SistemaControle - WARNING - [logger_sistema.py:79] - cairosvg não encontrado. Usando fallback para ícones SVG
+2025-11-09 17:52:08 - SistemaControle - INFO - [logger_sistema.py:71] - Iniciando aplicação SistemaTCC
+2025-11-09 17:52:09 - SistemaControle - WARNING - [logger_sistema.py:79] - Não foi possível carregar ícone ajustesdeconfig.svg: cannot identify image file 'image/icons/ajustesdeconfig.svg'

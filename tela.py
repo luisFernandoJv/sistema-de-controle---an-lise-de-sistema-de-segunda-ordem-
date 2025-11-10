@@ -24,13 +24,13 @@ class GerenciadorTemas:
             "primaria": "#1a4d8f",
             "primaria_hover": "#144173",
             "secundaria": "#2e7d32",
-            "secundaria_hover": "#1b5e20",
+            "secundaria_hover": "#1e5021",
             "terciaria": "#c62828",
             "terciaria_hover": "#8e0000",
             "fundo_escuro": "#1a1a2e",
             "fundo_claro": "#16213e",
             "texto_principal": "#fcfcfc",
-            "texto_secundario": "#94a3b8",
+            "texto_secundario": "#f9f9f9",
             "acento": "#0f3460",
             "borda": "#2d3748",
             "sucesso": "#059669",
@@ -41,14 +41,14 @@ class GerenciadorTemas:
             "mode": "light",
             "primaria": "#2563eb",
             "primaria_hover": "#1d4ed8",
-            "secundaria": "#16a34a",
+            "secundaria": "#1e5021",
             "secundaria_hover": "#15803d",
             "terciaria": "#dc2626",
             "terciaria_hover": "#b91c1c",
             "fundo_escuro": "#f8fafc",
             "fundo_claro": "#ffffff",
             "texto_principal": "#000000",
-            "texto_secundario": "#64748b",
+            "texto_secundario": "#313335",
             "acento": "#e2e8f0",
             "borda": "#cbd5e1",
             "sucesso": "#10b981",
@@ -809,7 +809,7 @@ class SistemaTCC(ctk.CTk):
             command=self.aumentar_fonte,
             width=250,
             height=40,
-            font=("Segoe UI", self.scale_font(12), "bold"),
+            font=("Segoe UI", self.scale_font(14), "bold"),
             fg_color=CORES["primaria"],
             hover_color=CORES["primaria_hover"]
         ).pack(pady=5)
@@ -820,7 +820,7 @@ class SistemaTCC(ctk.CTk):
             command=self.diminuir_fonte,
             width=250,
             height=40,
-            font=("Segoe UI", self.scale_font(12), "bold"),
+            font=("Segoe UI", self.scale_font(14), "bold"),
             fg_color=CORES["primaria"],
             hover_color=CORES["primaria_hover"]
         ).pack(pady=5)
@@ -832,7 +832,7 @@ class SistemaTCC(ctk.CTk):
         ctk.CTkLabel(
             frame_atalhos,
             text="⌨️ Atalhos de Teclado:",
-            font=("Segoe UI", self.scale_font(13), "bold"),
+            font=("Segoe UI", self.scale_font(15), "bold"),
             text_color=CORES["texto_principal"]
         ).pack(anchor="w", padx=15, pady=(10, 5))
         
@@ -849,7 +849,7 @@ class SistemaTCC(ctk.CTk):
         ctk.CTkLabel(
             frame_atalhos,
             text=atalhos_texto,
-            font=("Consolas", self.scale_font(10)),
+            font=("Consolas", self.scale_font(14)),
             text_color=CORES["texto_secundario"],
             justify="left"
         ).pack(anchor="w", padx=15, pady=(0, 10))
@@ -1159,7 +1159,7 @@ class TelaPrincipal(ctk.CTkFrame):
         container_titulo.grid(row=0, column=0, sticky="w", padx=0, pady=0)
         
         # Título responsivo
-        titulo_size = self.controlador.scale_font(16)
+        titulo_size = self.controlador.scale_font(20)
         titulo_width = min(600, int(self.controlador.screen_width * 0.5))
         
         titulo_principal = ctk.CTkLabel(
@@ -1204,10 +1204,10 @@ class TelaPrincipal(ctk.CTkFrame):
             )
             logo_label.pack(pady=(0, 5))
         
-        inst_size = self.controlador.scale_font(10)
+        inst_size = self.controlador.scale_font(12)
         texto_institucional = ctk.CTkLabel(
             container_logo_interno,
-            text="UFERSA\nUniversidade Federal Rural do Semi-Árido",
+            text="UFERSA",
             font=("Segoe UI", inst_size, "bold"),
             text_color=CORES["texto_secundario"],
             justify="center"
@@ -1221,9 +1221,9 @@ class TelaPrincipal(ctk.CTkFrame):
             command=self.controlador.toggle_configuracoes,
             width=50,
             height=50,
-            font=("Segoe UI", 20),
-            fg_color=CORES["secundaria"],
-            hover_color=CORES["secundaria_hover"],
+            font=("Segoe UI", 25),
+            fg_color=CORES["primaria"],
+            hover_color=CORES["primaria_hover"],
             corner_radius=25
         )
         botao_config.grid(row=0, column=2, sticky="e", padx=(10, 0))
@@ -1247,7 +1247,7 @@ class TelaPrincipal(ctk.CTkFrame):
         frame_botoes.grid(row=0, column=0, pady=self.controlador.scale_padding(50), 
                          padx=self.controlador.scale_padding(20), sticky="n")
         
-        titulo_size = self.controlador.scale_font(16)
+        titulo_size = self.controlador.scale_font(18)
         ctk.CTkLabel(
             frame_botoes,
             text="MÓDULOS DO SISTEMA",
@@ -1266,7 +1266,7 @@ class TelaPrincipal(ctk.CTkFrame):
         # Botões responsivos
         button_width = min(400, int(self.controlador.screen_width * 0.3))
         button_height = 60 if self.controlador.screen_height <= 768 else 65
-        button_font = self.controlador.scale_font(16)
+        button_font = self.controlador.scale_font(18)
         button_padding = self.controlador.scale_padding(12)
         
         informacoes_botoes = [
@@ -1277,13 +1277,13 @@ class TelaPrincipal(ctk.CTkFrame):
                 "cor_hover": CORES["primaria_hover"],
             },
             {
-                "texto": "⚙️ ANÁLISE DE SISTEMA 2ª ORDEM", 
+                "texto": "📈 ANÁLISE DE SISTEMA 2ª ORDEM", 
                 "comando": lambda: self.controlador.abrir_analise_segunda_ordem(),
                 "cor": CORES["secundaria"],
                 "cor_hover": CORES["secundaria_hover"],
             },
             {
-                "texto": "📈 ANÁLISE DE CONTROLADORES",
+                "texto": "🎮 ANÁLISE DE CONTROLADORES",
                 "comando": lambda: self.controlador.abrir_controladores(),
                 "cor": CORES["terciaria"],
                 "cor_hover": CORES["terciaria_hover"],
@@ -1322,7 +1322,7 @@ class TelaPrincipal(ctk.CTkFrame):
         container_rodape = ctk.CTkFrame(frame_rodape, fg_color="transparent")
         container_rodape.pack(fill="x", padx=self.controlador.scale_padding(20), pady=padding)
         
-        font_size = self.controlador.scale_font(14)
+        font_size = self.controlador.scale_font(15)
         
         informacao_aluno = ctk.CTkLabel(
             container_rodape,
@@ -1848,7 +1848,7 @@ class FrameAnalise(FrameBase):
         
         ctk.CTkLabel(
             frame_malha,
-            text="🔄 Tipo de Sistema:",
+            text="⇄ Tipo de Sistema:",
             font=self.controlador.font_corpo,
             text_color=CORES["texto_principal"]
         ).pack(anchor="w", pady=(0, 8))
@@ -1974,7 +1974,7 @@ class FrameAnalise(FrameBase):
         
         ctk.CTkButton(
             frame_botoes,
-            text="▷ Analisar Sistema",
+            text="⏻ Analisar Sistema",
             command=self.analisar_sistema,
             width=160,
             height=button_height,

@@ -123,6 +123,21 @@ class CriteriosEstabilidade:
         ValidadorCoeficientes.validar(coeficientes, nome)
     
     @staticmethod
+    def validar_coeficientes_e_retornar_status(numerador, denominador):
+        """
+        Valida coeficientes e retorna status com cor
+        Retorna: (válido: bool, mensagem: str, cor: str)
+        """
+        try:
+            ValidadorCoeficientes.validar(numerador, "numerador")
+            ValidadorCoeficientes.validar(denominador, "denominador")
+            return True, "✅ VÁLIDO", "verde"
+        except ErroValidacao as e:
+            return False, str(e), "vermelho"
+        except Exception as e:
+            return False, f"❌ Erro: {str(e)}", "vermelho"
+    
+    @staticmethod
     def routh_hurwitz(coeficientes):
         """Melhor tratamento de casos extremos e edge cases"""
         try:
@@ -166,14 +181,32 @@ class CriteriosEstabilidade:
                     except:
                         tabela[i, j] = 0
             
-            # Contar polos no semiplano direito
             polos_direita = 0
-            for i in range(m - 1):
-                if tabela[i, 0] * tabela[i+1, 0] < 0:
+            valores_coluna_primeira = tabela[:, 0]
+            
+            # Contar mudanças de sinal
+            for i in range(len(valores_coluna_primeira) - 1):
+                if valores_coluna_primeira[i] * valores_coluna_primeira[i+1] < 0:
                     polos_direita += 1
             
-            # Calcular raízes
+            # Calcular raízes para detectar polos na fronteira (eixo imaginário)
             raizes = np.roots(r)
+            
+            polos_na_fronteira = 0
+            polos_no_eixo_imaginario = 0
+            
+            for raiz in raizes:
+                # Verificar se o polo está na fronteira (parte real próxima de zero)
+                if abs(raiz.real) < 1e-6 and abs(raiz.imag) > 1e-6:
+                    polos_no_eixo_imaginario += 1
+                    polos_na_fronteira += 1
+                # Verificar se é um polo real na origem
+                elif abs(raiz.real) < 1e-6 and abs(raiz.imag) < 1e-6:
+                    polos_na_fronteira += 1
+            
+            # Se há polos na fronteira e nenhum no semiplano direito, sistema é marginalmente estável
+            if polos_na_fronteira > 0 and polos_direita == 0:
+                polos_direita = -1  # Usar -1 para indicar marginalmente estável
             
             return tabela, polos_direita, raizes
             
@@ -181,7 +214,7 @@ class CriteriosEstabilidade:
             raise
         except Exception as e:
             raise ErroValidacao(f"❌ Erro Routh-Hurwitz: {str(e)}")
-    
+
     @staticmethod
     def analisar_nyquist(coeficientes_numerador, coeficientes_denominador):
         """
@@ -416,6 +449,40 @@ class CriteriosEstabilidade:
             return f"Erro ao formatar tabela: {str(e)}"
 
     @staticmethod
+    def formatar_led_status(polos_direita):
+        """
+        Formata LED visual com cores para os 3 estados de estabilidade
+        Verde: Estável (0 polos instáveis)
+        Laranja: Marginalmente estável (polos na fronteira)
+        Vermelho: Instável (polos no semiplano direito)
+        """
+        if polos_direita == 0:
+            # SISTEMA ESTÁVEL
+            led = "🟢 SISTEMA ESTÁVEL"
+            descricao = "Todos os polos no semiplano esquerdo"
+            cor_hex = "#05C214"  # Green
+        elif polos_direita == -1:
+            # SISTEMA MARGINALMENTE ESTÁVEL
+            led = "🟠 SISTEMA MARGINALMENTE ESTÁVEL"
+            descricao = "Polo(s) na fronteira (eixo imaginário)"
+            cor_hex = "#d97706"  # Orange
+        else:
+            # SISTEMA INSTÁVEL
+            led = "✖️ SISTEMA INSTÁVEL"
+            descricao = f"{abs(polos_direita)} polo(s) no semiplano direito"
+            cor_hex = "#dc2626"  # Red
+        
+        painel = f"""
+╔{'═' * 68}╗
+║{'STATUS DO SISTEMA':^68}║
+╠{'═' * 68}╣
+║{led:^68}║
+║{descricao:^68}║
+╚{'═' * 68}╝
+"""
+        return painel, cor_hex
+    
+    @staticmethod
     def gerar_relatorio_routh_hurwitz(coeficientes):
         """
         Gera um relatório completo da análise de Routh-Hurwitz
@@ -443,12 +510,10 @@ class CriteriosEstabilidade:
             relatorio += "RESULTADO DA ANÁLISE:\n"
             relatorio += "─" * 60 + "\n"
             
-            relatorio += f"• Número de polos no semiplano direito: {polos_direita}\n"
+            relatorio += f"• Número de polos no semiplano direito: {polos_direita}\n\n"
             
-            if polos_direita == 0:
-                relatorio += "• ✅ SISTEMA ESTÁVEL - Todos os polos estão no semiplano esquerdo\n"
-            else:
-                relatorio += f"• ⚠️  SISTEMA INSTÁVEL - {polos_direita} polo(s) no semiplano direito\n"
+            painel_status, _ = CriteriosEstabilidade.formatar_led_status(polos_direita)
+            relatorio += painel_status
             
             relatorio += "\n" + "─" * 60 + "\n"
             relatorio += "RAÍZES DO POLINÔMIO CARACTERÍSTICO:\n"
@@ -487,6 +552,8 @@ class CriteriosEstabilidade:
             CriteriosEstabilidade.validar_coeficientes(numerador, "numerador")
             CriteriosEstabilidade.validar_coeficientes(denominador, "denominador")
             
+            tabela, polos_direita, raizes = CriteriosEstabilidade.routh_hurwitz(denominador)
+            
             resultado = "-" * 70 + "\n"
             resultado += "              ANÁLISE COMPLETA DO SISTEMA\n"
             resultado += "-" * 70 + "\n\n"
@@ -501,8 +568,28 @@ class CriteriosEstabilidade:
             resultado += "─" * 40 + "\n"
             resultado += f"  {CriteriosEstabilidade.formatar_equacao_caracteristica(denominador)}\n\n"
             
-            # Análise Routh-Hurwitz
-            resultado += CriteriosEstabilidade.gerar_relatorio_routh_hurwitz(denominador)
+            # Tabela Routh-Hurwitz
+            resultado += "TABELA DE ROUTH-HURWITZ:\n"
+            resultado += CriteriosEstabilidade.formatar_tabela_routh(tabela)
+            resultado += "\n\n" + "─" * 70 + "\n"
+            
+            resultado += f"• Número de polos no semiplano direito: {polos_direita}\n\n"
+            
+            painel_status, _ = CriteriosEstabilidade.formatar_led_status(polos_direita)
+            resultado += painel_status
+            
+            resultado += "\n" + "─" * 70 + "\n"
+            resultado += "RAÍZES DO POLINÔMIO CARACTERÍSTICO:\n"
+            resultado += "─" * 70 + "\n"
+            
+            if len(raizes) > 0:
+                for i, raiz in enumerate(raizes):
+                    if abs(raiz.imag) < 1e-10:
+                        resultado += f"• Raiz {i+1}: {raiz.real:10.6f}\n"
+                    else:
+                        resultado += f"• Raiz {i+1}: {raiz.real:10.6f} + {raiz.imag:10.6f}j\n"
+            else:
+                resultado += "• Não foi possível calcular as raízes\n"
             
             return resultado
             
@@ -510,7 +597,6 @@ class CriteriosEstabilidade:
             return f"ERRO DE VALIDAÇÃO:\n{str(e)}"
         except Exception as e:
             return f"❌ Erro na análise do sistema: {str(e)}"
-
 
 # Função equivalente ao rhc do MATLAB
 def rhc(coeficientes):

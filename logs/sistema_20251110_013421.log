@@ -1,0 +1,6 @@
+2025-11-10 01:34:21 - SistemaControle - INFO - [logger_sistema.py:63] - Logger iniciado com sucesso
+2025-11-10 01:34:21 - SistemaControle - INFO - [logger_sistema.py:71] - Iniciando aplicação SistemaTCC
+2025-11-10 01:34:27 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo de controladores
+2025-11-10 01:34:41 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo de controladores
+2025-11-10 01:34:45 - SistemaControle - INFO - [logger_sistema.py:71] - Fechando aplicação SistemaTCC
+2025-11-10 01:34:45 - SistemaControle - INFO - [logger_sistema.py:71] - Aplicação SistemaTCC encerrada com sucesso.

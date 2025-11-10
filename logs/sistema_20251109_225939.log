@@ -1,0 +1,12 @@
+2025-11-09 22:59:39 - SistemaControle - INFO - [logger_sistema.py:63] - Logger iniciado com sucesso
+2025-11-09 22:59:39 - SistemaControle - INFO - [logger_sistema.py:71] - Iniciando aplicação SistemaTCC
+2025-11-09 22:59:41 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo de critérios de estabilidade
+2025-11-09 22:59:46 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo de análise de segunda ordem
+2025-11-09 23:00:10 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo de controladores
+2025-11-09 23:00:29 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo de controladores
+2025-11-09 23:00:39 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo de controladores
+2025-11-09 23:00:50 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo de critérios de estabilidade
+2025-11-09 23:00:56 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo de análise de segunda ordem
+2025-11-09 23:01:02 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo de controladores
+2025-11-09 23:01:09 - SistemaControle - INFO - [logger_sistema.py:71] - Fechando aplicação SistemaTCC
+2025-11-09 23:01:09 - SistemaControle - INFO - [logger_sistema.py:71] - Aplicação SistemaTCC encerrada com sucesso.

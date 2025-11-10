@@ -1,0 +1,8 @@
+2025-11-09 05:14:20 - SistemaControle - INFO - [logger_sistema.py:63] - Logger iniciado com sucesso
+2025-11-09 05:14:20 - SistemaControle - INFO - [logger_sistema.py:71] - GeradorRelatorioPDF inicializado
+2025-11-09 05:14:20 - SistemaControle - INFO - [logger_sistema.py:71] - Iniciando aplicação SistemaTCC
+2025-11-09 05:14:21 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo de controladores
+2025-11-09 05:14:29 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo janela de relatório
+2025-11-09 05:14:30 - SistemaControle - INFO - [logger_sistema.py:71] - Janela de relatório aberta
+2025-11-09 05:14:41 - SistemaControle - INFO - [logger_sistema.py:71] - Fechando aplicação SistemaTCC
+2025-11-09 05:14:41 - SistemaControle - INFO - [logger_sistema.py:71] - Aplicação SistemaTCC encerrada com sucesso.
