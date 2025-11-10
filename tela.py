@@ -1974,7 +1974,7 @@ class FrameAnalise(FrameBase):
         
         ctk.CTkButton(
             frame_botoes,
-            text="⏻ Analisar Sistema",
+            text="╰┈➤ Analisar Sistema",
             command=self.analisar_sistema,
             width=160,
             height=button_height,

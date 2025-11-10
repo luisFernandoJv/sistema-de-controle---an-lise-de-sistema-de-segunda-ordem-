@@ -1,0 +1,9 @@
+2025-11-10 03:19:50 - SistemaControle - INFO - [logger_sistema.py:63] - Logger iniciado com sucesso
+2025-11-10 03:19:50 - SistemaControle - INFO - [logger_sistema.py:71] - Iniciando aplicação SistemaTCC
+2025-11-10 03:19:52 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo de análise de segunda ordem
+2025-11-10 03:20:00 - SistemaControle - ERROR - [logger_sistema.py:83] - Erro ao calcular métricas: 'FrameAnalise' object has no attribute 'numerador'
+2025-11-10 03:20:27 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo de controladores
+2025-11-10 03:20:36 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo de análise de segunda ordem
+2025-11-10 03:20:43 - SistemaControle - ERROR - [logger_sistema.py:83] - Erro ao calcular métricas: 'FrameAnalise' object has no attribute 'numerador'
+2025-11-10 03:21:02 - SistemaControle - INFO - [logger_sistema.py:71] - Fechando aplicação SistemaTCC
+2025-11-10 03:21:02 - SistemaControle - INFO - [logger_sistema.py:71] - Aplicação SistemaTCC encerrada com sucesso.

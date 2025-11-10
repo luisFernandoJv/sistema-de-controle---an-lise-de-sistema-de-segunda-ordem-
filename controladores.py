@@ -39,6 +39,26 @@ except ImportError:
     gerenciador_temas = GerenciadorTemasFallback()
     CORES = gerenciador_temas.obter_cores()
 
+# Importar componentes de métricas e exportação
+try:
+    from metricas_exportacao import MetricasControlador
+    from painel_metricas import PainelMetricas
+except ImportError:
+    # Fallback para caso os módulos não estejam disponíveis
+    class MetricasControladorFallback:
+        def calcular_metricas(self, t, y, sys=None): # Added sys parameter
+            return {'y_final': 0, 'y_pico': 0, 'Tp': 0, 'Mp': 0, 'Tr': 0, 'Ts': 0, 'y_Ts': 0, 'Wn': 0, 'Zeta': 0}
+    class PainelMetricasFallback(ctk.CTkFrame):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            ctk.CTkLabel(self, text="Módulos de métricas não encontrados.", text_color="red").pack(pady=20)
+        def atualizar_metricas(self, *args, **kwargs): pass
+        def adicionar_figuras(self, *args, **kwargs): pass
+        def limpar_dados(self): pass # Added for limpar_tudo
+    MetricasControlador = MetricasControladorFallback
+    PainelMetricas = PainelMetricasFallback
+
+
 ctk.set_appearance_mode(gerenciador_temas.obter_cores().get("mode", "dark"))
 ctk.set_default_color_theme("blue")
 
@@ -95,6 +115,9 @@ class JanelaControladores(ctk.CTkToplevel):
         self.transient(self.parent)
         self.grab_set()
         self.focus_set()
+        
+        self.metricas_calc = MetricasControlador()
+        self.painel_metricas = None
         
         # Criar interface
         self.criar_cabecalho()
@@ -571,10 +594,10 @@ class JanelaControladores(ctk.CTkToplevel):
         """Cria os botões de ação"""
         ctk.CTkButton(
             parent,
-            text="🔧 Gerar Análise Completa",
+            text="╰┈➤ Gerar Análise Completa",
             command=self.gerar_analise,
             height=50,
-            font=("Segoe UI", 14, "bold"),
+            font=("Segoe UI", 14),
             fg_color=self.cores["primaria"],
             hover_color=self.cores["primaria_hover"],
             corner_radius=8
@@ -585,7 +608,7 @@ class JanelaControladores(ctk.CTkToplevel):
             text="🗑️ Limpar Tudo",
             command=self.limpar_tudo,
             height=45,
-            font=("Segoe UI", 14, "bold"),
+            font=("Segoe UI", 14),
             fg_color=self.cores["terciaria"],
             hover_color=self.cores["terciaria_hover"],
             corner_radius=8
@@ -614,10 +637,12 @@ class JanelaControladores(ctk.CTkToplevel):
         self.notebook.add("📊 Resposta Temporal")
         self.notebook.add("🔍 Lugar das Raízes")
         self.notebook.add("⭕ Polos e Zeros")
+        self.notebook.add("📈 Métricas")  # Add metrics tab
         
         self.criar_aba_resposta()
         self.criar_aba_lgr()
         self.criar_aba_polos_zeros()
+        self.criar_aba_metricas()  # Create metrics tab
     
     def criar_aba_resposta(self):
         """Cria a aba de resposta temporal"""
@@ -823,6 +848,19 @@ class JanelaControladores(ctk.CTkToplevel):
         )
         self.texto_info.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
         self.texto_info.insert("1.0", "Informações sobre polos e zeros aparecerão aqui...")
+    
+    def criar_aba_metricas(self):
+        """Cria a aba de métricas com painel de comparação"""  # New method
+        tab = self.notebook.tab("📈 Métricas")
+        
+        container = ctk.CTkFrame(tab, fg_color="transparent")
+        container.pack(fill="both", expand=True, padx=5, pady=5)
+        container.grid_columnconfigure(0, weight=1)
+        container.grid_rowconfigure(0, weight=1)
+        
+        # Criar painel de métricas
+        self.painel_metricas = PainelMetricas(container, self.cores)
+        self.painel_metricas.grid(row=0, column=0, sticky="nsew")
     
     def configurar_toolbar(self, toolbar):
         """Configura a toolbar do matplotlib para o tema dark"""
@@ -1050,6 +1088,7 @@ class JanelaControladores(ctk.CTkToplevel):
             self.gerar_resposta_temporal(G, Gc)
             self.gerar_lgr(G, Gc)
             self.gerar_polos_zeros(G, Gc)
+            self.gerar_metricas(G, Gc)  # Add metrics generation
             
         except Exception as e:
             self.mostrar_erro(str(e))
@@ -1396,6 +1435,10 @@ class JanelaControladores(ctk.CTkToplevel):
         self.tipo_controlador.set("PI")
         self.atualizar_parametros_controlador()
         
+        # Limpar painel de métricas
+        if self.painel_metricas:
+            self.painel_metricas.limpar_dados()
+
         self.mostrar_mensagem("Limpo", "Todos os dados foram limpos!")
     
     def mostrar_mensagem(self, titulo, mensagem):
@@ -1429,6 +1472,59 @@ class JanelaControladores(ctk.CTkToplevel):
             pass
         
         self.destroy()
+
+    def gerar_metricas(self, G, Gc):
+        """Gera e exibe as métricas de response temporal"""
+        try:
+            tipo_entrada = self.tipo_entrada.get()
+            
+            # Gerar respostas
+            if tipo_entrada == "Degrau Unitário":
+                t_final = 20
+                t = np.linspace(0, t_final, 1000)
+                
+                # Resposta do sistema sem controlador (malha aberta/fechada dependendo do contexto)
+                sys_sem_controlador = G
+                t_sem, y_sem = step_response(sys_sem_controlador, T=t)
+                
+                # Resposta do sistema com controlador (malha fechada)
+                sys_com_controlador = feedback(G * Gc, 1)
+                t_com, y_com = step_response(sys_com_controlador, T=t)
+            else:  # Rampa
+                t_final = 10
+                t = np.linspace(0, t_final, 1000)
+                u = t
+                
+                # Resposta do sistema sem controlador (malha aberta/fechada dependendo do contexto)
+                sys_sem_controlador = G
+                num_sem, den_sem = sys_sem_controlador.num[0][0], sys_sem_controlador.den[0][0]
+                t_sem, y_sem, _ = scipy_lsim((num_sem, den_sem), U=u, T=t)
+                
+                # Resposta do sistema com controlador (malha fechada)
+                sys_com_controlador = feedback(G * Gc, 1)
+                num_com, den_com = sys_com_controlador.num[0][0], sys_com_controlador.den[0][0]
+                t_com, y_com, _ = scipy_lsim((num_com, den_com), U=u, T=t)
+            
+            metricas_sem = self.metricas_calc.calcular_metricas(t_sem, y_sem, sys=sys_sem_controlador)
+            metricas_com = self.metricas_calc.calcular_metricas(t_com, y_com, sys=sys_com_controlador)
+            
+            # Armazenar figuras para exportação (se necessário no futuro)
+            figuras = [
+                ("Resposta Sem Controlador", self.fig_resp_sem),
+                ("Resposta Com Controlador", self.fig_resp_com),
+                ("LGR Sem Controlador", self.fig_lgr_sem),
+                ("LGR Com Controlador", self.fig_lgr_com),
+                ("Polos e Zeros", self.fig_pz)
+            ]
+            
+            # Atualizar painel de métricas
+            if self.painel_metricas:
+                self.painel_metricas.atualizar_metricas(metricas_sem, metricas_com, tipo_entrada)
+                self.painel_metricas.adicionar_figuras(figuras)
+        
+        except Exception as e:
+            print(f"[v0] Erro ao gerar métricas: {e}")
+            self.mostrar_erro(f"Erro ao calcular métricas: {str(e)}")
 
 
 def abrir_analisador_controladores(parent_window):
