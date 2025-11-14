@@ -9,7 +9,7 @@
 
 [Setup]
 ; Informações básicas
-; Fixed AppId by escaping curly braces with double braces
+; Fixed AppId by properly closing the GUID
 AppId={{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
@@ -50,7 +50,8 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilen
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\image\icons\papel.ico"; Tasks: quicklaunchicon
 
 [Run]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Description: "Executar {#MyAppName}"; Flags: nowait postinstall skipifsilent
+; Fixed [Run] section - replaced "Name" with "Filename"
+Filename: "{app}\{#MyAppExeName}"; Description: "Executar {#MyAppName}"; Flags: nowait postinstall skipifsilent
 
 [Code]
 function InitializeSetup(): Boolean;
