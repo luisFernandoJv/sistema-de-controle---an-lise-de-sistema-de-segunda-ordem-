@@ -18,7 +18,7 @@ from logger_sistema import logger  # import logger
 from gerenciador_excecoes import gerenciador_excecoes, TipoErro, GerenciadorExcecoes  # import exception handler
 from utilidades_ui import GerenciadorResponsividade, UtiliadadesGraficos  # import UI utilities
 from lugar_geometrico_raizes import AnalisadorLGR, ErroValidacaoLGR
-from tema_config import GerenciadorTemas, gerenciador_temas
+from tema_config import GerenciadorTemas, gerenciador_temas, obter_caminho_recurso # Importar função para obter caminho de recursos
 
 CORES = gerenciador_temas.obter_cores()
 
@@ -95,7 +95,7 @@ class GerenciadorTemas:
     
     def __init__(self):
         self.tema_atual = "dark"
-        self.config_file = "config_tema.json"
+        self.config_file = obter_caminho_recurso("config_tema.json") # Usar função para obter caminho
         self.carregar_configuracao()
     
     def carregar_configuracao(self):
@@ -513,11 +513,13 @@ class SistemaTCC(ctk.CTk):
         """Define o ícone da janela de forma multiplataforma"""
         try:
             if self.config.is_windows:
-                if os.path.exists("image/icons/papel.ico"):
-                    self.iconbitmap("image/icons/papel.ico")
+                icon_path = obter_caminho_recurso("image/icons/papel.ico") # Usar obter_caminho_recurso
+                if os.path.exists(icon_path):
+                    self.iconbitmap(icon_path)
             elif self.config.is_linux:
-                if os.path.exists("image/icons/papel.ico"):
-                    icon = Image.open("image/icons/papel.ico")
+                icon_path = obter_caminho_recurso("image/icons/papel.ico") # Usar obter_caminho_recurso
+                if os.path.exists(icon_path):
+                    icon = Image.open(icon_path)
                     photo = ImageTk.PhotoImage(icon)
                     self.iconphoto(True, photo)
             elif self.config.is_mac:
@@ -626,8 +628,9 @@ class SistemaTCC(ctk.CTk):
         self.logo_image = None
 
         try:
-            if os.path.exists("logo.png"):
-                img_pil = Image.open("logo.png").convert("RGBA")
+            logo_path = obter_caminho_recurso("logo.png") # Usar obter_caminho_recurso
+            if os.path.exists(logo_path):
+                img_pil = Image.open(logo_path).convert("RGBA")
                 
                 if self.screen_height <= 768:
                     max_h_logo = 40

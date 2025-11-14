@@ -11,7 +11,7 @@ import tkinter as tk
 import platform
 
 try:
-    from tema_config import gerenciador_temas, obter_cores
+    from tema_config import gerenciador_temas, obter_cores, obter_caminho_recurso # Importar obter_caminho_recurso
     CORES = obter_cores()
 except ImportError:
     class GerenciadorTemasFallback:
@@ -39,6 +39,9 @@ except ImportError:
             }
     gerenciador_temas = GerenciadorTemasFallback()
     CORES = gerenciador_temas.obter_cores()
+    def obter_caminho_recurso(nome_arquivo):
+        return nome_arquivo
+
 
 # Importar componentes de métricas e exportação
 try:
@@ -97,7 +100,8 @@ class JanelaControladores(ctk.CTkToplevel):
             
             # Ícone (se disponível)
             try:
-                self.iconbitmap(default='icon.ico')
+                icon_path = obter_caminho_recurso('icon.ico') # Usar obter_caminho_recurso
+                self.iconbitmap(default=icon_path)
             except:
                 pass
         

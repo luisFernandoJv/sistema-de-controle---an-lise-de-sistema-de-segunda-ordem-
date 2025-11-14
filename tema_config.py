@@ -4,7 +4,23 @@ Evita importações circulares entre tela.py e outros módulos
 """
 
 import os
+import sys
 import json
+
+
+def obter_caminho_recurso(nome_arquivo):
+    """
+    Obtém o caminho correto para recursos tanto em desenvolvimento quanto no executável.
+    PyInstaller cria uma pasta temporária e armazena o caminho em _MEIPASS
+    """
+    try:
+        # PyInstaller cria uma pasta temp e armazena o caminho em _MEIPASS
+        base_path = sys._MEIPASS
+    except AttributeError:
+        # Se não estiver rodando como executável, usa o diretório atual
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, nome_arquivo)
 
 
 class GerenciadorTemas:
@@ -75,26 +91,57 @@ class GerenciadorTemas:
     
     def __init__(self):
         self.tema_atual = "dark"
-        self.config_file = "config_tema.json"
+        self.config_file = self._obter_caminho_config()
         self.carregar_configuracao()
+    
+    def _obter_caminho_config(self):
+        """
+        Obtém o caminho para o arquivo de configuração no diretório do usuário.
+        Isso garante que as configurações persistam entre execuções.
+        """
+        try:
+            # Tenta usar o diretório do usuário
+            if os.name == 'nt':  # Windows
+                base_dir = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'SistemaControle')
+            else:  # Linux/Mac
+                base_dir = os.path.join(os.path.expanduser('~'), '.sistemacontrole')
+            
+            # Cria o diretório se não existir
+            os.makedirs(base_dir, exist_ok=True)
+            return os.path.join(base_dir, 'config_tema.json')
+        except Exception:
+            # Fallback para o diretório temporário
+            import tempfile
+            return os.path.join(tempfile.gettempdir(), 'sistemacontrole_config_tema.json')
     
     def carregar_configuracao(self):
         """Carrega configuração salva"""
         try:
             if os.path.exists(self.config_file):
-                with open(self.config_file, 'r') as f:
+                with open(self.config_file, 'r', encoding='utf-8') as f:
                     config = json.load(f)
-                    self.tema_atual = config.get('tema', 'dark')
-        except:
+                    tema_carregado = config.get('tema', 'dark')
+                    # Valida se o tema existe
+                    if tema_carregado in self.TEMAS:
+                        self.tema_atual = tema_carregado
+                    else:
+                        self.tema_atual = "dark"
+            else:
+                self.tema_atual = "dark"
+        except Exception as e:
+            print(f"[AVISO] Erro ao carregar configuração de tema: {e}")
             self.tema_atual = "dark"
     
     def salvar_configuracao(self):
         """Salva configuração atual"""
         try:
-            with open(self.config_file, 'w') as f:
-                json.dump({'tema': self.tema_atual}, f)
-        except:
-            pass
+            # Garante que o diretório existe
+            os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
+            
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump({'tema': self.tema_atual}, f, indent=2)
+        except Exception as e:
+            print(f"[AVISO] Erro ao salvar configuração de tema: {e}")
     
     def alternar_tema(self):
         """Alterna entre temas"""
@@ -115,7 +162,7 @@ class GerenciadorTemas:
     
     def obter_cores(self):
         """Retorna as cores do tema atual"""
-        return self.TEMAS[self.tema_atual]
+        return self.TEMAS[self.tema_atual].copy()
     
     def obter_nome_tema(self):
         """Retorna nome amigável do tema"""

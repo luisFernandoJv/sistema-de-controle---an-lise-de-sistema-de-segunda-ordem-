@@ -11,6 +11,7 @@ Fornece classes utilitárias para:
 import platform
 import tkinter as tk
 from typing import Callable
+from tema_config import obter_caminho_recurso
 
 
 # ==========================================================
