@@ -21,28 +21,38 @@ jobs:
     - name: 📦 Instalar dependências
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller customtkinter pillow matplotlib numpy scipy control
+        # CORREÇÃO: Adicionado 'sympy' (necessário para lugar_geometrico_raizes.py)
+        pip install pyinstaller customtkinter pillow matplotlib numpy scipy control sympy
 
     - name: ⚙️ Compilar o sistema
-      # CORREÇÃO: Trocado '^' por '`' para ser compatível com PowerShell
       run: |
         pyinstaller `
           --noconfirm `
           --onefile `
           --windowed `
           --name "SistemaControle" `
-          --icon=ico.png `
-          --add-data "ico.png;." `
+          # CORREÇÃO: O ícone deve apontar para o arquivo .ico que seu app usa
+          --icon=image/icons/papel.ico `
+          # CORREÇÃO: Adicionado 'logo.png', que tela.py carrega
+          --add-data "logo.png;." `
+          # CORREÇÃO: O caminho do ícone deve ser preservado para o app encontrar
+          --add-data "image/icons/papel.ico;image/icons" `
           --add-data "criterios_estabilidade.py;." `
           --add-data "analise_segunda_ordem.py;." `
           --add-data "controladores.py;." `
           --add-data "utilidades_ui.py;." `
+          --add-data "lugar_geometrico_raizes.py;." `
+          --add-data "metricas_exportacao.py;." `
+          --add-data "painel_metricas.py;." `
+          --add-data "tela.py;." `
           --add-data "logger_sistema.py;." `
           --add-data "gerenciador_excecoes.py;." `
           --collect-all "customtkinter" `
           --collect-all "numpy" `
           --collect-all "scipy" `
           --collect-all "control" `
+          --collect-all "reportlab" `
+          # CORREÇÃO: Removido 'reportlab', que não é usado
           --hidden-import "matplotlib.backends.backend_tkagg" `
           tela.py
 
@@ -51,4 +61,3 @@ jobs:
       with:
         name: Sistema-de-Controle-EXE
         path: dist/SistemaControle.exe
-

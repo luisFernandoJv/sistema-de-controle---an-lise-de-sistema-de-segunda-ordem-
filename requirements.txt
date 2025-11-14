@@ -1,4 +1,7 @@
 customtkinter
-Pillow
 matplotlib
-reportlab
+control
+numpy
+scipy
+sympy
+Pillow

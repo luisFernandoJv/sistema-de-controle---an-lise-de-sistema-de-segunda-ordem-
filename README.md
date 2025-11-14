@@ -1,34 +1,77 @@
-# ⚙️ Analisador de Sistemas de Controle de Segunda Ordem com PI, PD e PID ⚙️
+# ⚙️ Ferramenta Computacional para Análise de Sistemas de Controle ⚙️
 
 ![Versão Python](https://img.shields.io/badge/python-3.10%2B-blue)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) **Trabalho de Conclusão de Curso - Engenharia de Computação**
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+**Trabalho de Conclusão de Curso - Engenharia de Computação**
 *Aluno: Luís Fernando Alexandre dos Santos*
 *Orientador: Prof. Dr. Cecilio Martins de Sousa Neto*
 *Universidade Federal Rural do Semi-Árido - 2025*
 
 ## 📜 Descrição Geral
 
-Esta é uma ferramenta computacional desenvolvida em Python com o objetivo de **auxiliar estudantes e profissionais** das áreas de Engenharia (Controle, Computação, Elétrica, Mecatrônica) na **análise e caracterização de sistemas de controle dinâmicos**, com foco em sistemas de segunda ordem e na aplicação de controladores clássicos PI, PD e PID.
+Esta é uma ferramenta computacional desenvolvida em Python com o objetivo de **auxiliar estudantes e profissionais** das áreas de Engenharia (Controle, Computação, Elétrica, Mecatrônica) na **análise, projeto e caracterização de sistemas de controle dinâmicos**.
 
-A aplicação oferece uma interface gráfica intuitiva que permite visualizar o comportamento de sistemas lineares invariantes no tempo (SLITs), avaliar sua estabilidade e entender como diferentes estratégias de controle afetam métricas de desempenho cruciais como **sobressinal (overshoot), tempo de acomodação, tempo de subida e erro em regime permanente**.
+A aplicação oferece uma interface gráfica intuitiva que permite:
+* Analisar a estabilidade de sistemas lineares pelo critério de **Routh-Hurwitz**.
+* Extrair parâmetros de desempenho ($\omega_n$, $\zeta$) de **sistemas de segunda ordem**.
+* Realizar uma análise textual e gráfica completa do **Lugar Geométrico das Raízes (LGR)**.
+* Projetar e simular controladores clássicos **PI, PD e PID**, comparando a resposta temporal, o LGR e o mapa de polos/zeros do sistema original versus o sistema controlado.
 
-## ✨ Screenshots Principais
+## ✨ Módulos Principais
 
-Aqui estão algumas das telas principais da aplicação:
+A ferramenta é dividida em quatro módulos independentes, cada um focado em uma etapa diferente da análise de sistemas de controle.
 
-**1. Tela Principal:** Ponto de entrada onde o usuário seleciona o módulo de análise desejado.
-![Tela Principal](image/tela1.png)
+| Módulo | Screenshot |
+| :--- | :--- |
+| **1. Tela Principal** | ![Tela Principal](image/tela1.png) |
+| **2. Análise de Estabilidade** | ![Análise de Estabilidade](image/tela2.png) |
+| **3. Análise de Sistema 2ª Ordem** | ![Análise de Sistema 2ª Ordem](image/tela3.png) |
+| **4. Lugar Geométrico das Raízes** | *![LGR](image/tela4.png)* |
+| **5. Análise de Controladores** | ![Análise de Controladores](image/tela5.png) |
 
-**2. Análise de Controladores (Resposta Temporal):** Comparativo visual entre o sistema original e o sistema com controlador PI, PD ou PID aplicado.
-![Análise de Controladores - Resposta Temporal](image/tela4-nova.png)
+---
 
-**3. Análise de Estabilidade (Routh-Hurwitz):** Módulo para inserir a equação característica e obter a análise de estabilidade via critério de Routh-Hurwitz.
-![Análise de Estabilidade](image/tela2.png)
+## 🧭 Funcionalidades dos Módulos
 
-**4. Análise de Sistema de 2ª Ordem:** Ferramenta para extrair parâmetros ($\omega_n$, $\zeta$, K) e métricas de desempenho diretamente da função de transferência.
-![Análise de Sistema 2ª Ordem](image/tela3-nova.png)
+A aplicação é dividida em quatro módulos principais, acessíveis pela tela inicial:
 
-*(Adicione mais screenshots se desejar, como LGR e Polos/Zeros)*
+### 1. 📊 Análise de Estabilidade
+* **Objetivo:** Avaliar a estabilidade de um sistema a partir de sua **equação característica**.
+* **Funcionalidade:** Implementa o **Critério de Routh-Hurwitz**, gerando a tabela de Routh formatada e indicando o número de polos instáveis.
+* **Entrada:** Coeficientes do polinômio característico (denominador).
+* **Saída:** Relatório textual completo, incluindo a tabela de Routh, as raízes do polinômio (polos) e uma conclusão clara sobre a estabilidade do sistema.
+
+### 2. ⚙️ Análise de Sistema 2ª Ordem
+* **Objetivo:** Extrair parâmetros fundamentais e métricas de desempenho de um sistema de segunda ordem.
+* **Funcionalidade:** Recebe a função de transferência (numerador e denominador) e calcula os parâmetros $\omega_n$ (frequência natural), $\zeta$ (coeficiente de amortecimento) e K (ganho).
+* **Saída:** Relatório textual detalhado com todos os parâmetros, classificação do sistema (subamortecido, etc.) e as métricas de resposta temporal (Tr, Tp, Ts, Mp).
+
+### 3. 📌 Lugar Geométrico das Raízes (LGR)
+* **Objetivo:** Fornecer uma análise completa, textual e gráfica, do LGR de um sistema em malha aberta.
+* **Funcionalidade:** Este módulo dedicado calcula todas as 6 regras de construção do LGR.
+* **Saída:**
+    * **Gráfico Interativo:** Plota os polos, zeros, ramos, segmentos do eixo real e assíntotas.
+    * **Relatório Detalhado:** Gera um relatório de texto completo, formatado de maneira didática, contendo:
+        1.  Polos e Zeros.
+        2.  Segmentos do eixo real que pertencem ao LGR.
+        3.  Cálculo das Assíntotas (centro e ângulos).
+        4.  Pontos de Entrada/Saída (cálculo de dK/ds = 0).
+        5.  Ângulos de Partida e Chegada (para polos/zeros complexos).
+        6.  Análise de **Routh-Hurwitz** para encontrar o **Ganho Crítico (K)** e os pontos de **cruzamento com o eixo jω**.
+
+### 4. 🎮 Análise de Controladores (PI, PD, PID)
+* **Objetivo:** Projetar, simular e comparar o desempenho de um sistema com e sem um controlador.
+* **Funcionalidade:** Permite ao usuário definir a planta G(s), o tipo de entrada (Degrau/Rampa) e os ganhos (Kp, Ki, Kd) do controlador.
+* **Saída:** Uma interface multi-abas com comparativos lado a lado:
+    * **Resposta Temporal:** Gráfico da saída $y(t)$ do sistema original vs. sistema controlado.
+    * **Lugar das Raízes:** Gráfico do LGR de $G(s)$ vs. $G_c(s)G(s)$.
+    * **Polos e Zeros:** Mapa de polos/zeros do sistema *final* (malha fechada).
+    * **Métricas:** Tabela comparativa de desempenho (Tr, Ts, Mp, etc.).
+* **Nova Funcionalidade:** A aba LGR deste módulo permite ao usuário especificar **polos dominantes desejados** (inserindo $\zeta$ e $\omega_n$) e exibe no gráfico a linha de $\zeta$ constante e os polos desejados, auxiliando no projeto do controlador.
+
+---
+
 ## 🧠 Conceitos Teóricos Abordados
 
 A ferramenta se baseia em conceitos fundamentais da Teoria de Controle Clássico:
@@ -37,48 +80,20 @@ A ferramenta se baseia em conceitos fundamentais da Teoria de Controle Clássico
 * **Sistemas de Segunda Ordem:** Sistemas cuja dinâmica é descrita por uma equação diferencial de segunda ordem. A forma padrão em malha fechada é $G(s) = \frac{K \omega_n^2}{s^2 + 2\zeta\omega_n s + \omega_n^2}$, onde:
     * $\omega_n$: Frequência natural (velocidade da resposta).
     * $\zeta$: Coeficiente de amortecimento (forma da resposta: subamortecida, crítica, superamortecida).
-    * $K$: Ganho estático (valor final para entrada degrau unitário, se estável).
-* **Estabilidade:** A capacidade de um sistema retornar a um estado de equilíbrio após uma perturbação. Analisada através de:
-    * **Critério de Routh-Hurwitz:** Método algébrico que verifica a existência de polos (raízes da equação característica) no semiplano direito do plano complexo, indicando instabilidade.
-    * **Lugar Geométrico das Raízes (LGR):** Gráfico que mostra como a localização dos polos de malha fechada varia com o ganho do controlador, permitindo analisar a estabilidade relativa e projetar ganhos.
-    * **Diagrama de Polos e Zeros:** Visualização da localização dos polos e zeros do sistema no plano complexo. Polos no semiplano direito indicam instabilidade.
-    * *(Nyquist: Embora mencionado no código `criterios_estabilidade.py`, a implementação parece focar em Routh e LGR)*
-* **Resposta Temporal:** Comportamento da saída do sistema ao longo do tempo em resposta a uma entrada padrão (Degrau ou Rampa). Métricas importantes incluem:
+* **Estabilidade (Critério de Routh-Hurwitz):** Método algébrico que, a partir da equação característica, determina o número de polos no semiplano direito (indicando instabilidade).
+* **Lugar Geométrico das Raízes (LGR):** Gráfico que mostra como os polos de malha fechada se movem no plano-s à medida que um ganho (K) varia de 0 a $\infty$.
+* **Resposta Temporal:** Comportamento da saída do sistema ao longo do tempo em resposta a uma entrada (Degrau ou Rampa). Métricas importantes incluem:
     * **Tempo de Subida (Tr):** Tempo para a resposta ir de 10% a 90% do valor final.
     * **Tempo de Pico (Tp):** Tempo para atingir o primeiro pico de sobressinal.
     * **Máximo Sobressinal (Mp%):** Percentual máximo que a resposta ultrapassa o valor final.
-    * **Tempo de Acomodação (Ts):** Tempo para a resposta entrar e permanecer dentro de uma faixa (geralmente ±2% ou ±5%) do valor final.
-* **Erro em Regime Permanente ($e_{ss}$):** A diferença entre a entrada desejada e a saída do sistema após um longo tempo. Depende do *tipo* do sistema (número de integradores na malha aberta) e do tipo da entrada (degrau, rampa, etc.).
+    * **Tempo de Acomodação (Ts):** Tempo para a resposta entrar e permanecer dentro de uma faixa (geralmente ±2%) do valor final.
+* **Erro em Regime Permanente ($e_{ss}$):** A diferença entre a entrada desejada e a saída do sistema após um longo tempo.
 * **Controladores PID:**
-    * **Proporcional (P):** Atua proporcionalmente ao erro atual (afeta a velocidade e o erro $e_{ss}$).
-    * **Integral (I):** Atua na integral do erro passado (elimina o erro $e_{ss}$ para entradas degrau, mas pode piorar a resposta transitória).
-    * **Derivativo (D):** Atua na taxa de variação do erro (melhora a estabilidade e a resposta transitória, antecipando o erro).
-    * **Combinações (PI, PD, PID):** Usadas para atender a múltiplos requisitos de desempenho.
+    * **Proporcional (P):** Atua proporcionalmente ao erro atual.
+    * **Integral (I):** Atua na integral do erro passado (elimina o $e_{ss}$ para entradas degrau).
+    * **Derivativo (D):** Atua na taxa de variação do erro (melhora a estabilidade e a resposta transitória).
 
-## 🧭 Módulos da Aplicação (Botões)
-
-A aplicação é dividida em três módulos principais, acessíveis pela tela inicial:
-
-1.  **📊 ANÁLISE DE ESTABILIDADE:**
-    * **Objetivo:** Avaliar a estabilidade de um sistema a partir de sua **equação característica** (denominador da função de transferência de malha fechada).
-    * **Funcionalidade:** Implementa o **Critério de Routh-Hurwitz**, gerando a tabela de Routh e indicando o número de polos instáveis (no semiplano direito). Calcula também as raízes exatas do polinômio. *(Possui placeholders para Nyquist e LGR, mas a análise principal é Routh)*.
-    * **Entrada:** Coeficientes do polinômio característico (denominador).
-    * **Saída:** Relatório textual com a tabela de Routh, conclusão sobre a estabilidade e as raízes calculadas.
-
-2.  **⚙️ ANÁLISE DE SISTEMA 2ª ORDEM:**
-    * **Objetivo:** Analisar em detalhes um sistema que *já se sabe* ser de segunda ordem, extraindo seus parâmetros fundamentais e métricas de desempenho.
-    * **Funcionalidade:** Recebe a função de transferência (numerador e denominador) e calcula $\omega_n$, $\zeta$ e K. Com base nesses parâmetros, classifica o sistema (subamortecido, etc.), calcula os polos, as métricas de resposta temporal (Tr, Tp, Ts), as características da resposta ao degrau (Mp, $e_{ss}$) e fornece uma análise de estabilidade com recomendações.
-    * **Entrada:** Coeficientes do numerador e denominador (assumindo denominador de grau 2) e tipo de malha (aberta/fechada para interpretação do ganho).
-    * **Saída:** Relatório textual completo com todos os parâmetros, cálculos, classificações e recomendações.
-
-3.  **📈 ANÁLISE DE CONTROLADORES:**
-    * **Objetivo:** Comparar o comportamento de um sistema original (planta) com o comportamento do mesmo sistema após a adição de um controlador PI, PD ou PID em malha fechada.
-    * **Funcionalidade:** Permite ao usuário definir a planta $G(s)$, escolher o tipo de entrada (Degrau/Rampa), selecionar o controlador ($Gc(s)$ - PI, PD ou PID) e seus ganhos (Kp, Ki, Kd). A aplicação então gera e exibe lado a lado:
-        * **Resposta Temporal:** Gráfico da saída $y(t)$ do sistema original (malha aberta $G(s)$) e do sistema controlado (malha fechada $\frac{Gc(s)G(s)}{1+Gc(s)G(s)}$). Inclui cálculo e exibição das métricas ($\omega_n, \zeta$, Tr, Ts, Mp, Tp) para ambos os casos.
-        * **Lugar das Raízes:** Gráfico do LGR para a malha aberta original $G(s)$ e para a malha aberta com controlador $Gc(s)G(s)$.
-        * **Polos e Zeros:** Diagrama de polos e zeros do sistema em *malha fechada* com o controlador $\frac{Gc(s)G(s)}{1+Gc(s)G(s)}$, com análise textual de estabilidade.
-    * **Entrada:** Coeficientes da planta $G(s)$, tipo de entrada, tipo de controlador, ganhos Kp, Ki, Kd.
-    * **Saída:** Gráficos interativos (com zoom/pan) e análise textual na aba Polos/Zeros.
+---
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -86,9 +101,10 @@ A aplicação é dividida em três módulos principais, acessíveis pela tela in
 * **CustomTkinter:** Para a interface gráfica moderna e responsiva.
 * **Matplotlib:** Para a geração e exibição dos gráficos incorporados na interface.
 * **Control:** Biblioteca Python essencial para análise e projeto de sistemas de controle (criação de TF, `step_response`, `feedback`, `rlocus`, `poles`, `zeros`, `damp`).
-* **NumPy:** Para cálculos numéricos eficientes e manipulação de arrays (vetores de tempo, coeficientes).
-* **SciPy:** Utilizada especificamente para a simulação da resposta à rampa (`scipy.signal.lsim`).
-* **(Opcional) CTkMessagebox:** Para exibir mensagens de sucesso/erro de forma visualmente integrada (se instalada).
+* **NumPy:** Para cálculos numéricos eficientes e manipulação de arrays.
+* **SciPy:** Utilizada para a simulação da resposta à rampa (`scipy.signal.lsim`).
+* **SymPy:** Utilizada para os cálculos simbólicos do LGR, como `dK/ds = 0`, e para a construção da tabela de Routh-Hurwitz com o ganho `k`.
+* **Pillow (PIL):** Necessário pelo `tela.py` para carregar e exibir imagens na interface.
 
 ## 🚀 Como Executar
 
@@ -107,19 +123,19 @@ A aplicação é dividida em três módulos principais, acessíveis pela tela in
     ```
 
 3.  **Instale as dependências:**
-    *(Certifique-se de ter um arquivo `requirements.txt` na raiz do projeto)*
+    *(Certifique-se de ter um arquivo `requirements.txt`)*
     ```bash
     pip install -r requirements.txt
     ```
-    *Exemplo de `requirements.txt`:*
+    *Seu `requirements.txt` deve conter:*
     ```
     customtkinter
     matplotlib
     control
     numpy
     scipy
-    Pillow # Necessário pelo tela.py para carregar imagens
-    CTkMessagebox # Opcional
+    sympy
+    Pillow
     ```
 
 4.  **Execute a aplicação principal (`tela.py`):**
@@ -129,6 +145,4 @@ A aplicação é dividida em três módulos principais, acessíveis pela tela in
 
 ## 📄 Licença
 
-Este projeto é distribuído sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes. (Se você não tiver um, pode remover esta linha ou adicionar um arquivo LICENSE com o texto da licença MIT).
-
----
+Este projeto é distribuído sob a licença MIT.
