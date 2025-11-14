@@ -1,4 +1,4 @@
-name: Build Windows EXE
+name: Build Windows EXE with Installer
 
 on:
   push:
@@ -21,7 +21,8 @@ jobs:
     - name: 📦 Instalar dependências
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller customtkinter pillow matplotlib numpy scipy control sympy
+        pip install -r requirements.txt
+        pip install pyinstaller
 
     - name: ⚙️ Compilar o sistema
       run: |
@@ -32,7 +33,9 @@ jobs:
           --name "SistemaControle" `
           --icon=image/icons/papel.ico `
           --add-data "logo.png;." `
-          --add-data "image/icons/papel.ico;image/icons" `
+          --add-data "ico.png;." `
+          --add-data "image;image" `
+          --add-data "tema_config.py;." `
           --add-data "criterios_estabilidade.py;." `
           --add-data "analise_segunda_ordem.py;." `
           --add-data "controladores.py;." `
@@ -40,19 +43,35 @@ jobs:
           --add-data "lugar_geometrico_raizes.py;." `
           --add-data "metricas_exportacao.py;." `
           --add-data "painel_metricas.py;." `
-          --add-data "tela.py;." `
           --add-data "logger_sistema.py;." `
           --add-data "gerenciador_excecoes.py;." `
           --collect-all "customtkinter" `
           --collect-all "numpy" `
           --collect-all "scipy" `
           --collect-all "control" `
+          --collect-all "matplotlib" `
+          --collect-all "pandas" `
           --collect-all "reportlab" `
           --hidden-import "matplotlib.backends.backend_tkagg" `
+          --hidden-import "PIL._tkinter_finder" `
           tela.py
 
-    - name: 📤 Fazer upload do executável
+    - name: 🔧 Instalar Inno Setup
+      run: |
+        choco install innosetup -y
+
+    - name: 📦 Criar instalador
+      run: |
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+
+    - name: 📤 Upload do executável
       uses: actions/upload-artifact@v4
       with:
         name: Sistema-de-Controle-EXE
         path: dist/SistemaControle.exe
+
+    - name: 📤 Upload do instalador
+      uses: actions/upload-artifact@v4
+      with:
+        name: Sistema-de-Controle-Installer
+        path: Output/SistemaControleSetup.exe

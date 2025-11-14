@@ -11,7 +11,8 @@ import tkinter as tk
 import platform
 
 try:
-    from tela import gerenciador_temas, CORES
+    from tema_config import gerenciador_temas, obter_cores
+    CORES = obter_cores()
 except ImportError:
     class GerenciadorTemasFallback:
         def __init__(self):

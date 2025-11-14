@@ -8,10 +8,12 @@ import math
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib
+
 matplotlib.use('TkAgg')
 
 try:
-    from tela import gerenciador_temas, CORES
+    from tema_config import gerenciador_temas, obter_cores
+    CORES = obter_cores()
 except ImportError:
     class GerenciadorTemasFallback:
         def __init__(self):

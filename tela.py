@@ -18,6 +18,14 @@ from logger_sistema import logger  # import logger
 from gerenciador_excecoes import gerenciador_excecoes, TipoErro, GerenciadorExcecoes  # import exception handler
 from utilidades_ui import GerenciadorResponsividade, UtiliadadesGraficos  # import UI utilities
 from lugar_geometrico_raizes import AnalisadorLGR, ErroValidacaoLGR
+from tema_config import GerenciadorTemas, gerenciador_temas
+
+CORES = gerenciador_temas.obter_cores()
+
+# Configuração do tema inicial
+ctk.set_appearance_mode(CORES["mode"])
+ctk.set_default_color_theme("blue")
+
 
 class GerenciadorTemas:
     """Gerencia temas claro e escuro com persistência"""
@@ -533,8 +541,8 @@ class SistemaTCC(ctk.CTk):
             self.bind("<Alt-F4>", lambda e: self._on_closing())
             
         # Atalhos de teclado para acessibilidade
-        self.bind("<Control-plus>", lambda e: self.aumentar_fonte())
-        self.bind("<Control-minus>", lambda e: self.diminuir_fonte())
+        self.bind("<Control-plus>", lambda e: self.aumentar_fonte_global())
+        self.bind("<Control-minus>", lambda e: self.diminuir_fonte_global())
         self.bind("<Control-t>", lambda e: self.alternar_tema())
         self.bind("<Control-h>", lambda e: self.mostrar_ajuda())
         self.bind("<Control-c>", lambda e: self.toggle_alto_contraste())
@@ -826,7 +834,7 @@ class SistemaTCC(ctk.CTk):
         ctk.CTkButton(
             frame_acess,
             text="🔤 Aumentar Fonte (Ctrl++)",
-            command=self.aumentar_fonte,
+            command=self.aumentar_fonte_global,
             width=250,
             height=40,
             font=("Segoe UI", self.scale_font(14), "bold"),
@@ -837,7 +845,7 @@ class SistemaTCC(ctk.CTk):
         ctk.CTkButton(
             frame_acess,
             text="🔡 Diminuir Fonte (Ctrl+-)",
-            command=self.diminuir_fonte,
+            command=self.diminuir_fonte_global,
             width=250,
             height=40,
             font=("Segoe UI", self.scale_font(14), "bold"),
@@ -913,34 +921,45 @@ class SistemaTCC(ctk.CTk):
         else:
             self.aplicar_tema("high_contrast")
     
-    def aumentar_fonte(self):
-        """Aumenta o tamanho das fontes do sistema"""
-        # Obtem o tamanho atual e adiciona um valor fixo ou proporcional
+    def aumentar_fonte_global(self):
+        """Aumenta o tamanho das fontes do sistema em todos os frames ativos"""
+        # Ajusta o tamanho base das fontes
         if self.font_corpo.cget("size") < 20: # Limite para evitar fontes gigantes
             self.font_titulo.configure(size=self.font_titulo.cget("size") + 2)
             self.font_subtitulo.configure(size=self.font_subtitulo.cget("size") + 2)
             self.font_corpo.configure(size=self.font_corpo.cget("size") + 1)
             self.font_label.configure(size=self.font_label.cget("size") + 1)
             self.font_pequeno.configure(size=self.font_pequeno.cget("size") + 1)
-            logger.info("Fontes aumentadas")
+            
+            # Atualiza fontes em módulos abertos
+            for widget in self.winfo_children():
+                if isinstance(widget, FrameBase):
+                    widget.atualizar_fontes()
+            
+            logger.info("Fontes aumentadas globalmente")
     
-    def diminuir_fonte(self):
-        """Diminui o tamanho das fontes do sistema"""
-        # Obtem o tamanho atual e subtrai um valor fixo ou proporcional
+    def diminuir_fonte_global(self):
+        """Diminui o tamanho das fontes do sistema em todos os frames ativos"""
         if self.font_corpo.cget("size") > 10: # Limite para evitar fontes muito pequenas
             self.font_titulo.configure(size=self.font_titulo.cget("size") - 2)
             self.font_subtitulo.configure(size=self.font_subtitulo.cget("size") - 2)
             self.font_corpo.configure(size=self.font_corpo.cget("size") - 1)
             self.font_label.configure(size=self.font_label.cget("size") - 1)
             self.font_pequeno.configure(size=self.font_pequeno.cget("size") - 1)
-            logger.info("Fontes diminuídas")
+
+            # Atualiza fontes em módulos abertos
+            for widget in self.winfo_children():
+                if isinstance(widget, FrameBase):
+                    widget.atualizar_fontes()
+
+            logger.info("Fontes diminuídas globalmente")
     
     def resetar_fonte(self):
         """Reseta as fontes para o tamanho padrão"""
         self.font_titulo.configure(size=20)
         self.font_subtitulo.configure(size=16)
         self.font_corpo.configure(size=14)
-        self.font_label.configure(size=10)
+        self.font_label.configure(size=12)
         self.font_pequeno.configure(size=10)
         logger.info("Fontes resetadas")
     
@@ -1071,7 +1090,7 @@ class SistemaTCC(ctk.CTk):
             text_color=CORES["erro"]
         ).pack(pady=(20, 10))
 
-        ctk.CTkTextbox(
+        erro_textbox = ctk.CTkTextbox(
             janela_erro,
             font=self.font_corpo,
             text_color=CORES["texto_principal"],
@@ -1080,11 +1099,10 @@ class SistemaTCC(ctk.CTk):
             height=100,
             wrap="word",
             activate_scrollbars=True
-        ).pack(pady=10, padx=20, fill="both", expand=True)
-        
-        # Insere a mensagem no Textbox (que acabamos de criar)
-        janela_erro.winfo_children()[-1].insert("1.0", mensagem)
-        janela_erro.winfo_children()[-1].configure(state="disabled")
+        )
+        erro_textbox.pack(pady=10, padx=20, fill="both", expand=True)
+        erro_textbox.insert("1.0", mensagem)
+        erro_textbox.configure(state="disabled")
 
         ctk.CTkButton(
             janela_erro,
@@ -1121,6 +1139,11 @@ class SistemaTCC(ctk.CTk):
         # Fechar painel de configurações se estiver aberto
         if self.config_visivel:
             self.toggle_configuracoes()
+
+        # Atualizar fontes dos frames de módulos abertos
+        for widget in self.winfo_children():
+            if isinstance(widget, FrameBase):
+                widget.atualizar_fontes()
     
     def trocar_para_frame(self, frame_class, *args, **kwargs):
         """
@@ -1143,14 +1166,13 @@ class SistemaTCC(ctk.CTk):
         self.frame_atual.grid(row=0, column=0, sticky="nsew")
         
         # Fade in
-        self.after(50)
-        self.attributes("-alpha", 1.0)
+        self.after(50, lambda: self.attributes("-alpha", 1.0)) # Usar lambda para garantir execução assíncrona
     
     def voltar_para_menu(self):
         """Volta para o menu principal com transição"""
         self.trocar_para_frame(TelaPrincipal)
     
-    # Aumentar e diminuir fonte já foram refatorados acima em SistemaTCC
+    # Métodos de fonte globais já definidos em aumentar_fonte_global e diminuir_fonte_global
     
     # Este método abrir_janela foi atualizado acima, removendo a lógica "lgr"
     # def abrir_janela(self, tipo_janela, titulo): ...
@@ -1452,6 +1474,11 @@ class FrameBase(ctk.CTkFrame):
     def voltar_menu(self):
         """Volta para o menu principal"""
         self.controlador.voltar_para_menu()
+
+    def atualizar_fontes(self):
+        """Atualiza fontes dos widgets deste frame (se necessário)"""
+        # Exemplo: Se houver labels, botões, etc. com fontes específicas
+        pass # Deve ser implementado nas subclasses se necessário
 
 class FrameCriterio(FrameBase):
     def __init__(self, parent, controlador, titulo):
@@ -2240,7 +2267,7 @@ class FrameAnalise(FrameBase):
                 self.canvas_grafico.draw()
                 
                 canvas_widget = self.canvas_grafico.get_tk_widget()
-                canvas_widget.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
+                canvas_widget.grid(row=0, column=0, sticky="nsew")
                 canvas_widget.grid_propagate(True)
                 
                 toolbar_frame = ctk.CTkFrame(self.grafico_container, fg_color="transparent")
@@ -2271,11 +2298,6 @@ class FrameAnalise(FrameBase):
         self.texto_resultados.insert("end", "• Numerador: 4\n")
         self.texto_resultados.insert("end", "• Denominador: 1 2 4\n")
         self.texto_resultados.insert("end", "  (representa: G(s) = 4 / (s² + 2s + 4))\n")
-
-
-# ==================================================================
-# ================== CLASSE JANELALGR ATUALIZADA ===================
-# ==================================================================
 
 class JanelaLGR(FrameBase):
     """Frame para análise do Lugar Geométrico das Raízes (agora herda de FrameBase)"""
