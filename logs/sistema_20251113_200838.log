@@ -1,0 +1,8 @@
+2025-11-13 20:08:38 - SistemaControle - INFO - [logger_sistema.py:63] - Logger iniciado com sucesso
+2025-11-13 20:08:38 - SistemaControle - INFO - [logger_sistema.py:71] - Iniciando aplicação SistemaTCC
+2025-11-13 20:08:40 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo LGR
+2025-11-13 20:08:40 - SistemaControle - INFO - [logger_sistema.py:71] - Janela LGR aberta
+2025-11-13 20:08:42 - SistemaControle - INFO - [logger_sistema.py:71] - Análise LGR completa realizada
+2025-11-13 20:08:44 - SistemaControle - ERROR - [logger_sistema.py:83] - Erro ao plotar LGR: module 'control.matlab' has no attribute 'root_locus'
+2025-11-13 20:08:51 - SistemaControle - INFO - [logger_sistema.py:71] - Fechando aplicação SistemaTCC
+2025-11-13 20:08:51 - SistemaControle - INFO - [logger_sistema.py:71] - Aplicação SistemaTCC encerrada com sucesso.

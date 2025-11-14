@@ -1,0 +1,6 @@
+2025-11-13 20:47:54 - SistemaControle - INFO - [logger_sistema.py:63] - Logger iniciado com sucesso
+2025-11-13 20:47:54 - SistemaControle - INFO - [logger_sistema.py:71] - Iniciando aplicação SistemaTCC
+2025-11-13 20:47:56 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo LGR
+2025-11-13 20:47:56 - SistemaControle - ERROR - [logger_sistema.py:83] - Erro ao abrir LGR: name 'JanelaLGR' is not defined
+2025-11-13 20:48:00 - SistemaControle - INFO - [logger_sistema.py:71] - Fechando aplicação SistemaTCC
+2025-11-13 20:48:00 - SistemaControle - INFO - [logger_sistema.py:71] - Aplicação SistemaTCC encerrada com sucesso.

@@ -1,0 +1,11 @@
+2025-11-13 21:59:35 - SistemaControle - INFO - [logger_sistema.py:63] - Logger iniciado com sucesso
+2025-11-13 21:59:36 - SistemaControle - INFO - [logger_sistema.py:71] - Iniciando aplicação SistemaTCC
+2025-11-13 21:59:38 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo de análise de segunda ordem
+2025-11-13 21:59:44 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo de controladores
+2025-11-13 21:59:47 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo LGR
+2025-11-13 21:59:48 - SistemaControle - INFO - [logger_sistema.py:71] - Frame LGR aberto
+2025-11-13 21:59:49 - SistemaControle - INFO - [logger_sistema.py:71] - Análise LGR completa realizada
+2025-11-13 21:59:51 - SistemaControle - INFO - [logger_sistema.py:71] - Gráfico LGR plotado com sucesso
+2025-11-13 22:00:02 - SistemaControle - INFO - [logger_sistema.py:71] - Gráfico LGR plotado com sucesso
+2025-11-13 22:00:12 - SistemaControle - INFO - [logger_sistema.py:71] - Fechando aplicação SistemaTCC
+2025-11-13 22:00:12 - SistemaControle - INFO - [logger_sistema.py:71] - Aplicação SistemaTCC encerrada com sucesso.

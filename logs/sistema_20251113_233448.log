@@ -1,0 +1,7 @@
+2025-11-13 23:34:48 - SistemaControle - INFO - [logger_sistema.py:63] - Logger iniciado com sucesso
+2025-11-13 23:34:49 - SistemaControle - ERROR - [logger_sistema.py:83] - Exceção não tratada:
+Traceback (most recent call last):
+  File "/home/luis-fernando-a-dos-santos/Documentos/projeto de sistema de controle /tela.py", line 2283, in <module>
+    from .frame_base import FrameBase
+ImportError: attempted relative import with no known parent package
+

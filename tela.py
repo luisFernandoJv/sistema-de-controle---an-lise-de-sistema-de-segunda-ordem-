@@ -6,6 +6,8 @@ from analise_segunda_ordem import AnalisadorSegundaOrdem, ErroValidacao as ErroV
 from controladores import JanelaControladores
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import matplotlib.pyplot as plt
+import control.matlab as matlab
+import numpy as np
 import platform
 import sys
 import json
@@ -14,6 +16,7 @@ import queue
 from logger_sistema import logger  # import logger
 from gerenciador_excecoes import gerenciador_excecoes, TipoErro, GerenciadorExcecoes  # import exception handler
 from utilidades_ui import GerenciadorResponsividade, UtiliadadesGraficos  # import UI utilities
+from lugar_geometrico_raizes import AnalisadorLGR, ErroValidacaoLGR
 
 class GerenciadorTemas:
     """Gerencia temas claro e escuro com persistência"""
@@ -27,6 +30,8 @@ class GerenciadorTemas:
             "secundaria_hover": "#1e5021",
             "terciaria": "#c62828",
             "terciaria_hover": "#8e0000",
+            "quarto": "#9333ea",
+            "quarto_hover": "#7e22ce",
             "fundo_escuro": "#1a1a2e",
             "fundo_claro": "#16213e",
             "texto_principal": "#fcfcfc",
@@ -45,6 +50,8 @@ class GerenciadorTemas:
             "secundaria_hover": "#15803d",
             "terciaria": "#dc2626",
             "terciaria_hover": "#b91c1c",
+            "quarto": "#9333ea",
+            "quarto_hover": "#7e22ce",
             "fundo_escuro": "#f8fafc",
             "fundo_claro": "#ffffff",
             "texto_principal": "#000000",
@@ -63,6 +70,8 @@ class GerenciadorTemas:
             "secundaria_hover": "#00cc00",
             "terciaria": "#ff0000",
             "terciaria_hover": "#cc0000",
+            "quarto": "#9333ea",
+            "quarto_hover": "#7e22ce",
             "fundo_escuro": "#000000",
             "fundo_claro": "#1a1a1a",
             "texto_principal": "#ffffff",
@@ -653,6 +662,13 @@ class SistemaTCC(ctk.CTk):
         logger.info("Abrindo módulo de análise de segunda ordem")
         self.trocar_para_frame(FrameAnalise, titulo="ANÁLISE DE SISTEMAS DE 2ª ORDEM")
     
+    # ================== MÉTODO ATUALIZADO ==================
+    def abrir_lgr(self):
+        """Abre o módulo de Lugar Geométrico das Raízes"""
+        logger.info("Abrindo módulo LGR")
+        self.trocar_para_frame(JanelaLGR, titulo="📌 LUGAR GEOMÉTRICO DAS RAÍZES")
+    # =======================================================
+
     def abrir_controladores(self):
         """Abre o módulo de controladores"""
         logger.info("Abrindo módulo de controladores")
@@ -664,6 +680,7 @@ class SistemaTCC(ctk.CTk):
             logger.error(f"Erro ao abrir controladores: {e}")
             self.mostrar_erro(f"Erro ao abrir módulo de controladores: {str(e)}")
     
+    # ================== MÉTODO ATUALIZADO ==================
     def abrir_janela(self, tipo_janela, titulo):
         """Abre uma nova janela com gerenciamento adequado"""
         # Fechar janela anterior do mesmo tipo se existir
@@ -680,6 +697,7 @@ class SistemaTCC(ctk.CTk):
             janela = FrameCriterio(self, titulo)
         elif tipo_janela == "analise":
             janela = FrameAnalise(self, titulo)
+        # --- Bloco LGR removido מכאן ---
         elif tipo_janela == "controladores":
             janela = JanelaControladores(self)
         else:
@@ -702,6 +720,7 @@ class SistemaTCC(ctk.CTk):
             self.focus_force()
         
         janela.protocol("WM_DELETE_WINDOW", ao_fechar)
+    # =======================================================
     
     def criar_menu_acessibilidade(self):
         """Cria menu de acessibilidade e configurações"""
@@ -895,16 +914,19 @@ class SistemaTCC(ctk.CTk):
     
     def aumentar_fonte(self):
         """Aumenta o tamanho das fontes do sistema"""
-        self.font_titulo.configure(size=self.font_titulo.cget("size") + 2)
-        self.font_subtitulo.configure(size=self.font_subtitulo.cget("size") + 2)
-        self.font_corpo.configure(size=self.font_corpo.cget("size") + 1)
-        self.font_label.configure(size=self.font_label.cget("size") + 1)
-        self.font_pequeno.configure(size=self.font_pequeno.cget("size") + 1)
-        logger.info("Fontes aumentadas")
+        # Obtem o tamanho atual e adiciona um valor fixo ou proporcional
+        if self.font_corpo.cget("size") < 20: # Limite para evitar fontes gigantes
+            self.font_titulo.configure(size=self.font_titulo.cget("size") + 2)
+            self.font_subtitulo.configure(size=self.font_subtitulo.cget("size") + 2)
+            self.font_corpo.configure(size=self.font_corpo.cget("size") + 1)
+            self.font_label.configure(size=self.font_label.cget("size") + 1)
+            self.font_pequeno.configure(size=self.font_pequeno.cget("size") + 1)
+            logger.info("Fontes aumentadas")
     
     def diminuir_fonte(self):
         """Diminui o tamanho das fontes do sistema"""
-        if self.font_corpo.cget("size") > 10:
+        # Obtem o tamanho atual e subtrai um valor fixo ou proporcional
+        if self.font_corpo.cget("size") > 10: # Limite para evitar fontes muito pequenas
             self.font_titulo.configure(size=self.font_titulo.cget("size") - 2)
             self.font_subtitulo.configure(size=self.font_subtitulo.cget("size") - 2)
             self.font_corpo.configure(size=self.font_corpo.cget("size") - 1)
@@ -1024,6 +1046,56 @@ class SistemaTCC(ctk.CTk):
             fg_color=CORES["primaria"],
             hover_color=CORES["primaria_hover"]
         ).pack(pady=15)
+
+    def mostrar_erro(self, mensagem):
+        """Mostra uma janela de erro simples"""
+        janela_erro = ctk.CTkToplevel(self)
+        janela_erro.title("❌ Erro Inesperado")
+        janela_erro.geometry("450x250")
+        janela_erro.configure(fg_color=CORES["fundo_escuro"])
+
+        # Centralizar
+        janela_erro.update_idletasks()
+        x = (self.winfo_screenwidth() - 450) // 2
+        y = (self.winfo_screenheight() - 250) // 2
+        janela_erro.geometry(f"450x250+{x}+{y}")
+
+        janela_erro.grid_columnconfigure(0, weight=1)
+        janela_erro.grid_rowconfigure(0, weight=1)
+
+        ctk.CTkLabel(
+            janela_erro,
+            text="❌ Ocorreu um Erro:",
+            font=self.font_subtitulo,
+            text_color=CORES["erro"]
+        ).pack(pady=(20, 10))
+
+        ctk.CTkTextbox(
+            janela_erro,
+            font=self.font_corpo,
+            text_color=CORES["texto_principal"],
+            fg_color=CORES["fundo_claro"],
+            width=400,
+            height=100,
+            wrap="word",
+            activate_scrollbars=True
+        ).pack(pady=10, padx=20, fill="both", expand=True)
+        
+        # Insere a mensagem no Textbox (que acabamos de criar)
+        janela_erro.winfo_children()[-1].insert("1.0", mensagem)
+        janela_erro.winfo_children()[-1].configure(state="disabled")
+
+        ctk.CTkButton(
+            janela_erro,
+            text="Fechar",
+            command=janela_erro.destroy,
+            fg_color=CORES["primaria"],
+            hover_color=CORES["primaria_hover"]
+        ).pack(pady=20)
+
+        janela_erro.transient(self)
+        janela_erro.grab_set()
+        janela_erro.focus_force()
     
     def recriar_interface(self):
         """Recria a interface com novo tema"""
@@ -1079,44 +1151,8 @@ class SistemaTCC(ctk.CTk):
     
     # Aumentar e diminuir fonte já foram refatorados acima em SistemaTCC
     
-    def abrir_janela(self, tipo_janela, titulo):
-        """Abre uma nova janela com gerenciamento adequado"""
-        # Fechar janela anterior do mesmo tipo se existir
-        if tipo_janela in self.janelas_abertas:
-            try:
-                self.janelas_abertas[tipo_janela].destroy()
-            except:
-                pass
-            finally:
-                self.janelas_abertas.pop(tipo_janela, None)
-        
-        # Criar nova janela
-        if tipo_janela == "criterio":
-            janela = FrameCriterio(self, titulo)
-        elif tipo_janela == "analise":
-            janela = FrameAnalise(self, titulo)
-        elif tipo_janela == "controladores":
-            janela = JanelaControladores(self)
-        else:
-            return
-        
-        # Configurações para garantir visibilidade
-        janela.transient(self)
-        janela.grab_set()
-        janela.lift()
-        janela.focus_force()
-        
-        # Armazenar referência
-        self.janelas_abertas[tipo_janela] = janela
-        
-        # Callback para limpar ao fechar
-        def ao_fechar():
-            self.janelas_abertas.pop(tipo_janela, None)
-            janela.destroy()
-            self.lift()
-            self.focus_force()
-        
-        janela.protocol("WM_DELETE_WINDOW", ao_fechar)
+    # Este método abrir_janela foi atualizado acima, removendo a lógica "lgr"
+    # def abrir_janela(self, tipo_janela, titulo): ...
 
 class TelaPrincipal(ctk.CTkFrame):
     def __init__(self, parent, controlador):
@@ -1265,7 +1301,7 @@ class TelaPrincipal(ctk.CTkFrame):
         
         # Botões responsivos
         button_width = min(400, int(self.controlador.screen_width * 0.3))
-        button_height = 60 if self.controlador.screen_height <= 768 else 65
+        button_height = 50 if self.controlador.screen_height <= 768 else 65
         button_font = self.controlador.scale_font(18)
         button_padding = self.controlador.scale_padding(12)
         
@@ -1281,6 +1317,12 @@ class TelaPrincipal(ctk.CTkFrame):
                 "comando": lambda: self.controlador.abrir_analise_segunda_ordem(),
                 "cor": CORES["secundaria"],
                 "cor_hover": CORES["secundaria_hover"],
+            },
+            {
+                "texto": "⚲ LUGAR GEOMÉTRICO DAS RAÍZES",
+                "comando": lambda: self.controlador.abrir_lgr(),
+                "cor": CORES["quarto"],
+                "cor_hover": CORES["quarto_hover"],
             },
             {
                 "texto": "🎮 ANÁLISE DE CONTROLADORES",
@@ -1356,7 +1398,7 @@ class FrameBase(ctk.CTkFrame):
         self.padding_scale = config.get_padding_scale(screen_width)
         
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(1, weight=1) # Linha 1 para o conteúdo
         
         self.criar_cabecalho()
         self.criar_conteudo()
@@ -1427,7 +1469,7 @@ class FrameCriterio(FrameBase):
         padding = self.scale_padding(20)
         
         # Container principal com 2 colunas
-        frame_conteudo = ctk.CTkFrame(self, fg_color=CORES["fundo_escuro"])
+        frame_conteudo = ctk.CTkFrame(self, fg_color="transparent")
         frame_conteudo.grid(row=1, column=0, sticky="nsew", padx=padding, pady=padding)
         frame_conteudo.grid_columnconfigure(0, weight=0)  # Coluna esquerda - largura fixa
         frame_conteudo.grid_columnconfigure(1, weight=1)  # Coluna direita - expansível
@@ -2228,6 +2270,537 @@ class FrameAnalise(FrameBase):
         self.texto_resultados.insert("end", "• Numerador: 4\n")
         self.texto_resultados.insert("end", "• Denominador: 1 2 4\n")
         self.texto_resultados.insert("end", "  (representa: G(s) = 4 / (s² + 2s + 4))\n")
+
+
+# ==================================================================
+# ================== CLASSE JANELALGR ATUALIZADA ===================
+# ==================================================================
+
+class JanelaLGR(FrameBase):
+    """Frame para análise do Lugar Geométrico das Raízes (agora herda de FrameBase)"""
+    
+    def __init__(self, parent, controlador, titulo):
+        # 1. Chamar construtor da classe base (FrameBase)
+        super().__init__(parent, controlador, titulo)
+        
+        # 2. Configurações específicas deste frame
+        self.analisador = AnalisadorLGR()
+        self.canvas_grafico = None
+        
+        # 3. Carregar dados do contexto se existirem
+        if hasattr(self.controlador, 'contexto_sistema'):
+            if self.controlador.contexto_sistema.get("num"):
+                num_str = " ".join(map(str, self.controlador.contexto_sistema["num"]))
+                self.entrada_numerador.insert(0, num_str)
+            if self.controlador.contexto_sistema.get("den"):
+                den_str = " ".join(map(str, self.controlador.contexto_sistema["den"]))
+                self.entrada_denominador.insert(0, den_str)
+        
+        logger.info("Frame LGR aberto")
+        
+    # 4. Remover criar_cabecalho() - FrameBase já cuida disso
+
+    def criar_conteudo(self):
+        """Cria o conteúdo principal da janela (chamado por FrameBase)"""
+        
+        # Container principal que ficará em row=1 (abaixo do cabeçalho)
+        container_principal = ctk.CTkFrame(self, fg_color="transparent")
+        container_principal.grid(row=1, column=0, sticky="nsew", padx=20, pady=20)
+        container_principal.grid_columnconfigure(0, weight=0)  # Painel esquerdo fixo
+        container_principal.grid_columnconfigure(1, weight=1)  # Painel direito expansível
+        container_principal.grid_rowconfigure(0, weight=1)
+        
+        # PAINEL ESQUERDO - Entradas e Controles
+        self.criar_painel_esquerdo(container_principal)
+        
+        # PAINEL DIREITO - Gráfico e Resultados
+        self.criar_painel_direito(container_principal)
+    
+    def criar_painel_esquerdo(self, parent):
+        """Cria o painel esquerdo com entradas"""
+        frame_esquerdo = ctk.CTkFrame(
+            parent,
+            fg_color=CORES["acento"],
+            corner_radius=15,
+            border_width=2,
+            border_color=CORES["primaria"],
+            width=420
+        )
+        frame_esquerdo.grid(row=0, column=0, sticky="ns", padx=(0, 15))
+        frame_esquerdo.grid_propagate(False)
+        frame_esquerdo.grid_columnconfigure(0, weight=1)
+        frame_esquerdo.grid_rowconfigure(2, weight=1)
+        
+        # Título
+        titulo = ctk.CTkLabel(
+            frame_esquerdo,
+            text="⚙️ CONFIGURAÇÃO DO SISTEMA",
+            font=self.controlador.font_subtitulo, # Usar fonte do controlador
+            text_color=CORES["texto_principal"]
+        )
+        titulo.grid(row=0, column=0, sticky="ew", padx=15, pady=(15, 10))
+        
+        # Linha divisória
+        linha = ctk.CTkFrame(
+            frame_esquerdo,
+            height=2,
+            fg_color=CORES["primaria"],
+            corner_radius=1
+        )
+        linha.grid(row=1, column=0, sticky="ew", padx=15, pady=(0, 15))
+        
+        # Container scrollável
+        scroll_container = ctk.CTkScrollableFrame(
+            frame_esquerdo,
+            fg_color="transparent"
+        )
+        scroll_container.grid(row=2, column=0, sticky="nsew", padx=15, pady=(0, 15))
+        scroll_container.grid_columnconfigure(0, weight=1)
+        
+        # === ENTRADAS ===
+        frame_entradas = ctk.CTkFrame(
+            scroll_container,
+            fg_color=CORES["fundo_claro"],
+            corner_radius=10
+        )
+        frame_entradas.grid(row=0, column=0, sticky="ew", pady=(0, 15))
+        frame_entradas.grid_columnconfigure(0, weight=1)
+        
+        # Instruções
+        instrucoes = ctk.CTkLabel(
+            frame_entradas,
+            text="📝 Digite os coeficientes da Função de Transferência",
+            font=self.controlador.font_corpo, # Usar fonte do controlador
+            text_color=CORES["texto_principal"]
+        )
+        instrucoes.grid(row=0, column=0, sticky="w", pady=12, padx=15)
+        
+        # Numerador
+        ctk.CTkLabel(
+            frame_entradas,
+            text="Numerador:",
+            font=self.controlador.font_label, # Usar fonte do controlador
+            text_color=CORES["texto_principal"]
+        ).grid(row=1, column=0, sticky="w", pady=(5, 5), padx=15)
+        
+        self.entrada_numerador = ctk.CTkEntry(
+            frame_entradas,
+            placeholder_text="Ex: 1",
+            height=36,
+            font=self.controlador.font_corpo, # Usar fonte do controlador
+            fg_color=CORES["fundo_escuro"],
+            border_color=CORES["borda"]
+        )
+        self.entrada_numerador.grid(row=2, column=0, sticky="ew", padx=15, pady=(0, 5))
+        
+        hint_num = ctk.CTkLabel(
+            frame_entradas,
+            text="💡 Maior → menor grau (Ex: 1 2 3)",
+            font=("Segoe UI", 10),
+            text_color=CORES["texto_secundario"]
+        )
+        hint_num.grid(row=3, column=0, sticky="w", pady=(0, 15), padx=15)
+        
+        # Denominador
+        ctk.CTkLabel(
+            frame_entradas,
+            text="Denominador:",
+            font=self.controlador.font_label, # Usar fonte do controlador
+            text_color=CORES["texto_principal"]
+        ).grid(row=4, column=0, sticky="w", pady=(5, 5), padx=15)
+        
+        self.entrada_denominador = ctk.CTkEntry(
+            frame_entradas,
+            placeholder_text="Ex: 1 4 5 2 0",
+            height=36,
+            font=self.controlador.font_corpo, # Usar fonte do controlador
+            fg_color=CORES["fundo_escuro"],
+            border_color=CORES["borda"]
+        )
+        self.entrada_denominador.grid(row=5, column=0, sticky="ew", padx=15, pady=(0, 5))
+        
+        hint_den = ctk.CTkLabel(
+            frame_entradas,
+            text="💡 Maior → menor grau (Ex: 1 5 6)",
+            font=("Segoe UI", 10),
+            text_color=CORES["texto_secundario"]
+        )
+        hint_den.grid(row=6, column=0, sticky="w", pady=(0, 15), padx=15)
+        
+        # === BOTÕES ===
+        frame_botoes = ctk.CTkFrame(
+            scroll_container,
+            fg_color="transparent"
+        )
+        frame_botoes.grid(row=1, column=0, sticky="ew", pady=(0, 15))
+        frame_botoes.grid_columnconfigure(0, weight=1)
+        
+        ctk.CTkButton(
+            frame_botoes,
+            text="📊 Análise Completa",
+            command=self.analisar_completo,
+            height=45,
+            font=self.controlador.font_corpo, # Usar fonte do controlador
+            fg_color=CORES["primaria"],
+            hover_color=CORES["primaria_hover"],
+            corner_radius=8
+        ).grid(row=0, column=0, sticky="ew", padx=0, pady=5)
+        
+        ctk.CTkButton(
+            frame_botoes,
+            text="📈 Plotar Root Locus",
+            command=self.plotar_lgr,
+            height=45,
+            font=self.controlador.font_corpo, # Usar fonte do controlador
+            fg_color=CORES["secundaria"],
+            hover_color=CORES["secundaria_hover"],
+            corner_radius=8
+        ).grid(row=1, column=0, sticky="ew", padx=0, pady=5)
+        
+        ctk.CTkButton(
+            frame_botoes,
+            text="🗑️ Limpar",
+            command=self.limpar_tudo,
+            height=45,
+            font=self.controlador.font_corpo, # Usar fonte do controlador
+            fg_color=CORES["terciaria"],
+            hover_color=CORES["terciaria_hover"],
+            corner_radius=8
+        ).grid(row=2, column=0, sticky="ew", padx=0, pady=5)
+        
+        # === ÁREA DE RESULTADOS ===
+        frame_resultados = ctk.CTkFrame(
+            scroll_container,
+            fg_color=CORES["fundo_claro"],
+            corner_radius=10
+        )
+        frame_resultados.grid(row=2, column=0, sticky="nsew", pady=(0, 0))
+        frame_resultados.grid_columnconfigure(0, weight=1)
+        frame_resultados.grid_rowconfigure(1, weight=1)
+        
+        ctk.CTkLabel(
+            frame_resultados,
+            text="📋 Resultados da Análise",
+            font=self.controlador.font_corpo, # Usar fonte do controlador
+            text_color=CORES["texto_principal"]
+        ).grid(row=0, column=0, sticky="w", pady=10, padx=15)
+        
+        self.texto_resultados = ctk.CTkTextbox(
+            frame_resultados,
+            font=self.controlador.font_pequeno, # Usar fonte do controlador
+            fg_color=CORES["fundo_escuro"],
+            border_color=CORES["borda"],
+            border_width=1,
+            wrap="word",
+            height=350
+        )
+        self.texto_resultados.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        
+        self._adicionar_instrucoes_iniciais()
+    
+    def criar_painel_direito(self, parent):
+        """Cria o painel direito com gráfico"""
+        frame_direito = ctk.CTkFrame(
+            parent,
+            fg_color=CORES["acento"],
+            corner_radius=15,
+            border_width=2,
+            border_color=CORES["primaria"]
+        )
+        frame_direito.grid(row=0, column=1, sticky="nsew", padx=(15, 0))
+        frame_direito.grid_columnconfigure(0, weight=1)
+        frame_direito.grid_rowconfigure(1, weight=1)
+        
+        # Título
+        ctk.CTkLabel(
+            frame_direito,
+            text="📈 GRÁFICO DO LUGAR GEOMÉTRICO DAS RAÍZES",
+            font=self.controlador.font_subtitulo, # Usar fonte do controlador
+            text_color=CORES["texto_principal"]
+        ).grid(row=0, column=0, sticky="w", pady=15, padx=20)
+        
+        # Frame do gráfico
+        self.frame_grafico = ctk.CTkFrame(
+            frame_direito,
+            fg_color=CORES["fundo_claro"],
+            corner_radius=10
+        )
+        self.frame_grafico.grid(row=1, column=0, sticky="nsew", padx=15, pady=(0, 15))
+        self.frame_grafico.grid_columnconfigure(0, weight=1)
+        self.frame_grafico.grid_rowconfigure(0, weight=1)
+        
+        # Container do gráfico
+        self.grafico_container = ctk.CTkFrame(
+            self.frame_grafico,
+            fg_color=CORES["fundo_claro"]
+        )
+        self.grafico_container.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        self.grafico_container.grid_columnconfigure(0, weight=1)
+        self.grafico_container.grid_rowconfigure(0, weight=1)
+        
+        # Label inicial
+        self.label_sem_grafico = ctk.CTkLabel(
+            self.grafico_container,
+            text="📊\n\nClique em 'Plotar Root Locus'\npara visualizar o lugar geométrico das raízes",
+            font=self.controlador.font_corpo, # Usar fonte do controlador
+            text_color=CORES["texto_secundario"],
+            justify="center"
+        )
+        self.label_sem_grafico.grid(row=0, column=0)
+    
+    def _adicionar_instrucoes_iniciais(self):
+        """Adiciona instruções iniciais no textbox"""
+        self.texto_resultados.delete("1.0", "end")
+        self.texto_resultados.insert("1.0", "📌 INSTRUÇÕES DE USO\n")
+        self.texto_resultados.insert("end", "=" * 70 + "\n\n")
+        self.texto_resultados.insert("end", "1. PREENCHA OS CAMPOS:\n")
+        self.texto_resultados.insert("end", "   • Numerador: Coeficientes do numerador\n")
+        self.texto_resultados.insert("end", "   • Denominador: Coeficientes do denominador\n\n")
+        self.texto_resultados.insert("end", "2. CLIQUE EM UMA ANÁLISE:\n")
+        self.texto_resultados.insert("end", "   • 📊 Análise Completa: Relatório detalhado\n")
+        self.texto_resultados.insert("end", "   • 📈 Plotar Root Locus: Visualização gráfica\n\n")
+        self.texto_resultados.insert("end", "3. FORMATO:\n")
+        self.texto_resultados.insert("end", "   • Separe números com ESPAÇO\n")
+        self.texto_resultados.insert("end", "   • Use ponto (.) para decimais\n")
+        self.texto_resultados.insert("end", "   • Do MAIOR para o MENOR grau\n\n")
+        self.texto_resultados.insert("end", "✅ EXEMPLO:\n")
+        self.texto_resultados.insert("end", "   Numerador:   1\n")
+        self.texto_resultados.insert("end", "   Denominador: 1 4 5 2 0\n")
+        self.texto_resultados.insert("end", "   G(s) = 1/(s⁴+4s³+5s²+2s)\n")
+    
+    def obter_coeficientes(self):
+        """Obtém e valida os coeficientes"""
+        try:
+            texto_num = self.entrada_numerador.get().strip()
+            texto_den = self.entrada_denominador.get().strip()
+            
+            if not texto_num or not texto_den:
+                raise ValueError("❌ Por favor, preencha ambos os campos!")
+            
+            try:
+                numerador = [float(x) for x in texto_num.split()]
+            except ValueError:
+                raise ValueError(f"❌ Erro no NUMERADOR!\nValor: '{texto_num}'\nUse apenas números.")
+            
+            try:
+                denominador = [float(x) for x in texto_den.split()]
+            except ValueError:
+                raise ValueError(f"❌ Erro no DENOMINADOR!\nValor: '{texto_den}'\nUse apenas números.")
+            
+            if len(numerador) == 0:
+                raise ValueError("❌ Numerador não pode estar vazio!")
+            
+            if len(denominador) == 0:
+                raise ValueError("❌ Denominador não pode estar vazio!")
+            
+            if abs(denominador[0]) < 1e-15:
+                raise ValueError("❌ Primeiro coeficiente do denominador não pode ser zero!")
+            
+            # Salvar no contexto
+            if hasattr(self.controlador, 'contexto_sistema'):
+                self.controlador.contexto_sistema["num"] = numerador
+                self.controlador.contexto_sistema["den"] = denominador
+            
+            return numerador, denominador
+            
+        except ValueError as e:
+            raise e
+    
+    def analisar_completo(self):
+        """Realiza análise completa do LGR"""
+        try:
+            numerador, denominador = self.obter_coeficientes()
+            
+            # Configurar e analisar
+            self.analisador.configurar_sistema(numerador, denominador)
+            relatorio = self.analisador.gerar_relatorio_completo()
+            
+            # Exibir resultados
+            self.texto_resultados.delete("1.0", "end")
+            self.texto_resultados.insert("1.0", relatorio)
+            
+            logger.info("Análise LGR completa realizada")
+            
+        except (ValueError, ErroValidacaoLGR) as e:
+            self.mostrar_erro(str(e))
+        except Exception as e:
+            self.mostrar_erro(f"Erro inesperado: {str(e)}")
+            logger.error(f"Erro na análise LGR: {e}", exc_info=True)
+    
+    # ================== FUNÇÃO PLOTAR ATUALIZADA ==================
+    def plotar_lgr(self):
+        """Plota o gráfico do Lugar Geométrico das Raízes com análise completa tipo MATLAB"""
+        try:
+            numerador, denominador = self.obter_coeficientes()
+            
+            # Configurar sistema
+            self.analisador.configurar_sistema(numerador, denominador)
+            
+            # Limpar gráfico anterior
+            if self.canvas_grafico:
+                self.canvas_grafico.get_tk_widget().destroy()
+                self.canvas_grafico = None
+            
+            if self.label_sem_grafico:
+                self.label_sem_grafico.destroy()
+                self.label_sem_grafico = None
+            
+            # Criar sistema de transferência
+            sistema = matlab.tf(numerador, denominador)
+            
+            # Criar figura com fundo branco para melhor visualização
+            fig = plt.figure(figsize=(10, 8), facecolor='white')
+            ax = fig.add_subplot(111, facecolor='white')
+            
+            matlab.rlocus(sistema, plot=True, ax=ax, grid=False)
+            
+            assint = self.analisador.calcular_assintotas()
+            if assint['numero'] > 0:
+                ax_limits = ax.axis()
+                L = max(abs(lim) for lim in ax_limits) * 3
+                sigma = assint['sigma']
+                
+                for angulo in assint['angulos']:
+                    ang_rad = np.deg2rad(angulo)
+                    x = [sigma, sigma + L * np.cos(ang_rad)]
+                    y = [0, L * np.sin(ang_rad)]
+                    ax.plot(x, y, '--', color='gray', linewidth=1.5, alpha=0.4, label='Assíntotas' if angulo == assint['angulos'][0] else '')
+            
+            segmentos_real = self.analisador.obter_segmentos_eixo_real()
+            for idx, seg in enumerate(segmentos_real):
+                ax.plot([seg['inicio'], seg['fim']], [0, 0], 
+                       'b-', linewidth=6, alpha=0.3, 
+                       label='Segmentos no Eixo Real' if idx == 0 else '')
+            
+            linhas_partida = self.analisador.obter_linhas_angulos_partida(comprimento=1.2)
+            for idx, (polo, linha) in enumerate(linhas_partida.items()):
+                ax.plot([linha['inicio'][0], linha['fim'][0]], 
+                       [linha['inicio'][1], linha['fim'][1]], 
+                       'g--', linewidth=2.5, alpha=0.7, 
+                       label='Ângulo de Partida' if idx == 0 else '')
+                # Adicionar texto com o ângulo
+                ax.annotate(f"{linha['angulo']:.1f}°", 
+                           xy=(linha['fim'][0], linha['fim'][1]),
+                           xytext=(8, 8), textcoords='offset points',
+                           fontsize=9, color='green', fontweight='bold',
+                           bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.7, edgecolor='green'))
+            
+            linhas_chegada = self.analisador.obter_linhas_angulos_chegada(comprimento=1.2)
+            for idx, (zero, linha) in enumerate(linhas_chegada.items()):
+                ax.plot([linha['inicio'][0], linha['fim'][0]], 
+                       [linha['inicio'][1], linha['fim'][1]], 
+                       'orange', linestyle='--', linewidth=2.5, alpha=0.7, 
+                       label='Ângulo de Chegada' if idx == 0 else '')
+                # Adicionar texto com o ângulo
+                ax.annotate(f"{linha['angulo']:.1f}°", 
+                           xy=(linha['inicio'][0], linha['inicio'][1]),
+                           xytext=(8, 8), textcoords='offset points',
+                           fontsize=9, color='orange', fontweight='bold',
+                           bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.7, edgecolor='orange'))
+            
+            cruzamento = self.analisador.calcular_cruzamento_eixo_imaginario()
+            if cruzamento:
+                for idx, ponto in enumerate(cruzamento['cruzamentos']):
+                    ax.plot(ponto.real, ponto.imag, 'r*', markersize=18, markeredgewidth=2,
+                           label=f'Cruzamento (K={cruzamento["k_critico"]:.2f})' if idx == 0 else '')
+                    # Desenhar linha horizontal no cruzamento
+                    xlim = ax.get_xlim()
+                    ax.plot(xlim, [ponto.imag, ponto.imag], 'r--', linewidth=1.5, alpha=0.5)
+                    # Adicionar anotação
+                    ax.annotate(f'K={cruzamento["k_critico"]:.2f}', 
+                               xy=(ponto.real, ponto.imag),
+                               xytext=(15, 0), textcoords='offset points',
+                               fontsize=9, color='red', fontweight='bold',
+                               bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8, edgecolor='red'))
+            
+            # Configurações finais do gráfico
+            ax.axhline(y=0, color='k', linewidth=0.8, alpha=0.5)
+            ax.axvline(x=0, color='k', linewidth=0.8, alpha=0.5)
+            ax.grid(True, alpha=0.3, linestyle=':', linewidth=0.5)
+            ax.set_xlabel('Eixo Real', fontsize=12, fontweight='bold', color='black')
+            ax.set_ylabel('Eixo Imaginário', fontsize=12, fontweight='bold', color='black')
+            ax.set_title('Lugar Geométrico das Raízes (Root Locus)', fontsize=14, fontweight='bold', color='black', pad=15)
+            
+            # Configurar cores dos eixos e texto
+            ax.tick_params(axis='both', colors='black', labelsize=10)
+            for spine in ax.spines.values():
+                spine.set_color('black')
+                spine.set_linewidth(1.2)
+            
+            # Legenda com fundo branco
+            legend = ax.legend(loc='best', fontsize=9, framealpha=0.9, facecolor='white', edgecolor='black')
+            for text in legend.get_texts():
+                text.set_color('black')
+            
+            # Ajustar layout
+            plt.tight_layout()
+            
+            # Incorporar na interface
+            self.canvas_grafico = FigureCanvasTkAgg(fig, master=self.grafico_container)
+            self.canvas_grafico.draw()
+            
+            canvas_widget = self.canvas_grafico.get_tk_widget()
+            canvas_widget.grid(row=0, column=0, sticky="nsew")
+            
+            # Adicionar toolbar
+            toolbar_frame = ctk.CTkFrame(self.grafico_container, fg_color="transparent")
+            toolbar_frame.grid(row=1, column=0, sticky="ew", padx=5, pady=5)
+            toolbar = NavigationToolbar2Tk(self.canvas_grafico, toolbar_frame)
+            toolbar.update()
+            
+            plt.close(fig)
+            
+            logger.info("Gráfico LGR plotado com sucesso")
+            
+        except (ValueError, ErroValidacaoLGR) as e:
+            self.mostrar_erro(str(e))
+        except Exception as e:
+            self.mostrar_erro(f"Erro ao plotar: {str(e)}")
+            logger.error(f"Erro ao plotar LGR: {e}", exc_info=True)
+    # =======================================================
+    
+    def limpar_tudo(self):
+        """Limpa todas as entradas e resultados"""
+        self.entrada_numerador.delete(0, "end")
+        self.entrada_denominador.delete(0, "end")
+        self.entrada_numerador.focus()
+        
+        # Limpar gráfico
+        if self.canvas_grafico:
+            self.canvas_grafico.get_tk_widget().destroy()
+            self.canvas_grafico = None
+        
+        # Recriar label
+        if not self.label_sem_grafico:
+            self.label_sem_grafico = ctk.CTkLabel(
+                self.grafico_container,
+                text="📊\n\nClique em 'Plotar Root Locus'\npara visualizar o lugar geométrico das raízes",
+                font=self.controlador.font_corpo, # Usar fonte do controlador
+                text_color=CORES["texto_secundario"],
+                justify="center"
+            )
+            self.label_sem_grafico.grid(row=0, column=0)
+        
+        self._adicionar_instrucoes_iniciais()
+        
+        logger.info("Interface LGR limpa")
+    
+    def mostrar_erro(self, mensagem):
+        """Exibe mensagem de erro"""
+        self.texto_resultados.delete("1.0", "end")
+        self.texto_resultados.insert("1.0", f"{mensagem}\n\n")
+        self.texto_resultados.insert("end", "=" * 70 + "\n")
+        self.texto_resultados.insert("end", "💡 DICAS:\n")
+        self.texto_resultados.insert("end", "=" * 70 + "\n")
+        self.texto_resultados.insert("end", "✓ Use apenas números (inteiros ou decimais)\n")
+        self.texto_resultados.insert("end", "✓ Separe por ESPAÇO\n")
+        self.texto_resultados.insert("end", "✓ Use ponto (.) para decimais\n")
+        self.texto_resultados.insert("end", "✓ Primeiro coeficiente ≠ 0\n")
+        self.texto_resultados.insert("end", "✓ Maior → menor grau\n\n")
+        self.texto_resultados.insert("end", "📝 EXEMPLO:\n")
+        self.texto_resultados.insert("end", "   Numerador:   1\n")
+        self.texto_resultados.insert("end", "   Denominador: 1 4 5 2 0\n")
+
 
 if __name__ == "__main__":
     try:

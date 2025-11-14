@@ -1,0 +1,9 @@
+2025-11-13 19:40:19 - SistemaControle - INFO - [logger_sistema.py:63] - Logger iniciado com sucesso
+2025-11-13 19:40:19 - SistemaControle - ERROR - [logger_sistema.py:83] - Exceção não tratada:
+Traceback (most recent call last):
+  File "/home/luis-fernando-a-dos-santos/Documentos/projeto de sistema de controle /tela.py", line 17, in <module>
+    from lugar_geometrico_raizes import AnalisadorLGR, ErroValidacaoLGR
+  File "/home/luis-fernando-a-dos-santos/Documentos/projeto de sistema de controle /lugar_geometrico_raizes.py", line 8, in <module>
+    import sympy as sp
+ModuleNotFoundError: No module named 'sympy'
+

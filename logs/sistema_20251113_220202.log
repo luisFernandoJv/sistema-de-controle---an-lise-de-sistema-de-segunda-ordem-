@@ -1,0 +1,6 @@
+2025-11-13 22:02:02 - SistemaControle - INFO - [logger_sistema.py:63] - Logger iniciado com sucesso
+2025-11-13 22:02:02 - SistemaControle - INFO - [logger_sistema.py:71] - Iniciando aplicação SistemaTCC
+2025-11-13 22:02:04 - SistemaControle - INFO - [logger_sistema.py:71] - Abrindo módulo LGR
+2025-11-13 22:02:04 - SistemaControle - ERROR - [logger_sistema.py:83] - Erro ao abrir LGR: JanelaLGR.__init__() missing 1 required positional argument: 'titulo'
+2025-11-13 22:02:09 - SistemaControle - INFO - [logger_sistema.py:71] - Fechando aplicação SistemaTCC
+2025-11-13 22:02:09 - SistemaControle - INFO - [logger_sistema.py:71] - Aplicação SistemaTCC encerrada com sucesso.

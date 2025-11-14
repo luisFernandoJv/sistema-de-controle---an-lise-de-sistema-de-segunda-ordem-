@@ -305,6 +305,11 @@ class JanelaControladores(ctk.CTkToplevel):
         # Frames
         self.criar_frame_sistema(frame_scroll)
         self.criar_frame_entrada(frame_scroll)
+
+        # === ALTERAÇÃO AQUI ===
+        # O frame de polos desejados agora é chamado aqui
+        self.criar_frame_polos_desejados(frame_scroll)
+
         self.criar_frame_controlador(frame_scroll)
         self.criar_botoes_acao(frame_scroll)
     
@@ -457,138 +462,368 @@ class JanelaControladores(ctk.CTkToplevel):
         self.frame_parametros = ctk.CTkFrame(frame, fg_color="transparent")
         self.frame_parametros.pack(fill="x", padx=20, pady=(0, 15))
         
+        
         self.atualizar_parametros_controlador()
     
-    def atualizar_parametros_controlador(self, event=None):
-        """Atualiza os campos de parâmetros do controlador"""
+    def atualizar_parametros_controlador(self, *args):
+        """Atualiza os campos de parâmetros do controlador baseado no tipo selecionado"""
+        # Limpar frame de parâmetros
         for widget in self.frame_parametros.winfo_children():
             widget.destroy()
         
         tipo = self.tipo_controlador.get()
         
-        self.criar_campo_parametro(self.frame_parametros, "Kp:", "1.0", "kp")
-        
-        if tipo in ["PI", "PID"]:
-            self.criar_campo_parametro(self.frame_parametros, "Ki:", "0.5", "ki")
-        
-        if tipo in ["PD", "PID"]:
-            self.criar_campo_parametro(self.frame_parametros, "Kd:", "0.1", "kd")
-    
-    def criar_campo_parametro(self, parent, label, valor_padrao, nome):
-        """Cria um campo de parâmetro com slider e entrada direta"""
-        frame_campo = ctk.CTkFrame(parent, fg_color="transparent")
-        frame_campo.pack(fill="x", pady=8)
-        
-        # Frame para label e entrada
-        frame_superior = ctk.CTkFrame(frame_campo, fg_color="transparent")
-        frame_superior.pack(fill="x", pady=(0, 8))
-        
-        # Label
+        # Parâmetro Kp (comum a todos)
         ctk.CTkLabel(
-            frame_superior,
-            text=label,
+            self.frame_parametros,
+            text="Kp (Proporcional):",
             font=("Segoe UI", 11, "bold"),
-            text_color=self.cores["texto_principal"],
-            width=40
-        ).pack(side="left")
+            text_color=self.cores["texto_principal"]
+        ).pack(anchor="w", pady=(5, 5))
         
-        # Entrada direta
-        entrada = ctk.CTkEntry(
-            frame_superior,
-            height=35,
+        # Frame para slider + entrada
+        frame_kp = ctk.CTkFrame(self.frame_parametros, fg_color="transparent")
+        frame_kp.pack(fill="x", pady=(0, 10))
+        
+        self.entrada_kp = ctk.CTkEntry(
+            frame_kp,
+            height=38,
             width=80,
             font=("Segoe UI", 11),
             fg_color=self.cores["fundo_claro"],
-            border_color=self.cores["borda"],
-            justify="center"
+            border_color=self.cores["borda"]
         )
-        entrada.pack(side="right", padx=(10, 0))
-        entrada.insert(0, valor_padrao)
+        self.entrada_kp.pack(side="right", padx=(5, 0))
+        self.entrada_kp.insert(0, "1.0")
         
-        # Frame para slider
-        frame_slider = ctk.CTkFrame(frame_campo, fg_color="transparent")
-        frame_slider.pack(fill="x")
-        
-        # Determinar limites do slider baseado no parâmetro
-        if nome == "kp":
-            min_val, max_val, step = 0.1, 10.0, 0.1
-        elif nome == "ki":
-            min_val, max_val, step = 0.01, 5.0, 0.05
-        elif nome == "kd":
-            min_val, max_val, step = 0.01, 2.0, 0.05
-        else:
-            min_val, max_val, step = 0.1, 10.0, 0.1
-        
-        # Slider
-        slider = ctk.CTkSlider(
-            frame_slider,
-            from_=min_val,
-            to=max_val,
-            number_of_steps=int((max_val - min_val) / step),
+        self.slider_kp = ctk.CTkSlider(
+            frame_kp,
+            from_=0,
+            to=10,
             height=20,
-            width=200,
+            fg_color=self.cores["borda"],
+            progress_color=self.cores["primaria"],
             button_color=self.cores["primaria"],
             button_hover_color=self.cores["primaria_hover"],
-            progress_color=self.cores["primaria"]
+            command=lambda v: self.atualizar_entrada_de_slider(self.entrada_kp, v)
         )
-        slider.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        self.slider_kp.set(1.0)
+        self.slider_kp.pack(side="left", fill="x", expand=True, padx=(0, 5))
         
-        # Label do valor do slider
-        valor_label = ctk.CTkLabel(
-            frame_slider,
-            text=valor_padrao,
-            font=("Segoe UI", 10),
-            text_color=self.cores["texto_secundario"],
-            width=50
-        )
-        valor_label.pack(side="right")
+        # Bind entrada para atualizar slider
+        self.entrada_kp.bind('<KeyRelease>', lambda e: self.atualizar_slider_de_entrada(self.slider_kp, self.entrada_kp, 0, 10))
         
-        # Configurar valor inicial do slider
+        # Parâmetros específicos
+        if tipo == "PI":
+            ctk.CTkLabel(
+                self.frame_parametros,
+                text="Ki (Integral):",
+                font=("Segoe UI", 11, "bold"),
+                text_color=self.cores["texto_principal"]
+            ).pack(anchor="w", pady=(5, 5))
+            
+            frame_ki = ctk.CTkFrame(self.frame_parametros, fg_color="transparent")
+            frame_ki.pack(fill="x", pady=(0, 10))
+            
+            self.entrada_ki = ctk.CTkEntry(
+                frame_ki,
+                height=38,
+                width=80,
+                font=("Segoe UI", 11),
+                fg_color=self.cores["fundo_claro"],
+                border_color=self.cores["borda"]
+            )
+            self.entrada_ki.pack(side="right", padx=(5, 0))
+            self.entrada_ki.insert(0, "0.5")
+            
+            self.slider_ki = ctk.CTkSlider(
+                frame_ki,
+                from_=0,
+                to=5,
+                height=20,
+                fg_color=self.cores["borda"],
+                progress_color=self.cores["primaria"],
+                button_color=self.cores["primaria"],
+                button_hover_color=self.cores["primaria_hover"],
+                command=lambda v: self.atualizar_entrada_de_slider(self.entrada_ki, v)
+            )
+            self.slider_ki.set(0.5)
+            self.slider_ki.pack(side="left", fill="x", expand=True, padx=(0, 5))
+            
+            self.entrada_ki.bind('<KeyRelease>', lambda e: self.atualizar_slider_de_entrada(self.slider_ki, self.entrada_ki, 0, 5))
+            
+        elif tipo == "PD":
+            ctk.CTkLabel(
+                self.frame_parametros,
+                text="Kd (Derivativo):",
+                font=("Segoe UI", 11, "bold"),
+                text_color=self.cores["texto_principal"]
+            ).pack(anchor="w", pady=(5, 5))
+            
+            frame_kd = ctk.CTkFrame(self.frame_parametros, fg_color="transparent")
+            frame_kd.pack(fill="x", pady=(0, 10))
+            
+            self.entrada_kd = ctk.CTkEntry(
+                frame_kd,
+                height=38,
+                width=80,
+                font=("Segoe UI", 11),
+                fg_color=self.cores["fundo_claro"],
+                border_color=self.cores["borda"]
+            )
+            self.entrada_kd.pack(side="right", padx=(5, 0))
+            self.entrada_kd.insert(0, "0.5")
+            
+            self.slider_kd = ctk.CTkSlider(
+                frame_kd,
+                from_=0,
+                to=5,
+                height=20,
+                fg_color=self.cores["borda"],
+                progress_color=self.cores["primaria"],
+                button_color=self.cores["primaria"],
+                button_hover_color=self.cores["primaria_hover"],
+                command=lambda v: self.atualizar_entrada_de_slider(self.entrada_kd, v)
+            )
+            self.slider_kd.set(0.5)
+            self.slider_kd.pack(side="left", fill="x", expand=True, padx=(0, 5))
+            
+            self.entrada_kd.bind('<KeyRelease>', lambda e: self.atualizar_slider_de_entrada(self.slider_kd, self.entrada_kd, 0, 5))
+            
+        elif tipo == "PID":
+            ctk.CTkLabel(
+                self.frame_parametros,
+                text="Ki (Integral):",
+                font=("Segoe UI", 11, "bold"),
+                text_color=self.cores["texto_principal"]
+            ).pack(anchor="w", pady=(5, 5))
+            
+            frame_ki = ctk.CTkFrame(self.frame_parametros, fg_color="transparent")
+            frame_ki.pack(fill="x", pady=(0, 10))
+            
+            self.entrada_ki = ctk.CTkEntry(
+                frame_ki,
+                height=38,
+                width=80,
+                font=("Segoe UI", 11),
+                fg_color=self.cores["fundo_claro"],
+                border_color=self.cores["borda"]
+            )
+            self.entrada_ki.pack(side="right", padx=(5, 0))
+            self.entrada_ki.insert(0, "0.5")
+            
+            self.slider_ki = ctk.CTkSlider(
+                frame_ki,
+                from_=0,
+                to=5,
+                height=20,
+                fg_color=self.cores["borda"],
+                progress_color=self.cores["primaria"],
+                button_color=self.cores["primaria"],
+                button_hover_color=self.cores["primaria_hover"],
+                command=lambda v: self.atualizar_entrada_de_slider(self.entrada_ki, v)
+            )
+            self.slider_ki.set(0.5)
+            self.slider_ki.pack(side="left", fill="x", expand=True, padx=(0, 5))
+            
+            self.entrada_ki.bind('<KeyRelease>', lambda e: self.atualizar_slider_de_entrada(self.slider_ki, self.entrada_ki, 0, 5))
+            
+            ctk.CTkLabel(
+                self.frame_parametros,
+                text="Kd (Derivativo):",
+                font=("Segoe UI", 11, "bold"),
+                text_color=self.cores["texto_principal"]
+            ).pack(anchor="w", pady=(5, 5))
+            
+            frame_kd = ctk.CTkFrame(self.frame_parametros, fg_color="transparent")
+            frame_kd.pack(fill="x", pady=(0, 10))
+            
+            self.entrada_kd = ctk.CTkEntry(
+                frame_kd,
+                height=38,
+                width=80,
+                font=("Segoe UI", 11),
+                fg_color=self.cores["fundo_claro"],
+                border_color=self.cores["borda"]
+            )
+            self.entrada_kd.pack(side="right", padx=(5, 0))
+            self.entrada_kd.insert(0, "0.5")
+            
+            self.slider_kd = ctk.CTkSlider(
+                frame_kd,
+                from_=0,
+                to=5,
+                height=20,
+                fg_color=self.cores["borda"],
+                progress_color=self.cores["primaria"],
+                button_color=self.cores["primaria"],
+                button_hover_color=self.cores["primaria_hover"],
+                command=lambda v: self.atualizar_entrada_de_slider(self.entrada_kd, v)
+            )
+            self.slider_kd.set(0.5)
+            self.slider_kd.pack(side="left", fill="x", expand=True, padx=(0, 5))
+            
+            self.entrada_kd.bind('<KeyRelease>', lambda e: self.atualizar_slider_de_entrada(self.slider_kd, self.entrada_kd, 0, 5))
+
+    def atualizar_entrada_de_slider(self, entrada, valor):
+        """Atualiza o campo de entrada quando o slider é movido"""
+        entrada.delete(0, "end")
+        entrada.insert(0, f"{valor:.2f}")
+    
+    def atualizar_slider_de_entrada(self, slider, entrada, min_val, max_val):
+        """Atualiza o slider quando o campo de entrada é modificado"""
         try:
-            slider.set(float(valor_padrao))
+            valor = float(entrada.get())
+            # Limitar valor aos limites do slider
+            valor = max(min_val, min(max_val, valor))
+            slider.set(valor)
         except ValueError:
-            slider.set(min_val)
+            pass  # Ignora valores inválidos
+    
+    def criar_frame_polos_desejados(self, parent):
+        """Frame para especificar polos desejados e coeficiente de amortecimento"""
+        frame = ctk.CTkFrame(
+            parent,
+            fg_color=self.cores["acento"], # Alterado de "fundo_claro"
+            corner_radius=10                # Alterado de 8
+        )
+        frame.pack(fill="x", pady=(0, 15)) # Alterado o pady
         
-        # Função para sincronizar slider e entrada
-        def atualizar_do_slider(value):
-            """Atualiza entrada quando slider muda"""
-            valor_formatado = f"{value:.2f}"
-            entrada.delete(0, "end")
-            entrada.insert(0, valor_formatado)
-            valor_label.configure(text=valor_formatado)
+        # Título
+        ctk.CTkLabel(
+            frame,
+            text="🎯 POLOS DOMINANTES DESEJADOS",
+            font=("Segoe UI", 14, "bold"), # Alterado de 12
+            text_color=self.cores["texto_principal"]
+        ).pack(anchor="w", padx=20, pady=(15, 5)) # Alterado padding
         
-        def atualizar_do_entrada(event=None):
-            """Atualiza slider quando entrada muda"""
-            try:
-                valor = float(entrada.get())
-                if min_val <= valor <= max_val:
-                    slider.set(valor)
-                    valor_label.configure(text=f"{valor:.2f}")
-                else:
-                    # Se valor fora do range, ajustar para o mais próximo
-                    if valor < min_val:
-                        entrada.delete(0, "end")
-                        entrada.insert(0, f"{min_val:.2f}")
-                        slider.set(min_val)
-                    else:
-                        entrada.delete(0, "end")
-                        entrada.insert(0, f"{max_val:.2f}")
-                        slider.set(max_val)
-                    valor_label.configure(text=entrada.get())
-            except ValueError:
-                # Se valor inválido, restaurar último valor válido
-                entrada.delete(0, "end")
-                entrada.insert(0, f"{slider.get():.2f}")
+        # Checkbox para habilitar
+        self.usar_polos_desejados = ctk.BooleanVar(value=False)
+        self.check_polos = ctk.CTkCheckBox(
+            frame,
+            text="Usar polos dominantes no LGR",
+            variable=self.usar_polos_desejados,
+            font=("Segoe UI", 11), # Alterado de 10
+            text_color=self.cores["texto_principal"],
+            fg_color=self.cores["primaria"],
+            hover_color=self.cores["primaria_hover"],
+            command=self.toggle_polos_desejados
+        )
+        self.check_polos.pack(anchor="w", padx=20, pady=(5, 10)) # Alterado padding
         
-        # Conectar eventos
-        slider.configure(command=atualizar_do_slider)
-        entrada.bind("<Return>", atualizar_do_entrada)
-        entrada.bind("<FocusOut>", atualizar_do_entrada)
+        # Frame dos campos (inicialmente desabilitado)
+        self.frame_campos_polos = ctk.CTkFrame(frame, fg_color="transparent")
+        self.frame_campos_polos.pack(fill="x", padx=20, pady=(0, 10)) # Alterado padding
         
-        # Armazenar referências
-        setattr(self, f"entrada_{nome}", entrada)
-        setattr(self, f"slider_{nome}", slider)
-        setattr(self, f"label_{nome}", valor_label)
+        # Coeficiente de amortecimento (Zeta)
+        ctk.CTkLabel(
+            self.frame_campos_polos,
+            text="ζ (Zeta):",
+            font=("Segoe UI", 11, "bold"), # Alterado de 10
+            text_color=self.cores["texto_principal"]
+        ).pack(anchor="w", pady=(5, 5))
+        
+        frame_zeta = ctk.CTkFrame(self.frame_campos_polos, fg_color="transparent")
+        frame_zeta.pack(fill="x", pady=(0, 10))
+        
+        self.entrada_zeta = ctk.CTkEntry(
+            frame_zeta,
+            height=32,
+            width=80,
+            font=("Segoe UI", 11), # Alterado de 10
+            fg_color=self.cores["fundo_claro"], # Alterado de "fundo_escuro"
+            border_color=self.cores["borda"],
+            justify="center",
+            state="disabled"
+        )
+        self.entrada_zeta.pack(side="right", padx=(5, 0))
+        self.entrada_zeta.insert(0, "0.6")
+        
+        self.slider_zeta = ctk.CTkSlider(
+            frame_zeta,
+            from_=0.01,
+            to=0.99,
+            height=18,
+            fg_color=self.cores["borda"],
+            progress_color=self.cores["primaria"],
+            button_color=self.cores["primaria"],
+            button_hover_color=self.cores["primaria_hover"],
+            state="disabled",
+            command=lambda v: self.atualizar_entrada_de_slider(self.entrada_zeta, v)
+        )
+        self.slider_zeta.set(0.6)
+        self.slider_zeta.pack(side="left", fill="x", expand=True, padx=(0, 5))
+        
+        self.entrada_zeta.bind('<KeyRelease>', lambda e: self.atualizar_slider_de_entrada(self.slider_zeta, self.entrada_zeta, 0.01, 0.99))
+        
+        ctk.CTkLabel(
+            self.frame_campos_polos,
+            text="(0 < ζ < 1)",
+            font=("Segoe UI", 9),
+            text_color=self.cores["texto_secundario"]
+        ).pack(anchor="w", pady=(0, 5))
+        
+        # Frequência natural (Wn) - opcional
+        ctk.CTkLabel(
+            self.frame_campos_polos,
+            text="ωn (Wn):",
+            font=("Segoe UI", 11, "bold"), # Alterado de 10
+            text_color=self.cores["texto_principal"]
+        ).pack(anchor="w", pady=(5, 5))
+        
+        frame_wn = ctk.CTkFrame(self.frame_campos_polos, fg_color="transparent")
+        frame_wn.pack(fill="x", pady=(0, 10))
+        
+        self.entrada_wn = ctk.CTkEntry(
+            frame_wn,
+            height=32,
+            width=80,
+            font=("Segoe UI", 11), # Alterado de 10
+            fg_color=self.cores["fundo_claro"], # Alterado de "fundo_escuro"
+            border_color=self.cores["borda"],
+            justify="center",
+            state="disabled",
+            placeholder_text="auto"
+        )
+        self.entrada_wn.pack(side="right", padx=(5, 0))
+        
+        self.slider_wn = ctk.CTkSlider(
+            frame_wn,
+            from_=0.1,
+            to=20,
+            height=18,
+            fg_color=self.cores["borda"],
+            progress_color=self.cores["secundaria"],
+            button_color=self.cores["secundaria"],
+            button_hover_color=self.cores["secundaria_hover"],
+            state="disabled",
+            command=lambda v: self.atualizar_entrada_de_slider(self.entrada_wn, v)
+        )
+        self.slider_wn.set(5.0)
+        self.slider_wn.pack(side="left", fill="x", expand=True, padx=(0, 5))
+        
+        self.entrada_wn.bind('<KeyRelease>', lambda e: self.atualizar_slider_de_entrada(self.slider_wn, self.entrada_wn, 0.1, 20))
+        
+        ctk.CTkLabel(
+            self.frame_campos_polos,
+            text="(opcional - deixe vazio para auto)",
+            font=("Segoe UI", 9),
+            text_color=self.cores["texto_secundario"]
+        ).pack(anchor="w", pady=(0, 5))
+    
+    def toggle_polos_desejados(self):
+        """Habilita/desabilita campos de polos desejados"""
+        if self.usar_polos_desejados.get():
+            self.entrada_zeta.configure(state="normal")
+            self.entrada_wn.configure(state="normal")
+            self.slider_zeta.configure(state="normal")
+            self.slider_wn.configure(state="normal")
+        else:
+            self.entrada_zeta.configure(state="disabled")
+            self.entrada_wn.configure(state="disabled")
+            self.slider_zeta.configure(state="disabled")
+            self.slider_wn.configure(state="disabled")
+
     
     def criar_botoes_acao(self, parent):
         """Cria os botões de ação"""
@@ -1208,25 +1443,215 @@ class JanelaControladores(ctk.CTkToplevel):
             self.canvas_resp_sem.draw()
             self.canvas_resp_com.draw()
     
+    # Importar analisador LGR e adicionar análise completa tipo MATLAB
+    # Importar analisador LGR e adicionar análise completa tipo MATLAB
     def gerar_lgr(self, G, Gc):
-        """Gera os gráficos de Lugar Geométrico das Raízes"""
+        """Gera os gráficos de Lugar Geométrico das Raízes com análise completa tipo MATLAB"""
         self.ax_lgr_sem.clear()
         self.ax_lgr_com.clear()
         
         try:
-            control.rlocus(G, ax=self.ax_lgr_sem, grid=True)
-            self.ax_lgr_sem.set_title('Lugar das Raízes - Sistema Original', fontsize=11, fontweight='bold')
-            self.ax_lgr_sem.set_xlabel('Parte Real', fontsize=10, fontweight='bold')
-            self.ax_lgr_sem.set_ylabel('Parte Imaginária', fontsize=10, fontweight='bold')
-            self.ax_lgr_sem.grid(True, alpha=0.3)
+            from lugar_geometrico_raizes import AnalisadorLGR
             
-            control.rlocus(G * Gc, ax=self.ax_lgr_com, grid=True)
+            # Gráfico sem controlador - análise completa
+            num_sem = G.num[0][0]
+            den_sem = G.den[0][0]
+            
+            analisador_sem = AnalisadorLGR()
+            analisador_sem.configurar_sistema(num_sem, den_sem)
+            
+            # Plotar usando control.rlocus
+            control.rlocus(G, ax=self.ax_lgr_sem, grid=False)
+            
+            # Adicionar assíntotas
+            assint_sem = analisador_sem.calcular_assintotas()
+            if assint_sem['numero'] > 0:
+                ax_limits = self.ax_lgr_sem.axis()
+                L = max(abs(lim) for lim in ax_limits) * 2
+                sigma = assint_sem['sigma']
+                
+                for angulo in assint_sem['angulos']:
+                    ang_rad = np.deg2rad(angulo)
+                    x = [sigma, sigma + L * np.cos(ang_rad)]
+                    y = [0, L * np.sin(ang_rad)]
+                    self.ax_lgr_sem.plot(x, y, '--', color='gray', linewidth=1.5, alpha=0.4)
+            
+            # Destacar segmentos no eixo real
+            segmentos_sem = analisador_sem.obter_segmentos_eixo_real()
+            for seg in segmentos_sem:
+                self.ax_lgr_sem.plot([seg['inicio'], seg['fim']], [0, 0], 
+                                    'b-', linewidth=6, alpha=0.3, 
+                                    label='Segmentos no Eixo Real' if seg == segmentos_sem[0] else '')
+            
+            # Ângulos de partida
+            linhas_partida_sem = analisador_sem.obter_linhas_angulos_partida(comprimento=0.8)
+            for idx, (polo, linha) in enumerate(linhas_partida_sem.items()):
+                self.ax_lgr_sem.plot([linha['inicio'][0], linha['fim'][0]], 
+                                    [linha['inicio'][1], linha['fim'][1]], 
+                                    'g--', linewidth=2, alpha=0.7, 
+                                    label='Ângulo de Partida' if idx == 0 else '')
+                # Adicionar anotação com ângulo
+                self.ax_lgr_sem.annotate(f"{linha['angulo']:.1f}°", 
+                                        xy=(linha['fim'][0], linha['fim'][1]),
+                                        xytext=(5, 5), textcoords='offset points',
+                                        fontsize=8, color='green', fontweight='bold')
+            
+            # Ângulos de chegada (se houver zeros)
+            linhas_chegada_sem = analisador_sem.obter_linhas_angulos_chegada(comprimento=0.8)
+            for idx, (zero, linha) in enumerate(linhas_chegada_sem.items()):
+                self.ax_lgr_sem.plot([linha['inicio'][0], linha['fim'][0]], 
+                                    [linha['inicio'][1], linha['fim'][1]], 
+                                    'orange', linestyle='--', linewidth=2, alpha=0.7, 
+                                    label='Ângulo de Chegada' if idx == 0 else '')
+                self.ax_lgr_sem.annotate(f"{linha['angulo']:.1f}°", 
+                                        xy=(linha['inicio'][0], linha['inicio'][1]),
+                                        xytext=(5, 5), textcoords='offset points',
+                                        fontsize=8, color='orange', fontweight='bold')
+            
+            # Cruzamento com eixo imaginário
+            cruzamento_sem = analisador_sem.calcular_cruzamento_eixo_imaginario()
+            if cruzamento_sem:
+                for idx, ponto in enumerate(cruzamento_sem['cruzamentos']):
+                    self.ax_lgr_sem.plot(ponto.real, ponto.imag, 'r*', markersize=15, 
+                                        label=f'Cruzamento (K={cruzamento_sem["k_critico"]:.2f})' if idx == 0 else '')
+                    # Linha horizontal no cruzamento
+                    xlim = self.ax_lgr_sem.get_xlim()
+                    self.ax_lgr_sem.plot(xlim, [ponto.imag, ponto.imag], 'r--', linewidth=1.5, alpha=0.5)
+            
+            self.ax_lgr_sem.set_title('Lugar das Raízes - Sistema Original', fontsize=11, fontweight='bold')
+            self.ax_lgr_sem.set_xlabel('Eixo Real', fontsize=10, fontweight='bold')
+            self.ax_lgr_sem.set_ylabel('Eixo Imaginário', fontsize=10, fontweight='bold')
+            self.ax_lgr_sem.grid(True, alpha=0.3)
+
+            # === INÍCIO DA CORREÇÃO (Gráfico SEM Controlador) ===
+            handles_sem, labels_sem = self.ax_lgr_sem.get_legend_handles_labels()
+            filtered_handles_sem = []
+            filtered_labels_sem = []
+            for h, l in zip(handles_sem, labels_sem):
+                if not l.startswith('sys['):
+                    filtered_handles_sem.append(h)
+                    filtered_labels_sem.append(l)
+            
+            self.ax_lgr_sem.legend(filtered_handles_sem, filtered_labels_sem, loc='best', fontsize=8)
+            # === FIM DA CORREÇÃO ===
+
+            
+            # Gráfico com controlador - análise completa
+            num_com = (G * Gc).num[0][0]
+            den_com = (G * Gc).den[0][0]
+            
+            analisador_com = AnalisadorLGR()
+            analisador_com.configurar_sistema(num_com, den_com)
+            
+            # Plotar usando control.rlocus
+            control.rlocus(G * Gc, ax=self.ax_lgr_com, grid=False)
+            
+            # Adicionar assíntotas
+            assint_com = analisador_com.calcular_assintotas()
+            if assint_com['numero'] > 0:
+                ax_limits = self.ax_lgr_com.axis()
+                L = max(abs(lim) for lim in ax_limits) * 2
+                sigma = assint_com['sigma']
+                
+                for angulo in assint_com['angulos']:
+                    ang_rad = np.deg2rad(angulo)
+                    x = [sigma, sigma + L * np.cos(ang_rad)]
+                    y = [0, L * np.sin(ang_rad)]
+                    self.ax_lgr_com.plot(x, y, '--', color='gray', linewidth=1.5, alpha=0.4)
+            
+            # Destacar segmentos no eixo real
+            segmentos_com = analisador_com.obter_segmentos_eixo_real()
+            for seg in segmentos_com:
+                self.ax_lgr_com.plot([seg['inicio'], seg['fim']], [0, 0], 
+                                    'b-', linewidth=6, alpha=0.3, 
+                                    label='Segmentos no Eixo Real' if seg == segmentos_com[0] else '')
+            
+            # Ângulos de partida
+            linhas_partida_com = analisador_com.obter_linhas_angulos_partida(comprimento=0.8)
+            for idx, (polo, linha) in enumerate(linhas_partida_com.items()):
+                self.ax_lgr_com.plot([linha['inicio'][0], linha['fim'][0]], 
+                                    [linha['inicio'][1], linha['fim'][1]], 
+                                    'g--', linewidth=2, alpha=0.7, 
+                                    label='Ângulo de Partida' if idx == 0 else '')
+                self.ax_lgr_com.annotate(f"{linha['angulo']:.1f}°", 
+                                        xy=(linha['fim'][0], linha['fim'][1]),
+                                        xytext=(5, 5), textcoords='offset points',
+                                        fontsize=8, color='green', fontweight='bold')
+            
+            # Ângulos de chegada (se houver zeros)
+            linhas_chegada_com = analisador_com.obter_linhas_angulos_chegada(comprimento=0.8)
+            for idx, (zero, linha) in enumerate(linhas_chegada_com.items()):
+                self.ax_lgr_com.plot([linha['inicio'][0], linha['fim'][0]], 
+                                    [linha['inicio'][1], linha['fim'][1]], 
+                                    'orange', linestyle='--', linewidth=2, alpha=0.7, 
+                                    label='Ângulo de Chegada' if idx == 0 else '')
+                self.ax_lgr_com.annotate(f"{linha['angulo']:.1f}°", 
+                                        xy=(linha['inicio'][0], linha['inicio'][1]),
+                                        xytext=(5, 5), textcoords='offset points',
+                                        fontsize=8, color='orange', fontweight='bold')
+            
+            # Cruzamento com eixo imaginário
+            cruzamento_com = analisador_com.calcular_cruzamento_eixo_imaginario()
+            if cruzamento_com:
+                for idx, ponto in enumerate(cruzamento_com['cruzamentos']):
+                    self.ax_lgr_com.plot(ponto.real, ponto.imag, 'r*', markersize=15, 
+                                        label=f'Cruzamento (K={cruzamento_com["k_critico"]:.2f})' if idx == 0 else '')
+                    # Linha horizontal no cruzamento
+                    xlim = self.ax_lgr_com.get_xlim()
+                    self.ax_lgr_com.plot(xlim, [ponto.imag, ponto.imag], 'r--', linewidth=1.5, alpha=0.5)
+            
+            # Adicionar polos dominantes desejados se ativado
+            if hasattr(self, 'usar_polos_desejados') and self.usar_polos_desejados.get():
+                try:
+                    zeta = float(self.entrada_zeta.get())
+                    wn_str = self.entrada_wn.get().strip()
+                    wn = float(wn_str) if wn_str else None
+                    
+                    polos_dom = analisador_com.calcular_polos_dominantes(zeta, wn)
+                    
+                    # --- MUDANÇA AQUI ---
+                    # Formatar a legenda do polo
+                    polo1 = polos_dom['polo_1']
+                    label_polo = f"Polo Desejado: {polo1.real:.2f} ± {abs(polo1.imag):.2f}j"
+
+                    # Plotar polos dominantes com a nova legenda
+                    self.ax_lgr_com.plot(polo1.real, polo1.imag, 
+                                        'r*', markersize=18, markeredgewidth=2, 
+                                        label=label_polo) # <-- Legenda dinâmica
+                    self.ax_lgr_com.plot(polos_dom['polo_2'].real, polos_dom['polo_2'].imag, 
+                                        'r*', markersize=18, markeredgewidth=2)
+                    # --- FIM DA MUDANÇA ---
+                    
+                    # Desenhar linhas de amortecimento constante
+                    linha_amort = analisador_com.obter_linha_amortecimento(zeta, comprimento=10.0)
+                    self.ax_lgr_com.plot(linha_amort['x'], linha_amort['y_positivo'], 
+                                        'r--', linewidth=2, alpha=0.6, 
+                                        label=f'ζ = {zeta:.2f}')
+                    self.ax_lgr_com.plot(linha_amort['x'], linha_amort['y_negativo'], 
+                                        'r--', linewidth=2, alpha=0.6)
+                    
+                except Exception as e:
+                    print(f"[v0] Erro ao adicionar polos desejados: {e}")
+            
             self.ax_lgr_com.set_title('Lugar das Raízes - Com Controlador', fontsize=11, fontweight='bold')
-            self.ax_lgr_com.set_xlabel('Parte Real', fontsize=10, fontweight='bold')
-            self.ax_lgr_com.set_ylabel('Parte Imaginária', fontsize=10, fontweight='bold')
+            self.ax_lgr_com.set_xlabel('Eixo Real', fontsize=10, fontweight='bold')
+            self.ax_lgr_com.set_ylabel('Eixo Imaginário', fontsize=10, fontweight='bold')
             self.ax_lgr_com.grid(True, alpha=0.3)
+
+            # === INÍCIO DA CORREÇÃO (Gráfico COM Controlador) ===
+            handles_com, labels_com = self.ax_lgr_com.get_legend_handles_labels()
+            filtered_handles_com = []
+            filtered_labels_com = []
+            for h, l in zip(handles_com, labels_com):
+                if not l.startswith('sys['):
+                    filtered_handles_com.append(h)
+                    filtered_labels_com.append(l)
+
+            self.ax_lgr_com.legend(filtered_handles_com, filtered_labels_com, loc='best', fontsize=8)
+            # === FIM DA CORREÇÃO ===
             
         except Exception as e:
+            print(f"[v0] Erro ao gerar LGR: {e}")
             self.ax_lgr_sem.text(0.5, 0.5, 'Erro ao gerar LGR\nTente outros parâmetros', 
                                ha='center', va='center', transform=self.ax_lgr_sem.transAxes)
             self.ax_lgr_com.text(0.5, 0.5, 'Erro ao gerar LGR\nTente outros parâmetros', 
@@ -1236,8 +1661,8 @@ class JanelaControladores(ctk.CTkToplevel):
         self.setup_plot_style(self.ax_lgr_com)
         
         try:
-            self.fig_lgr_sem.tight_layout(pad=3.0)
-            self.fig_lgr_com.tight_layout(pad=3.0)
+            self.fig_lgr_sem.tight_layout(pad=2.0)
+            self.fig_lgr_com.tight_layout(pad=2.0)
         except:
             pass
             

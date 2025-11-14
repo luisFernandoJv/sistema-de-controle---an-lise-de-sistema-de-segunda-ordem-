@@ -1,0 +1,10 @@
+2025-11-11 05:05:27 - SistemaControle - INFO - [logger_sistema.py:63] - Logger iniciado com sucesso
+2025-11-11 05:05:27 - SistemaControle - INFO - [logger_sistema.py:71] - Iniciando aplicação SistemaTCC
+2025-11-11 05:05:27 - SistemaControle - INFO - [logger_sistema.py:71] - Escala DPI definida para: 1.0
+2025-11-11 05:05:29 - SistemaControle - WARNING - [logger_sistema.py:79] - Arquivo de ícone não existe: image/icons/control.svg
+2025-11-11 05:05:29 - SistemaControle - DEBUG - [logger_sistema.py:75] - Ícone carregado: analise_segunda_ordem (32x32)
+2025-11-11 05:05:29 - SistemaControle - DEBUG - [logger_sistema.py:75] - Ícone carregado: analise_controladores (32x32)
+2025-11-11 05:05:30 - SistemaControle - WARNING - [logger_sistema.py:79] - Arquivo de ícone não existe: image/icons/temadark.svg
+2025-11-11 05:05:30 - SistemaControle - DEBUG - [logger_sistema.py:75] - Ícone carregado: config (24x24)
+2025-11-11 05:05:34 - SistemaControle - INFO - [logger_sistema.py:71] - Fechando aplicação SistemaTCC
+2025-11-11 05:05:34 - SistemaControle - INFO - [logger_sistema.py:71] - Aplicação SistemaTCC encerrada com sucesso.
