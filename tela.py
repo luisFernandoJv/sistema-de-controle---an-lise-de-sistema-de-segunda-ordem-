@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from PIL import Image, ImageTk
 import os
+import warnings
 from criterios_estabilidade import CriteriosEstabilidade, ErroValidacao
 from analise_segunda_ordem import AnalisadorSegundaOrdem, ErroValidacao as ErroValidacao2
 from controladores import JanelaControladores
