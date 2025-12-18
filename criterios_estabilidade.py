@@ -3,6 +3,7 @@ from scipy import signal
 import matplotlib.pyplot as plt
 import math
 import platform
+import sympy as sp
 
 class ErroValidacao(Exception):
     """Exceção customizada para erros de validação"""
@@ -145,7 +146,8 @@ class CriteriosEstabilidade:
             
             r = np.asarray(coeficientes, dtype=float)
             m = len(r)
-            n = round(m / 2)
+            # Para m=5: ceil(5/2)=3 colunas (s^4, s^2, s^0), em vez de round(2.5)=2 que omitia s^0
+            n = math.ceil(m / 2)
             
             # Separar coeficientes pares e ímpares
             coeficientes_pares = [r[p] for p in range(len(r)) if (p + 1) % 2 == 0]
@@ -396,10 +398,7 @@ class CriteriosEstabilidade:
             header_line = f"│{'':{s_col_width}}│"
             for j in range(num_colunas_dados):
                 col_power = grau_max - 2 * j
-                if col_power >= 0:
-                    header_text = f"s^{col_power}"
-                else:
-                    header_text = ""
+                header_text = f"s^{col_power}" if col_power >= 0 else ""
                 header_line += f"{header_text:^{data_col_width}}│"
             linhas.append(header_line)
             
@@ -412,7 +411,14 @@ class CriteriosEstabilidade:
             # Linhas da Tabela com Potências de s e Dados
             for i in range(num_linhas):
                 potencia_s = grau_max - i
-                label_s = f"s^{potencia_s}"
+                # Formatar label - quando for s^0, mostrar explicitamente
+                if potencia_s == 0:
+                    label_s = "s^0"
+                elif potencia_s == 1:
+                    label_s = "s^1"
+                else:
+                    label_s = f"s^{potencia_s}"
+                
                 linha_atual = f"│{label_s:>{s_col_width-2}}  │"
                 
                 # Adiciona os valores da linha
@@ -598,6 +604,230 @@ class CriteriosEstabilidade:
         except Exception as e:
             return f"❌ Erro na análise do sistema: {str(e)}"
 
+    @staticmethod
+    def calcular_faixa_ganho_k(coeficientes_num, coeficientes_den):
+        """
+        Calcula a faixa de ganho K para estabilidade usando Routh-Hurwitz
+        
+        Args:
+            coeficientes_num: Lista de coeficientes do numerador
+            coeficientes_den: Lista de coeficientes do denominador
+            
+        Returns:
+            dict: Dicionário com informações sobre estabilidade e faixa de K
+        """
+        try:
+            # Validar coeficientes
+            CriteriosEstabilidade.validar_coeficientes(coeficientes_num, "numerador")
+            CriteriosEstabilidade.validar_coeficientes(coeficientes_den, "denominador")
+            
+            # Criar símbolo para K
+            K = sp.Symbol('K', real=True, positive=True)
+            s = sp.Symbol('s')
+            
+            # Criar polinômio característico: den(s) + K*num(s) = 0
+            num_poly = sum(coeficientes_num[i] * s**(len(coeficientes_num)-1-i) 
+                          for i in range(len(coeficientes_num)))
+            den_poly = sum(coeficientes_den[i] * s**(len(coeficientes_den)-1-i) 
+                          for i in range(len(coeficientes_den)))
+            
+            char_poly = den_poly + K * num_poly
+            
+            # Obter coeficientes do polinômio característico
+            poly = sp.Poly(char_poly, s)
+            coefs = poly.all_coeffs()
+            
+            # Construir tabela de Routh-Hurwitz com K simbólico
+            n = len(coefs)
+            routh_table = [[sp.S(0) for _ in range((n+1)//2)] for _ in range(n)]
+            
+            # Primeira linha: coeficientes de potências pares (s^n, s^(n-2), ...)
+            for i, j in enumerate(range(0, n, 2)):
+                routh_table[0][i] = coefs[j]
+            
+            # Segunda linha: coeficientes de potências ímpares (s^(n-1), s^(n-3), ...)
+            for i, j in enumerate(range(1, n, 2)):
+                routh_table[1][i] = coefs[j]
+            
+            # Construir resto da tabela
+            for i in range(2, n):
+                for j in range((n+1)//2 - 1):
+                    try:
+                        if routh_table[i-1][0] != 0:
+                            num = (routh_table[i-1][0] * routh_table[i-2][j+1] - 
+                                  routh_table[i-2][0] * routh_table[i-1][j+1])
+                            routh_table[i][j] = sp.simplify(num / routh_table[i-1][0])
+                        else:
+                            routh_table[i][j] = sp.S(0)
+                    except (IndexError, ZeroDivisionError):
+                        routh_table[i][j] = sp.S(0)
+            
+            # Analisar primeira coluna para encontrar condições de estabilidade
+            primeira_coluna = [routh_table[i][0] for i in range(n)]
+            
+            # Encontrar K crítico (onde muda de sinal)
+            k_critico = None
+            freq_critica = None
+            condicoes_estabilidade = []
+            
+            for i, elemento in enumerate(primeira_coluna):
+                # Simplificar elemento
+                elem_simpl = sp.simplify(elemento)
+                
+                # Se contém K, resolver para K = 0 (mudança de sinal)
+                if K in elem_simpl.free_symbols:
+                    # Resolver para K quando elemento = 0
+                    solucoes_k = sp.solve(elem_simpl, K)
+                    for sol in solucoes_k:
+                        try:
+                            k_val = float(sol.evalf())
+                            if k_val > 0:
+                                if k_critico is None or k_val < k_critico:
+                                    k_critico = k_val
+                                    
+                                    # Usando equação auxiliar da linha anterior na tabela de Routh
+                                    if i >= 1 and i < n:
+                                        # A equação auxiliar vem da linha anterior à mudança de sinal
+                                        linha_auxiliar = i - 1
+                                        
+                                        # Coeficientes da equação auxiliar (forma: a*s^n + s^(n-2) + ...)
+                                        coefs_aux = []
+                                        for j in range(len(routh_table[linha_auxiliar])):
+                                            if routh_table[linha_auxiliar][j] != 0:
+                                                coef_val = routh_table[linha_auxiliar][j].subs(K, k_val)
+                                                coefs_aux.append(float(coef_val.evalf()))
+                                        
+                                        # Para sistema de segunda ordem ou maior: s^2 coef + s^0 coef
+                                        if len(coefs_aux) >= 2:
+                                            a_coef = coefs_aux[0]
+                                            b_coef = coefs_aux[1]
+                                            
+                                            # Frequência: ω = sqrt(b/a)
+                                            if a_coef > 0 and b_coef > 0:
+                                                freq_critica = float(sp.sqrt(b_coef / a_coef).evalf())
+                        except (ValueError, TypeError, AttributeError):
+                            continue
+            
+            # Determinar faixas de estabilidade
+            resultado = {
+                'k_critico': k_critico,
+                'freq_critica': freq_critica,
+                'tabela_routh': routh_table,
+                'primeira_coluna': primeira_coluna
+            }
+            
+            if k_critico is not None:
+                resultado['faixa_estavel'] = f"0 < K < {k_critico:.4f}"
+                resultado['faixa_marginalmente_estavel'] = f"K = {k_critico:.4f}"
+                resultado['faixa_instavel'] = f"K > {k_critico:.4f}"
+                resultado['msg_estabilidade'] = (
+                    f"Sistema ESTÁVEL para 0 < K < {k_critico:.4f}\n"
+                    f"Sistema MARGINALMENTE ESTÁVEL para K = {k_critico:.4f}\n"
+                    f"Sistema INSTÁVEL para K > {k_critico:.4f}"
+                )
+                if freq_critica is not None:
+                    resultado['msg_freq'] = f"Frequência no limiar de estabilidade: ω = {freq_critica:.4f} rad/s"
+            else:
+                # Verificar se é estável para todo K
+                # Avaliar primeira coluna com K = 1
+                teste_positivo = True
+                for elem in primeira_coluna:
+                    try:
+                        val = float(elem.subs(K, 1).evalf())
+                        if val <= 0:
+                            teste_positivo = False
+                            break
+                    except:
+                        teste_positivo = False
+                        break
+                
+                if teste_positivo:
+                    resultado['faixa_estavel'] = "0 < K < ∞"
+                    resultado['faixa_marginalmente_estavel'] = "Nenhum"
+                    resultado['faixa_instavel'] = "Nenhum"
+                    resultado['msg_estabilidade'] = "Sistema ESTÁVEL para todo K > 0"
+                else:
+                    resultado['faixa_estavel'] = "Nenhum"
+                    resultado['faixa_marginalmente_estavel'] = "Nenhum"
+                    resultado['faixa_instavel'] = "0 < K < ∞"
+                    resultado['msg_estabilidade'] = "Sistema INSTÁVEL para todo K > 0"
+            
+            return resultado
+            
+        except Exception as e:
+            return {
+                'erro': str(e),
+                'msg_estabilidade': f"Erro ao calcular faixa de ganho: {str(e)}"
+            }
+
+    @staticmethod
+    def gerar_relatorio_analise_ganho_k(coeficientes_num, coeficientes_den):
+        """
+        Gera relatório completo da análise de ganho K
+        
+        Args:
+            coeficientes_num: Lista de coeficientes do numerador
+            coeficientes_den: Lista de coeficientes do denominador
+            
+        Returns:
+            str: Relatório formatado
+        """
+        try:
+            resultado = CriteriosEstabilidade.calcular_faixa_ganho_k(coeficientes_num, coeficientes_den)
+            
+            if 'erro' in resultado:
+                return f"❌ ERRO: {resultado['erro']}"
+            
+            relatorio = []
+            relatorio.append("=" * 70)
+            relatorio.append("       ANÁLISE DE FAIXA DE GANHO K PARA ESTABILIDADE")
+            relatorio.append("=" * 70)
+            relatorio.append("")
+            
+            relatorio.append("FUNÇÃO DE TRANSFERÊNCIA:")
+            relatorio.append(f"  Numerador:   {CriteriosEstabilidade.formatar_polinomio(coeficientes_num)}")
+            relatorio.append(f"  Denominador: {CriteriosEstabilidade.formatar_polinomio(coeficientes_den)}")
+            relatorio.append("")
+            relatorio.append("Sistema em Malha Fechada: 1 + K·G(s)·H(s) = 0")
+            relatorio.append("")
+            
+            relatorio.append("-" * 70)
+            relatorio.append("ANÁLISE DE ESTABILIDADE")
+            relatorio.append("-" * 70)
+            relatorio.append("")
+            
+            relatorio.append(resultado['msg_estabilidade'])
+            relatorio.append("")
+            
+            if resultado.get('freq_critica'):
+                relatorio.append(resultado['msg_freq'])
+                relatorio.append("")
+            
+            relatorio.append("-" * 70)
+            relatorio.append("FAIXAS DE GANHO K")
+            relatorio.append("-" * 70)
+            relatorio.append(f"  🟢 ESTÁVEL:              {resultado['faixa_estavel']}")
+            relatorio.append(f"  🟠 MARGINALMENTE ESTÁVEL: {resultado['faixa_marginalmente_estavel']}")
+            relatorio.append(f"  🔴 INSTÁVEL:             {resultado['faixa_instavel']}")
+            relatorio.append("")
+            
+            if resultado.get('k_critico') is not None:
+                relatorio.append("-" * 70)
+                relatorio.append("VALORES CRÍTICOS")
+                relatorio.append("-" * 70)
+                relatorio.append(f"  K crítico: {resultado['k_critico']:.6f}")
+                if resultado.get('freq_critica') is not None:
+                    relatorio.append(f"  Frequência crítica (ω): {resultado['freq_critica']:.6f} rad/s")
+                    relatorio.append(f"  Período (T): {2*3.14159/resultado['freq_critica']:.6f} s")
+                relatorio.append("")
+            
+            relatorio.append("=" * 70)
+            
+            return "\n".join(relatorio)
+            
+        except Exception as e:
+            return f"❌ Erro ao gerar relatório: {str(e)}"
+
 # Função equivalente ao rhc do MATLAB
 def rhc(coeficientes):
     """
@@ -606,7 +836,6 @@ def rhc(coeficientes):
     """
     resultado = CriteriosEstabilidade.gerar_relatorio_routh_hurwitz(coeficientes)
     print(resultado)
-
 
 # Exemplo de uso automático
 if __name__ == "__main__":

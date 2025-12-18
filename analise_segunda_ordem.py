@@ -245,18 +245,18 @@ class AnalisadorSegundaOrdem:
             resultado.append(f"   Denominador (coeficientes): {self.denominador}")
             resultado.append("")
         
-        resultado.append(f"   Frequência Natural (ωn): {wn:.4f} rad/s")
-        resultado.append(f"   Coeficiente de Amortecimento (ζ): {zeta:.4f}")
-        resultado.append(f"   Ganho (K): {ganho:.4f}")
+        resultado.append(f"   Frequência Natural (ωn): {wn:.2f} rad/s")
+        resultado.append(f"   Coeficiente de Amortecimento (ζ): {zeta:.2f}")
+        resultado.append(f"   Ganho (K): {ganho:.2f}")
         resultado.append("")
         
         resultado.append("📐 FUNÇÃO DE TRANSFERÊNCIA:")
         resultado.append("-" * 57)
         if tipo_malha == 'fechada':
-            resultado.append(f"   G(s) = {ganho * wn**2:.4f} / (s² + {2*zeta*wn:.4f}s + {wn**2:.4f})")
+            resultado.append(f"   G(s) = {ganho * wn**2:.2f} / (s² + {2*zeta*wn:.2f}s + {wn**2:.2f})")
             resultado.append(f"   Forma padrão: G(s) = {ganho}·ωn² / (s² + 2ζωn·s + ωn²)")
         else:
-            resultado.append(f"   G(s) = {ganho * wn**2:.4f} / (s² + {2*zeta*wn:.4f}s + {wn**2:.4f})")
+            resultado.append(f"   G(s) = {ganho * wn**2:.2f} / (s² + {2*zeta*wn:.2f}s + {wn**2:.2f})")
             resultado.append(f"   Forma padrão (Malha Aberta): G(s) = K·ωn² / (s² + 2ζωn·s + ωn²)")
         resultado.append("")
         
@@ -284,13 +284,13 @@ class AnalisadorSegundaOrdem:
             if tipo_malha == 'aberta':
                 resultado.append("📊 MALHA ABERTA - PARÂMETROS PRINCIPAIS:")
                 resultado.append("-" * 57)
-                resultado.append(f"   ζ (Coeficiente de Amortecimento): {zeta:.4f}")
-                resultado.append(f"   ωn (Frequência Natural): {wn:.4f} rad/s")
+                resultado.append(f"   ζ (Coeficiente de Amortecimento): {zeta:.2f}")
+                resultado.append(f"   ωn (Frequência Natural): {wn:.2f} rad/s")
                 resultado.append("")
                 
                 if 0 < zeta < 1:
                     wd = wn * math.sqrt(1 - zeta**2)
-                    resultado.append(f"   ωd (Frequência Natural Amortecida): {wd:.4f} rad/s")
+                    resultado.append(f"   ωd (Frequência Natural Amortecida): {wd:.2f} rad/s")
                     resultado.append("")
                 
             else:  # Malha fechada
@@ -298,21 +298,27 @@ class AnalisadorSegundaOrdem:
                 resultado.append("-" * 57)
                 
                 if 0 < zeta < 1:
+                    td = (1 + 0.7 * zeta) / wn
+                    resultado.append(f"   Td (Tempo de Atraso): {td:.2f} s")
+                    resultado.append(f"      └─ Tempo para atingir 50% do valor final")
+                    resultado.append("")
+                
+                if 0 < zeta < 1:
                     wd = wn * math.sqrt(1 - zeta**2)
                     tp = math.pi / wd
-                    resultado.append(f"   Tp (Tempo de Pico): {tp:.4f} s")
+                    resultado.append(f"   Tp (Tempo de Pico): {tp:.2f} s")
                     resultado.append(f"      └─ Tempo para atingir o primeiro pico máximo")
                 else:
                     resultado.append(f"   Tp (Tempo de Pico): Não aplicável (sistema sem overshoot)")
                 resultado.append("")
-                
+        
                 if zeta > 0:
                     ts_2 = 4 / (zeta * wn)
                     ts_5 = 3 / (zeta * wn)
-                    resultado.append(f"   Ts (Tempo de Acomodação - 2%): {ts_2:.4f} s")
+                    resultado.append(f"   Ts (Tempo de Acomodação - 2%): {ts_2:.2f} s")
                     resultado.append(f"      └─ Tempo para permanecer dentro de ±2% do valor final")
                     resultado.append("")
-                    resultado.append(f"   Ts (Tempo de Acomodação - 5%): {ts_5:.4f} s")
+                    resultado.append(f"   Ts (Tempo de Acomodação - 5%): {ts_5:.2f} s")
                     resultado.append(f"      └─ Tempo para permanecer dentro de ±5% do valor final")
                 else:
                     resultado.append(f"   Ts: Sistema não estável ou não amortecido")
@@ -334,8 +340,8 @@ class AnalisadorSegundaOrdem:
                     if ganho != 0:
                         if tipo_malha == 'fechada':
                             erro_percentual = abs(1 - ganho) * 100
-                            resultado.append(f"      └─ e_ss (Entrada Degrau): {abs(1-ganho):.4f} ({erro_percentual:.2f}%)")
-                            resultado.append(f"      └─ Valor Final: {ganho:.4f}")
+                            resultado.append(f"      └─ e_ss (Entrada Degrau): {abs(1-ganho):.2f} ({erro_percentual:.2f}%)")
+                            resultado.append(f"      └─ Valor Final: {ganho:.2f}")
                         else:
                             resultado.append(f"      └─ e_ss (Entrada Degrau): Infinito (malha aberta)")
                     else:
@@ -345,8 +351,8 @@ class AnalisadorSegundaOrdem:
                         if ganho != 0 and zeta > 0 and wn > 0:
                             kv = ganho * wn * wn
                             erro_rampa = 1 / kv if kv != 0 else float('inf')
-                            resultado.append(f"      └─ e_ss (Entrada Rampa): {erro_rampa:.4f}")
-                            resultado.append(f"      └─ Kv (Constante de Velocidade): {kv:.4f}")
+                            resultado.append(f"      └─ e_ss (Entrada Rampa): {erro_rampa:.2f}")
+                            resultado.append(f"      └─ Kv (Constante de Velocidade): {kv:.2f}")
                         else:
                             resultado.append(f"      └─ e_ss (Entrada Rampa): Infinito")
                     else:
@@ -384,7 +390,7 @@ class AnalisadorSegundaOrdem:
         resultado.append("")
         
         resultado.append("=" * 57)
-        resultado.append("RESUMO EXECUTIVO".center(50))
+        resultado.append("RESUMO CARACTERIZAÇÃO DO SISTEMA DE 2ª ORDEM".center(50))
         resultado.append("=" * 57)
         try:
             resumo = self.gerar_resumo()
@@ -405,20 +411,20 @@ class AnalisadorSegundaOrdem:
         
         resultado.append(f"   Sistema: {self.tipo_malha.upper()} | Entrada: {self.tipo_entrada.upper()}")
         resultado.append("")
-        resultado.append(f"   ωn (Frequência Natural):          {self.wn:.4f} rad/s")
-        resultado.append(f"   ζ (Coef. Amortecimento):          {self.zeta:.4f}")
-        resultado.append(f"   K (Ganho):                        {self.ganho:.4f}")
+        resultado.append(f"   ωn (Frequência Natural):          {self.wn:.2f} rad/s")
+        resultado.append(f"   ζ (Coef. Amortecimento):          {self.zeta:.2f}")
+        resultado.append(f"   K (Ganho):                        {self.ganho:.2f}")
         resultado.append("")
         
         if self.tipo_malha == 'fechada':
             if 0 < self.zeta < 1:
+                td = (1 + 0.7 * self.zeta) / self.wn
+                resultado.append(f"   Td (Tempo de Atraso):             {td:.2f} s")
+                
                 wd = self.wn * math.sqrt(1 - self.zeta**2)
                 tp = math.pi / wd
-                resultado.append(f"   Tp (Tempo de Pico):               {tp:.4f} s")
-                
-                mp_percent = 100 * math.exp(-math.pi * self.zeta / math.sqrt(1 - self.zeta**2))
-                resultado.append(f"   Mp (Máximo Sobressinal):          {mp_percent:.2f}%")
-                
+                resultado.append(f"   Tp (Tempo de Pico):               {tp:.2f} s")
+
             elif self.zeta == 0:
                 resultado.append(f"   Tp (Tempo de Pico):               Oscilação contínua")
                 resultado.append(f"   Mp (Máximo Sobressinal):          Infinito")
@@ -429,17 +435,17 @@ class AnalisadorSegundaOrdem:
             if self.zeta > 0:
                 ts_2 = 4 / (self.zeta * self.wn)
                 ts_5 = 3 / (self.zeta * self.wn)
-                resultado.append(f"   Ts (Tempo Acomodação 2%):         {ts_2:.4f} s")
-                resultado.append(f"   Ts (Tempo Acomodação 5%):         {ts_5:.4f} s")
+                resultado.append(f"   Ts (Tempo Acomodação 2%):         {ts_2:.2f} s")
+                resultado.append(f"   Ts (Tempo Acomodação 5%):         {ts_5:.2f} s")
             
             if self.tipo_entrada == 'degrau':
                 erro = abs(1 - self.ganho)
-                resultado.append(f"   Erro Regime (Degrau):             {erro:.4f} ({erro*100:.2f}%)")
+                resultado.append(f"   Erro Regime (Degrau):             {erro:.2f} ({erro*100:.2f}%)")
             else:
                 if self.ganho != 0 and self.zeta > 0 and self.wn > 0:
                     kv = self.ganho * self.wn * self.wn
                     erro_rampa = 1 / kv if kv != 0 else float('inf')
-                    resultado.append(f"   Erro Regime (Rampa):              {erro_rampa:.4f}")
+                    resultado.append(f"   Erro Regime (Rampa):              {erro_rampa:.2f}")
         
         return resultado
     
@@ -465,28 +471,28 @@ class AnalisadorSegundaOrdem:
             parte_imaginaria = self.wn * math.sqrt(abs(1 - self.zeta**2))
             
             resultado.append(f"   Polos Complexos Conjugados:")
-            resultado.append(f"   s₁ = {parte_real:.4f} + j{parte_imaginaria:.4f}")
-            resultado.append(f"   s₂ = {parte_real:.4f} - j{parte_imaginaria:.4f}")
+            resultado.append(f"   s₁ = {parte_real:.2f} + j{parte_imaginaria:.2f}")
+            resultado.append(f"   s₂ = {parte_real:.2f} - j{parte_imaginaria:.2f}")
             resultado.append("")
-            resultado.append(f"   Parte Real: {parte_real:.4f}")
-            resultado.append(f"   Parte Imaginária: ±{parte_imaginaria:.4f}")
+            resultado.append(f"   Parte Real: {parte_real:.2f}")
+            resultado.append(f"   Parte Imaginária: ±{parte_imaginaria:.2f}")
             
             if self.zeta > 0:
                 wd = parte_imaginaria
-                resultado.append(f"   Frequência Natural Amortecida (ωd): {wd:.4f} rad/s")
+                resultado.append(f"   Frequência Natural Amortecida (ωd): {wd:.2f} rad/s")
             
         elif self.zeta == 1:
             polo = -self.wn
             resultado.append(f"   Polos Reais Repetidos:")
-            resultado.append(f"   s₁ = s₂ = {polo:.4f}")
+            resultado.append(f"   s₁ = s₂ = {polo:.2f}")
             
         else:
             s1 = -self.zeta * self.wn + self.wn * math.sqrt(self.zeta**2 - 1)
             s2 = -self.zeta * self.wn - self.wn * math.sqrt(self.zeta**2 - 1)
             
             resultado.append(f"   Polos Reais Distintos:")
-            resultado.append(f"   s₁ = {s1:.4f}")
-            resultado.append(f"   s₂ = {s2:.4f}")
+            resultado.append(f"   s₁ = {s1:.2f}")
+            resultado.append(f"   s₂ = {s2:.2f}")
         
         return resultado
     
@@ -500,100 +506,76 @@ class AnalisadorSegundaOrdem:
         
         if self.zeta == 0:
             resultado.append("   ⚠️ Sistema não amortecido - oscilação contínua")
-            resultado.append(f"   Período de Oscilação (T): {2*math.pi/self.wn:.4f} s")
-            resultado.append(f"   Frequência de Oscilação (f): {self.wn/(2*math.pi):.4f} Hz")
+            resultado.append(f"   Período de Oscilação (T): {2*math.pi/self.wn:.2f} s")
+            resultado.append(f"   Frequência de Oscilação (f): {self.wn/(2*math.pi):.2f} Hz")
             return resultado
+        
+        if self.tipo_malha == 'fechada' and self.tipo_entrada == 'degrau':
+            td = self.calcular_tempo_atraso()
+            if td is not None:
+                resultado.append(f"   Tempo de Atraso (Td): {td:.2f} s")
+                resultado.append(f"      └─ Tempo para atingir 50% do valor final")
+                resultado.append("")
         
         if 0 < self.zeta < 1:
             wd = self.wn * math.sqrt(1 - self.zeta**2)
             beta = math.atan(math.sqrt(1 - self.zeta**2) / self.zeta)
             tr = (math.pi - beta) / wd
-            resultado.append(f"   Tempo de Subida (Tr): {tr:.4f} s")
+            resultado.append(f"   Tempo de Subida (Tr): {tr:.2f} s")
             resultado.append(f"      └─ Tempo para ir de 10% a 90% do valor final")
         elif self.zeta == 1:
             tr = 2.2 / self.wn
-            resultado.append(f"   Tempo de Subida (Tr): {tr:.4f} s")
+            resultado.append(f"   Tempo de Subida (Tr): {tr:.2f} s")
         else:
             tr = 2.2 / (self.zeta * self.wn)
-            resultado.append(f"   Tempo de Subida (Tr): {tr:.4f} s (aproximado)")
+            resultado.append(f"   Tempo de Subida (Tr): {tr:.2f} s (aproximado)")
         
         if self.zeta >= 1:
             tau = 1 / (self.zeta * self.wn)
-            resultado.append(f"   Constante de Tempo (τ): {tau:.4f} s")
+            resultado.append(f"   Constante de Tempo (τ): {tau:.2f} s")
         
         return resultado
     
-    def analisar_estabilidade(self):
-        """Analisa a estabilidade do sistema"""
-        resultado = []
+    def calcular_tempo_atraso(self):
+        """
+        Calcula o tempo de atraso (Td) - tempo para atingir 50% do valor final
+        Usa método numérico para encontrar t quando y(t) = 0.5 * valor_final
         
-        if self.zeta < 0:
-            resultado.append("   ❌ SISTEMA INSTÁVEL")
-            resultado.append("   Razão: Coeficiente de amortecimento negativo (ζ < 0)")
-            resultado.append("   Consequência: Resposta divergente no tempo")
-        elif self.zeta == 0:
-            resultado.append("   ⚠️ SISTEMA MARGINALMENTE ESTÁVEL")
-            resultado.append("   Razão: Amortecimento nulo (ζ = 0)")
-            resultado.append("   Consequência: Oscilação permanente sem convergência")
-        else:
-            resultado.append("   ✅ SISTEMA ESTÁVEL")
-            resultado.append(f"   Razão: ζ = {self.zeta:.4f} > 0")
-            resultado.append("   Consequência: Resposta converge para valor final")
+        Returns:
+            float: Tempo de atraso em segundos ou None se não for possível calcular
+        """
+        try:
+            valor_alvo = 0.5 * self.ganho
             
-            if self.zeta < 1:
-                parte_real = -self.zeta * self.wn
-                resultado.append(f"   Polos com parte real negativa: {parte_real:.4f}")
-            elif self.zeta == 1:
-                polo = -self.wn
-                resultado.append(f"   Polos reais negativos: {polo:.4f}")
-            else:
-                s1 = -self.zeta * self.wn + self.wn * math.sqrt(self.zeta**2 - 1)
-                s2 = -self.zeta * self.wn - self.wn * math.sqrt(self.zeta**2 - 1)
-                resultado.append(f"   Polos reais negativos: {s1:.4f} e {s2:.4f}")
-        
-        return resultado
-    
-    def gerar_recomendacoes(self):
-        """Gera recomendações baseadas na análise"""
-        resultado = []
-        
-        if self.tipo_entrada == 'rampa':
-            resultado.append("   📌 OBSERVAÇÃO SOBRE ENTRADA RAMPA:")
-            resultado.append("   • Entrada rampa gera erro de regime permanente maior que degrau")
-            resultado.append("   • Erro depende da constante de velocidade Kv = K·ωn²")
-            resultado.append("")
-        
-        if self.zeta < 0:
-            resultado.append("   ⚠️ ATENÇÃO: Sistema instável!")
-            resultado.append("   • Revisar o projeto do sistema")
-        elif self.zeta == 0:
-            resultado.append("   ⚠️ Sistema oscilatório:")
-            resultado.append("   • Adicionar amortecimento ao sistema")
-        elif 0 < self.zeta < 0.4:
-            mp = 100 * math.exp(-math.pi * self.zeta / math.sqrt(1 - self.zeta**2))
-            resultado.append("   📊 Sistema subamortecido com alto overshoot:")
-            resultado.append(f"   • Overshoot atual: {mp:.2f}%")
-            resultado.append("   • Considere aumentar ζ para reduzir oscilações")
-        elif 0.4 <= self.zeta < 0.7:
-            mp = 100 * math.exp(-math.pi * self.zeta / math.sqrt(1 - self.zeta**2))
-            resultado.append("   ✅ Amortecimento adequado:")
-            resultado.append(f"   • Overshoot moderado: {mp:.2f}%")
-            resultado.append("   • Bom compromisso entre velocidade e estabilidade")
-        elif 0.7 <= self.zeta < 1:
-            mp = 100 * math.exp(-math.pi * self.zeta / math.sqrt(1 - self.zeta**2))
-            resultado.append("   ✅ Sistema bem amortecido:")
-            resultado.append(f"   • Baixo overshoot: {mp:.2f}%")
-            resultado.append("   • Resposta suave com mínima oscilação")
-        elif self.zeta == 1:
-            resultado.append("   ⚡ Sistema criticamente amortecido (ÓTIMO):")
-            resultado.append("   • Resposta mais rápida sem overshoot")
-            resultado.append("   • Configuração ideal para muitas aplicações")
-        else:
-            resultado.append("   📈 Sistema superamortecido:")
-            resultado.append("   • Sem overshoot mas resposta lenta")
-            resultado.append("   • Considere reduzir ζ para melhorar velocidade")
-        
-        return resultado
+            # Gerar resposta temporal com mais resolução
+            t, y = self.calcular_resposta_temporal(tempo_final=None, num_pontos=5000)
+            
+            if t is None or y is None:
+                return None
+            
+            # Encontrar o primeiro índice onde y >= 50% do valor final
+            indices = np.where(y >= valor_alvo)[0]
+            
+            if len(indices) == 0:
+                return None
+            
+            idx = indices[0]
+            
+            # Interpolação linear para maior precisão
+            if idx > 0:
+                y1, y2 = y[idx-1], y[idx]
+                t1, t2 = t[idx-1], t[idx]
+                
+                # Interpolação linear: td = t1 + (valor_alvo - y1) * (t2 - t1) / (y2 - y1)
+                if abs(y2 - y1) > 1e-10:
+                    td = t1 + (valor_alvo - y1) * (t2 - t1) / (y2 - y1)
+                    return td
+            
+            return t[idx]
+            
+        except Exception as e:
+            print(f"Erro ao calcular Td: {str(e)}")
+            return None
     
     def plotar_resposta(self, frame_grafico=None):
         """
