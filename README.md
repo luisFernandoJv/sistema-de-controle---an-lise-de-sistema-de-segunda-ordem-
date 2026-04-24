@@ -1,148 +1,223 @@
-# ⚙️ Ferramenta Computacional para Análise de Sistemas de Controle ⚙️
+<div align="center">
 
-![Versão Python](https://img.shields.io/badge/python-3.10%2B-blue)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+<img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white"/>
+<img src="https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge"/>
+<img src="https://img.shields.io/badge/Status-Concluído-22c55e?style=for-the-badge"/>
+<img src="https://img.shields.io/badge/TCC-UFERSA%202025-orange?style=for-the-badge"/>
 
-**Trabalho de Conclusão de Curso - Engenharia de Computação**
-*Aluno: Luís Fernando Alexandre dos Santos*
-*Orientador: Prof. Dr. Cecilio Martins de Sousa Neto*
-*Universidade Federal Rural do Semi-Árido - 2025*
+<br/><br/>
 
-## 📜 Descrição Geral
+# ⚙️ SysControl — Ferramenta de Análise de Sistemas de Controle
 
-Esta é uma ferramenta computacional desenvolvida em Python com o objetivo de **auxiliar estudantes e profissionais** das áreas de Engenharia (Controle, Computação, Elétrica, Mecatrônica) na **análise, projeto e caracterização de sistemas de controle dinâmicos**.
+> **Aplicação desktop completa para análise, projeto e simulação de sistemas de controle dinâmicos.**  
+> Desenvolvida como Trabalho de Conclusão de Curso em Engenharia de Computação.
 
-A aplicação oferece uma interface gráfica intuitiva que permite:
-* Analisar a estabilidade de sistemas lineares pelo critério de **Routh-Hurwitz**.
-* Extrair parâmetros de desempenho ($\omega_n$, $\zeta$) de **sistemas de segunda ordem**.
-* Realizar uma análise textual e gráfica completa do **Lugar Geométrico das Raízes (LGR)**.
-* Projetar e simular controladores clássicos **PI, PD e PID**, comparando a resposta temporal, o LGR e o mapa de polos/zeros do sistema original versus o sistema controlado.
+<br/>
 
-## ✨ Módulos Principais
+_Autor: **Luís Fernando Alexandre dos Santos**_  
+_Orientador: **Prof. Dr. Cecilio Martins de Sousa Neto**_  
+_Universidade Federal Rural do Semi-Árido — UFERSA · 2025_
 
-A ferramenta é dividida em quatro módulos independentes, cada um focado em uma etapa diferente da análise de sistemas de controle.
-
-| Módulo | Screenshot |
-| :--- | :--- |
-| **1. Tela Principal** | ![Tela Principal](image/tela1.png) |
-| **2. Análise de Estabilidade** | ![Análise de Estabilidade](image/tela2.png) |
-| **3. Análise de Sistema 2ª Ordem** | ![Análise de Sistema 2ª Ordem](image/tela3.png) |
-| **4. Lugar Geométrico das Raízes** | *![LGR](image/tela4.png)* |
-| **5. Análise de Controladores** | ![Análise de Controladores](image/tela5.png) |
+</div>
 
 ---
 
-## 🧭 Funcionalidades dos Módulos
+## 📌 Visão Geral
 
-A aplicação é dividida em quatro módulos principais, acessíveis pela tela inicial:
+O **SysControl** é uma ferramenta educacional desenvolvida em Python com interface gráfica moderna, destinada a estudantes e profissionais de Engenharia de Controle, Computação, Elétrica e Mecatrônica.
 
-### 1. 📊 Análise de Estabilidade
-* **Objetivo:** Avaliar a estabilidade de um sistema a partir de sua **equação característica**.
-* **Funcionalidade:** Implementa o **Critério de Routh-Hurwitz**, gerando a tabela de Routh formatada e indicando o número de polos instáveis.
-* **Entrada:** Coeficientes do polinômio característico (denominador).
-* **Saída:** Relatório textual completo, incluindo a tabela de Routh, as raízes do polinômio (polos) e uma conclusão clara sobre a estabilidade do sistema.
+A aplicação reúne em um único ambiente:
 
-### 2. ⚙️ Análise de Sistema 2ª Ordem
-* **Objetivo:** Extrair parâmetros fundamentais e métricas de desempenho de um sistema de segunda ordem.
-* **Funcionalidade:** Recebe a função de transferência (numerador e denominador) e calcula os parâmetros $\omega_n$ (frequência natural), $\zeta$ (coeficiente de amortecimento) e K (ganho).
-* **Saída:** Relatório textual detalhado com todos os parâmetros, classificação do sistema (subamortecido, etc.) e as métricas de resposta temporal (Tr, Tp, Ts, Mp).
-
-### 3. 📌 Lugar Geométrico das Raízes (LGR)
-* **Objetivo:** Fornecer uma análise completa, textual e gráfica, do LGR de um sistema em malha aberta.
-* **Funcionalidade:** Este módulo dedicado calcula todas as 6 regras de construção do LGR.
-* **Saída:**
-    * **Gráfico Interativo:** Plota os polos, zeros, ramos, segmentos do eixo real e assíntotas.
-    * **Relatório Detalhado:** Gera um relatório de texto completo, formatado de maneira didática, contendo:
-        1.  Polos e Zeros.
-        2.  Segmentos do eixo real que pertencem ao LGR.
-        3.  Cálculo das Assíntotas (centro e ângulos).
-        4.  Pontos de Entrada/Saída (cálculo de dK/ds = 0).
-        5.  Ângulos de Partida e Chegada (para polos/zeros complexos).
-        6.  Análise de **Routh-Hurwitz** para encontrar o **Ganho Crítico (K)** e os pontos de **cruzamento com o eixo jω**.
-
-### 4. 🎮 Análise de Controladores (PI, PD, PID)
-* **Objetivo:** Projetar, simular e comparar o desempenho de um sistema com e sem um controlador.
-* **Funcionalidade:** Permite ao usuário definir a planta G(s), o tipo de entrada (Degrau/Rampa) e os ganhos (Kp, Ki, Kd) do controlador.
-* **Saída:** Uma interface multi-abas com comparativos lado a lado:
-    * **Resposta Temporal:** Gráfico da saída $y(t)$ do sistema original vs. sistema controlado.
-    * **Lugar das Raízes:** Gráfico do LGR de $G(s)$ vs. $G_c(s)G(s)$.
-    * **Polos e Zeros:** Mapa de polos/zeros do sistema *final* (malha fechada).
-    * **Métricas:** Tabela comparativa de desempenho (Tr, Ts, Mp, etc.).
-* **Nova Funcionalidade:** A aba LGR deste módulo permite ao usuário especificar **polos dominantes desejados** (inserindo $\zeta$ e $\omega_n$) e exibe no gráfico a linha de $\zeta$ constante e os polos desejados, auxiliando no projeto do controlador.
+- ✅ Análise de **estabilidade** via Critério de Routh-Hurwitz
+- ✅ Extração de **parâmetros** de sistemas de segunda ordem (ωₙ, ζ, K)
+- ✅ Análise completa do **Lugar Geométrico das Raízes (LGR)**
+- ✅ Projeto e simulação de **controladores PI, PD e PID** com comparativos gráficos
 
 ---
 
-## 🧠 Conceitos Teóricos Abordados
+## 🖥️ Interface da Aplicação
 
-A ferramenta se baseia em conceitos fundamentais da Teoria de Controle Clássico:
-
-* **Função de Transferência:** Representação matemática da dinâmica de um sistema linear no domínio de Laplace, $G(s) = \frac{N(s)}{D(s)}$.
-* **Sistemas de Segunda Ordem:** Sistemas cuja dinâmica é descrita por uma equação diferencial de segunda ordem. A forma padrão em malha fechada é $G(s) = \frac{K \omega_n^2}{s^2 + 2\zeta\omega_n s + \omega_n^2}$, onde:
-    * $\omega_n$: Frequência natural (velocidade da resposta).
-    * $\zeta$: Coeficiente de amortecimento (forma da resposta: subamortecida, crítica, superamortecida).
-* **Estabilidade (Critério de Routh-Hurwitz):** Método algébrico que, a partir da equação característica, determina o número de polos no semiplano direito (indicando instabilidade).
-* **Lugar Geométrico das Raízes (LGR):** Gráfico que mostra como os polos de malha fechada se movem no plano-s à medida que um ganho (K) varia de 0 a $\infty$.
-* **Resposta Temporal:** Comportamento da saída do sistema ao longo do tempo em resposta a uma entrada (Degrau ou Rampa). Métricas importantes incluem:
-    * **Tempo de Subida (Tr):** Tempo para a resposta ir de 10% a 90% do valor final.
-    * **Tempo de Pico (Tp):** Tempo para atingir o primeiro pico de sobressinal.
-    * **Máximo Sobressinal (Mp%):** Percentual máximo que a resposta ultrapassa o valor final.
-    * **Tempo de Acomodação (Ts):** Tempo para a resposta entrar e permanecer dentro de uma faixa (geralmente ±2%) do valor final.
-* **Erro em Regime Permanente ($e_{ss}$):** A diferença entre a entrada desejada e a saída do sistema após um longo tempo.
-* **Controladores PID:**
-    * **Proporcional (P):** Atua proporcionalmente ao erro atual.
-    * **Integral (I):** Atua na integral do erro passado (elimina o $e_{ss}$ para entradas degrau).
-    * **Derivativo (D):** Atua na taxa de variação do erro (melhora a estabilidade e a resposta transitória).
+| Módulo | Tela |
+|--------|------|
+| 🏠 Tela Principal | ![Tela Principal](image/tela1.png) |
+| 📊 Análise de Estabilidade | ![Análise de Estabilidade](image/tela2.png) |
+| ⚙️ Sistema de 2ª Ordem | ![Análise de Sistema 2ª Ordem](image/tela3.png) |
+| 📌 Lugar Geométrico das Raízes | ![LGR](image/tela4.png) |
+| 🎮 Análise de Controladores | ![Análise de Controladores](image/tela5.png) |
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## 🧩 Módulos
 
-* **Python 3.10+**
-* **CustomTkinter:** Para a interface gráfica moderna e responsiva.
-* **Matplotlib:** Para a geração e exibição dos gráficos incorporados na interface.
-* **Control:** Biblioteca Python essencial para análise e projeto de sistemas de controle (criação de TF, `step_response`, `feedback`, `rlocus`, `poles`, `zeros`, `damp`).
-* **NumPy:** Para cálculos numéricos eficientes e manipulação de arrays.
-* **SciPy:** Utilizada para a simulação da resposta à rampa (`scipy.signal.lsim`).
-* **SymPy:** Utilizada para os cálculos simbólicos do LGR, como `dK/ds = 0`, e para a construção da tabela de Routh-Hurwitz com o ganho `k`.
-* **Pillow (PIL):** Necessário pelo `tela.py` para carregar e exibir imagens na interface.
+### 📊 1. Análise de Estabilidade
+
+Determina a estabilidade de um sistema a partir de sua equação característica.
+
+- Implementa o **Critério de Routh-Hurwitz** com geração automática da tabela
+- Identifica o número de **polos instáveis** (semiplano direito)
+- Exibe as **raízes do polinômio** e uma conclusão clara sobre a estabilidade
+
+**Entrada:** coeficientes do polinômio característico  
+**Saída:** tabela de Routh formatada + relatório textual completo
+
+---
+
+### ⚙️ 2. Análise de Sistema de 2ª Ordem
+
+Extrai parâmetros e métricas de desempenho de sistemas de segunda ordem.
+
+| Parâmetro | Descrição |
+|-----------|-----------|
+| ωₙ | Frequência natural |
+| ζ | Coeficiente de amortecimento |
+| K | Ganho estático |
+| Tr | Tempo de subida (10% → 90%) |
+| Tp | Tempo de pico |
+| Mp (%) | Máximo sobressinal |
+| Ts | Tempo de acomodação (±2%) |
+
+Classifica automaticamente o sistema: **subamortecido**, **criticamente amortecido** ou **superamortecido**.
+
+---
+
+### 📌 3. Lugar Geométrico das Raízes (LGR)
+
+Análise gráfica e textual completa do LGR de um sistema em malha aberta.
+
+**Regras de construção calculadas:**
+1. Polos e zeros do sistema
+2. Segmentos do eixo real pertencentes ao LGR
+3. Assíntotas — centro e ângulos
+4. Pontos de entrada/saída (`dK/ds = 0`)
+5. Ângulos de partida e chegada (polos/zeros complexos)
+6. **Ganho Crítico (K)** e cruzamentos com o eixo jω via Routh-Hurwitz
+
+**Saídas:** gráfico interativo com polos, zeros, ramos e assíntotas + relatório didático detalhado
+
+---
+
+### 🎮 4. Análise de Controladores (PI · PD · PID)
+
+Projeta, simula e compara o desempenho do sistema com e sem controlador.
+
+**Interface multi-abas com comparativos lado a lado:**
+
+| Aba | Conteúdo |
+|-----|----------|
+| 📈 Resposta Temporal | y(t) — sistema original vs. controlado |
+| 📌 Lugar das Raízes | LGR de G(s) vs. Gc(s)·G(s) |
+| 🗺️ Polos e Zeros | Mapa do sistema em malha fechada |
+| 📋 Métricas | Tabela comparativa (Tr, Ts, Mp, e_ss...) |
+
+> **Funcionalidade extra:** a aba LGR permite definir **polos dominantes desejados** a partir de ζ e ωₙ, exibindo a linha de ζ constante no gráfico para auxiliar no projeto.
+
+---
+
+## 🧠 Base Teórica
+
+```
+G(s) = N(s) / D(s)          Função de Transferência
+
+         K · ωₙ²
+G(s) = ──────────────────    Forma padrão de 2ª ordem
+        s² + 2ζωₙs + ωₙ²
+```
+
+| Conceito | Descrição |
+|----------|-----------|
+| **Função de Transferência** | Representação no domínio de Laplace |
+| **Routh-Hurwitz** | Método algébrico para análise de estabilidade |
+| **LGR** | Trajetória dos polos de malha fechada em função do ganho K |
+| **PID** | Controlador com ação proporcional, integral e derivativa |
+| **Erro em Regime (e_ss)** | Diferença entre referência e saída em regime permanente |
+
+---
+
+## 🛠️ Stack Tecnológica
+
+| Biblioteca | Uso |
+|------------|-----|
+| `CustomTkinter` | Interface gráfica moderna e responsiva |
+| `Matplotlib` | Geração e exibição de gráficos embutidos |
+| `Control` | Núcleo de análise de sistemas de controle |
+| `NumPy` | Cálculos numéricos e manipulação de arrays |
+| `SciPy` | Simulação da resposta à rampa (`lsim`) |
+| `SymPy` | Cálculos simbólicos do LGR e tabela de Routh |
+| `Pillow` | Carregamento de imagens na interface |
+
+---
 
 ## 🚀 Como Executar
 
-1.  **Clone o repositório:**
-    ```bash
-    git clone [https://github.com/luisFernandoJv/sistema-de-controle---an-lise-de-sistema-de-segunda-ordem-.git](https://github.com/luisFernandoJv/sistema-de-controle---an-lise-de-sistema-de-segunda-ordem-.git)
-    cd sistema-de-controle---an-lise-de-sistema-de-segunda-ordem-
-    ```
+### 1. Clone o repositório
 
-2.  **Crie e ative um ambiente virtual (recomendado):**
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # Linux/macOS
-    # ou
-    .\venv\Scripts\activate  # Windows
-    ```
+```bash
+git clone https://github.com/luisFernandoJv/sistema-de-controle---an-lise-de-sistema-de-segunda-ordem-.git
+cd sistema-de-controle---an-lise-de-sistema-de-segunda-ordem-
+```
 
-3.  **Instale as dependências:**
-    *(Certifique-se de ter um arquivo `requirements.txt`)*
-    ```bash
-    pip install -r requirements.txt
-    ```
-    *Seu `requirements.txt` deve conter:*
-    ```
-    customtkinter
-    matplotlib
-    control
-    numpy
-    scipy
-    sympy
-    Pillow
-    ```
+### 2. Crie um ambiente virtual
 
-4.  **Execute a aplicação principal (`tela.py`):**
-    ```bash
-    python tela.py
-    ```
+```bash
+python -m venv venv
+
+# Linux / macOS
+source venv/bin/activate
+
+# Windows
+.\venv\Scripts\activate
+```
+
+### 3. Instale as dependências
+
+```bash
+pip install -r requirements.txt
+```
+
+`requirements.txt`:
+```
+customtkinter
+matplotlib
+control
+numpy
+scipy
+sympy
+Pillow
+```
+
+### 4. Execute a aplicação
+
+```bash
+python tela.py
+```
+
+---
+
+## 📁 Estrutura do Projeto
+
+```
+📦 sistema-de-controle/
+ ┣ 📂 image/              # Screenshots da interface
+ ┣ 📜 tela.py             # Ponto de entrada — tela principal
+ ┣ 📜 estabilidade.py     # Módulo 1: Análise de Estabilidade
+ ┣ 📜 segunda_ordem.py    # Módulo 2: Sistema de 2ª Ordem
+ ┣ 📜 lgr.py              # Módulo 3: Lugar Geométrico das Raízes
+ ┣ 📜 controladores.py    # Módulo 4: Análise de Controladores
+ ┣ 📜 requirements.txt
+ ┗ 📜 README.md
+```
+
+---
 
 ## 📄 Licença
 
-Este projeto é distribuído sob a licença MIT.
+Distribuído sob a licença **MIT**. Consulte o arquivo [`LICENSE`](LICENSE) para mais detalhes.
+
+---
+
+<div align="center">
+
+Desenvolvido com 💙 para a comunidade de Engenharia de Controle  
+**UFERSA · Engenharia de Computação · 2025**
+
+</div>
